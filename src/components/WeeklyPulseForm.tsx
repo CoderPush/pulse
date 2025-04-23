@@ -5,9 +5,10 @@ import { WeeklyPulseFormData } from '@/types/weekly-pulse';
 import WelcomeScreen from './screens/WelcomeScreen';
 import ProjectSelectionScreen from './screens/ProjectSelectionScreen';
 import HoursWorkedScreen from './screens/HoursWorkedScreen';
-import AdditionalProjectsScreen from './screens/AdditionalProjectsScreen';
 import ManagerScreen from './screens/ManagerScreen';
-import FeedbackScreen from './screens/FeedbackScreen';
+import AdditionalProjectsScreen from './screens/AdditionalProjectsScreen';
+import TextInputScreen from './screens/TextInputScreen';
+import TimeInputScreen from './screens/TimeInputScreen';
 import ReviewScreen from './screens/ReviewScreen';
 import SuccessScreen from './screens/SuccessScreen';
 
@@ -15,52 +16,86 @@ export default function WeeklyPulseForm() {
   const [currentScreen, setCurrentScreen] = useState(0);
   const [progress, setProgress] = useState(0);
   const [formData, setFormData] = useState<WeeklyPulseFormData>({
-    primaryProject: { name: '', hours: 40 },
+    primaryProject: { name: '', hours: 0 },
     additionalProjects: [],
     manager: '',
-    feedback: ''
+    feedback: '',
+    changesNextWeek: '',
+    milestones: '',
+    otherFeedback: '',
+    hoursReportingImpact: '',
+    formCompletionTime: 0
   });
   
-  const totalScreens = 7;
+  const totalScreens = 11;
   
-  const nextScreen = () => {
+  const handleNext = () => {
     if (currentScreen < totalScreens - 1) {
       setCurrentScreen(currentScreen + 1);
-      setProgress(((currentScreen + 1) / (totalScreens - 2)) * 100);
+      if (currentScreen > 0 && currentScreen < totalScreens - 2) {
+        setProgress(((currentScreen + 1) / (totalScreens - 2)) * 100);
+      }
     }
   };
   
-  const prevScreen = () => {
+  const handleBack = () => {
     if (currentScreen > 0) {
       setCurrentScreen(currentScreen - 1);
-      setProgress(((currentScreen - 1) / (totalScreens - 2)) * 100);
+      if (currentScreen > 1 && currentScreen < totalScreens - 1) {
+        setProgress(((currentScreen - 1) / (totalScreens - 2)) * 100);
+      }
     }
   };
   
   const renderScreen = () => {
     const screenProps = {
-      onNext: nextScreen,
-      onBack: prevScreen,
+      onNext: handleNext,
+      onBack: handleBack,
       formData,
       setFormData
     };
 
     switch(currentScreen) {
       case 0:
-        return <WelcomeScreen onNext={nextScreen} />;
+        return <WelcomeScreen onNext={handleNext} />;
       case 1:
         return <ProjectSelectionScreen {...screenProps} />;
       case 2:
         return <HoursWorkedScreen {...screenProps} />;
       case 3:
-        return <AdditionalProjectsScreen {...screenProps} />;
-      case 4:
         return <ManagerScreen {...screenProps} />;
+      case 4:
+        return <AdditionalProjectsScreen {...screenProps} />;
       case 5:
-        return <FeedbackScreen {...screenProps} />;
+        return <TextInputScreen
+          {...screenProps}
+          title="Any changes next week?"
+          description="Mention further milestones/deadlines if applicable."
+          placeholder="Describe any upcoming changes in your work..."
+          fieldName="changesNextWeek"
+          optional={true}
+        />;
       case 6:
-        return <ReviewScreen {...screenProps} />;
+        return <TextInputScreen
+          {...screenProps}
+          title="Anything else to share?"
+          description="Wanting more/fewer challenges? Using more/less AI?"
+          placeholder="Share any additional thoughts..."
+          fieldName="otherFeedback"
+          optional={true}
+        />;
       case 7:
+        return <TextInputScreen
+          {...screenProps}
+          title="How has reporting the hours each week affected you?"
+          placeholder="Share your experience with weekly hour reporting..."
+          fieldName="hoursReportingImpact"
+        />;
+      case 8:
+        return <TimeInputScreen {...screenProps} />;
+      case 9:
+        return <ReviewScreen {...screenProps} />;
+      case 10:
         return <SuccessScreen />;
       default:
         return null;
@@ -71,7 +106,7 @@ export default function WeeklyPulseForm() {
     <div className="bg-gray-100 flex justify-center items-center w-full h-full min-h-screen py-8">
       <div className="bg-white rounded-xl shadow-lg w-full max-w-md h-full flex flex-col relative overflow-hidden">
         {/* Progress bar */}
-        {currentScreen > 0 && currentScreen < 6 && (
+        {currentScreen > 0 && currentScreen < totalScreens - 2 && (
           <div className="h-1 bg-gray-100 absolute top-0 left-0 right-0">
             <div 
               className="h-full bg-blue-600 transition-all duration-300"
@@ -81,7 +116,7 @@ export default function WeeklyPulseForm() {
         )}
         
         {/* Screen indicator */}
-        {currentScreen > 0 && currentScreen < 6 && (
+        {currentScreen > 0 && currentScreen < totalScreens - 2 && (
           <div className="absolute top-4 right-4 bg-gray-100 px-3 py-1 rounded-full text-xs text-gray-600 font-medium">
             {currentScreen}/{totalScreens - 2}
           </div>

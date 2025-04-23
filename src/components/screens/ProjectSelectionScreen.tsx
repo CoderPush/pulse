@@ -28,6 +28,14 @@ const projects = [
 export default function ProjectSelectionScreen({ onNext, formData, setFormData }: ScreenProps) {
   const [showOtherInput, setShowOtherInput] = useState(false);
   const [otherProject, setOtherProject] = useState('');
+  const [shouldNavigate, setShouldNavigate] = useState(false);
+
+  useEffect(() => {
+    if (shouldNavigate) {
+      onNext();
+      setShouldNavigate(false);
+    }
+  }, [shouldNavigate, onNext]);
 
   // Check if the current project is not in the predefined list
   useEffect(() => {
@@ -44,7 +52,7 @@ export default function ProjectSelectionScreen({ onNext, formData, setFormData }
     });
     setShowOtherInput(false);
     setOtherProject('');
-    setTimeout(onNext, 300);
+    setShouldNavigate(true);
   };
 
   const handleOtherProjectSubmit = () => {

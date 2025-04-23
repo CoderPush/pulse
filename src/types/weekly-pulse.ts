@@ -19,6 +19,11 @@ export interface WeeklyPulseFormData {
   additionalProjects: AdditionalProject[];
   manager: string;
   feedback: string;
+  changesNextWeek: string;
+  milestones: string;
+  otherFeedback: string;
+  hoursReportingImpact: string;
+  formCompletionTime: number;
 }
 
 export interface ScreenProps {

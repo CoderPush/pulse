@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react';
 import { ArrowRight, ArrowLeft, User, X } from 'lucide-react';
 import { ScreenProps } from '@/types/weekly-pulse';
 
@@ -9,11 +10,25 @@ const managers = [
 ];
 
 export default function ManagerScreen({ onNext, onBack, formData, setFormData }: ScreenProps) {
+  const [shouldNavigate, setShouldNavigate] = useState(false);
+
+  useEffect(() => {
+    if (shouldNavigate) {
+      onNext();
+      setShouldNavigate(false);
+    }
+  }, [shouldNavigate, onNext]);
+
   const handleManagerChange = (manager: string) => {
     setFormData({
       ...formData,
       manager
     });
+  };
+
+  const handleManagerSelect = (manager: string) => {
+    handleManagerChange(manager);
+    setShouldNavigate(true);
   };
 
   return (
@@ -43,10 +58,7 @@ export default function ManagerScreen({ onNext, onBack, formData, setFormData }:
         {formData.manager && managers.some(m => m.includes(formData.manager.toLowerCase())) && (
           <div 
             className="bg-gray-100 p-3 rounded cursor-pointer hover:bg-gray-200 flex items-center gap-3"
-            onClick={() => {
-              handleManagerChange(managers.find(m => m.includes(formData.manager.toLowerCase())) || '');
-              setTimeout(onNext, 300);
-            }}
+            onClick={() => handleManagerSelect(managers.find(m => m.includes(formData.manager.toLowerCase())) || '')}
           >
             <div className="bg-gray-300 rounded-full p-1">
               <User size={16} />

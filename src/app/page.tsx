@@ -1,5 +1,3 @@
-'use client';
-
 import WeeklyPulseForm from '@/components/WeeklyPulseForm';
 
 export default function Home() {
