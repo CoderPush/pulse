@@ -10,7 +10,7 @@ export default function WelcomeScreen({ onNext }: Pick<ScreenProps, 'onNext'>) {
       <div className="text-6xl">👋</div>
       <div>
         <h1 className="text-2xl font-bold mb-2">Hi, {loading ? '...' : user?.email || 'there'}!</h1>
-        <p className="text-gray-600 mb-6">This is your Weekly Pulse for <span className="font-semibold">Week 17</span>. It takes &lt; 2 minutes.</p>
+        <p className="text-gray-600 mb-6">This is your Weekly Pulse for <span className="font-semibold">Week 17</span></p>
         <p className="text-gray-600">Ready? Let&apos;s go</p>
       </div>
       <button 

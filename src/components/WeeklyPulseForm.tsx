@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { WeeklyPulseFormData } from '@/types/weekly-pulse';
+import { useAuth } from '@/providers/AuthProvider';
 import WelcomeScreen from './screens/WelcomeScreen';
 import ProjectSelectionScreen from './screens/ProjectSelectionScreen';
 import HoursWorkedScreen from './screens/HoursWorkedScreen';
@@ -13,9 +14,12 @@ import ReviewScreen from './screens/ReviewScreen';
 import SuccessScreen from './screens/SuccessScreen';
 
 export default function WeeklyPulseForm() {
+  const { user } = useAuth();
   const [currentScreen, setCurrentScreen] = useState(0);
   const [progress, setProgress] = useState(0);
   const [formData, setFormData] = useState<WeeklyPulseFormData>({
+    email: user?.email || '',
+    weekNumber: 17, // You can make this dynamic
     primaryProject: { name: '', hours: 0 },
     additionalProjects: [],
     manager: '',

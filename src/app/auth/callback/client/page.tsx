@@ -12,27 +12,19 @@ export default function CallbackPage() {
   useEffect(() => {
     const handleCallback = async () => {
       try {
-        console.log('Starting callback handling...');
-        
-        // Get the hash part of the URL
         const hash = window.location.hash.substring(1);
-        console.log('Hash:', hash);
         
         if (!hash) {
-          console.log('No hash found');
           setError('No token found in URL');
           setLoading(false);
           return;
         }
 
-        // Parse the hash parameters
         const params = new URLSearchParams(hash);
         const accessToken = params.get('access_token');
         const refreshToken = params.get('refresh_token');
-        console.log('Access token found:', !!accessToken);
 
         if (!accessToken) {
-          console.log('No access token found');
           setError('No access token found');
           setLoading(false);
           return;
@@ -50,54 +42,38 @@ export default function CallbackPage() {
           }
         );
 
-        console.log('Setting session...');
-        // Set the session
         const { error: sessionError } = await supabase.auth.setSession({
           access_token: accessToken,
           refresh_token: refreshToken || ''
         });
 
         if (sessionError) {
-          console.error('Session error:', sessionError);
           setError('Failed to set session: ' + sessionError.message);
           setLoading(false);
           return;
         }
 
-        // Wait for session to be properly set
         await new Promise(resolve => setTimeout(resolve, 2000));
 
-        // Verify the session and get user data
         const { data: { session }, error: getSessionError } = await supabase.auth.getSession();
-        console.log('Session data:', session);
         
         if (getSessionError || !session) {
-          console.error('Session verification failed:', getSessionError);
           setError('Failed to verify session');
           setLoading(false);
           return;
         }
 
-        // Get user data
         const { data: { user }, error: getUserError } = await supabase.auth.getUser();
-        console.log('User data:', user);
         
         if (getUserError || !user) {
-          console.error('User verification failed:', getUserError);
           setError('Failed to get user data');
           setLoading(false);
           return;
         }
-
-        console.log('Session and user verified, redirecting...');
         
-        // Clear the hash from URL
         window.location.hash = '';
-        
-        // Force a hard refresh to ensure the server gets the new session
         window.location.href = '/';
-      } catch (err) {
-        console.error('Unexpected error:', err);
+      } catch {
         setError('An unexpected error occurred');
         setLoading(false);
       }
@@ -109,10 +85,7 @@ export default function CallbackPage() {
   if (loading) {
     return (
       <div className="flex min-h-screen items-center justify-center">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold mb-4">Setting up your session...</h1>
-          <p>Please wait while we log you in.</p>
-        </div>
+        <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin" />
       </div>
     );
   }
