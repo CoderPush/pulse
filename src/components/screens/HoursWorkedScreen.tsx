@@ -15,7 +15,7 @@ export default function HoursWorkedScreen({ onNext, onBack, formData, setFormDat
   return (
     <div className="flex flex-col h-full px-6">
       <div className="flex-1 flex flex-col">
-        <h2 className="text-2xl font-bold mb-6">How many hours did you work this week?</h2>
+        <h2 className="text-2xl font-bold mb-6">How many hours did you work this week? <span className="text-red-500 ml-1">*</span></h2>
         
         <div className="flex flex-col gap-8 mb-6">
           <div className="relative">

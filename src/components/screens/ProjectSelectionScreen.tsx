@@ -72,7 +72,7 @@ export default function ProjectSelectionScreen({ onNext, formData, setFormData }
   return (
     <div className="flex flex-col h-full px-6">
       <div className="flex-1 flex flex-col">
-        <h2 className="text-2xl font-bold mb-6">What project did you spend most of your time on?</h2>
+        <h2 className="text-2xl font-bold mb-6">What project did you spend most of your time on? <span className="text-red-500 ml-1">*</span></h2>
         
         {/* Projects Grid */}
         <div className="mb-6">

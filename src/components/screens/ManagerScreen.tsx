@@ -33,7 +33,7 @@ export default function ManagerScreen({ onNext, onBack, formData, setFormData }:
 
   return (
     <div className="flex flex-col h-full px-6">
-      <h2 className="text-2xl font-bold mb-8">Who&apos;s your manager right now?</h2>
+      <h2 className="text-2xl font-bold mb-8">Who&apos;s your manager right now? <span className="text-red-500 ml-1">*</span></h2>
       
       <div className="flex flex-col gap-4 mb-6">
         <div className="relative">
