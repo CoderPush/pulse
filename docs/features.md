@@ -8,10 +8,10 @@
   - [ ] Google OAuth integration
   - [ ] Magic Link authentication
   - [ ] Email whitelist configuration for admins
-  - [ ] Automatic login via magic link in email/Mattermost
+  - [x] Automatic login via magic link in email/Mattermost
 
 ### 2. Weekly Submission Form
-- [ ] Multi-step form implementation
+- [x] Multi-step form implementation
   - [ ] Step 1: Welcome Screen
     - [ ] Personalized greeting
     - [ ] Week number display
