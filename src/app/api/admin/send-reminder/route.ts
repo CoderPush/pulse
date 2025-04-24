@@ -1,4 +1,4 @@
-import { createClient } from '@/utils/supabase/server';
+import { createClient } from '@supabase/supabase-js';
 import { NextResponse } from 'next/server';
 import { sendEmail } from '@/lib/email';
 import { getEmailSubject, getEmailTemplate } from '@/lib/email-templates';
@@ -13,7 +13,11 @@ interface User {
 
 export async function POST(request: Request) {
   try {
-    const supabase = await createClient();
+    // Create admin client with service role key
+    const supabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    );
 
     // Verify admin API key
     const authHeader = request.headers.get('Authorization');
@@ -48,23 +52,26 @@ export async function POST(request: Request) {
     const results = await Promise.all(
       usersData.map(async (user: User) => {
         try {
-          // Generate magic link
-          const { error: authError } = await supabase.auth.signInWithOtp({
+          // Generate magic link using admin API
+          const { data, error: authError } = await supabase.auth.admin.generateLink({
+            type: 'magiclink',
             email: user.email,
             options: {
-              emailRedirectTo: `${process.env.NEXT_PUBLIC_APP_URL}/auth/callback`,
-              shouldCreateUser: false,
-            },
+              redirectTo: `${process.env.NEXT_PUBLIC_APP_URL}/auth/callback`
+            }
           });
 
           if (authError) throw authError;
 
-          // Send email
+          // Use the action_link directly from Supabase
+          const magicLink = data.properties.action_link;
+
+          // Send email with our custom template
           const name = user.name || 'there';
           const { error: emailError } = await sendEmail({
             to: user.email,
             subject: getEmailSubject('initial'),
-            html: getEmailTemplate('initial', name, `${process.env.NEXT_PUBLIC_APP_URL}/auth/callback`),
+            html: getEmailTemplate('initial', name, magicLink),
           });
 
           if (emailError) throw emailError;
