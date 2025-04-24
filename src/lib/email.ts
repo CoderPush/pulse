@@ -1,34 +1,6 @@
-import nodemailer from 'nodemailer';
+import { Resend } from 'resend';
 
-// Email configuration based on environment
-const getEmailConfig = () => {
-  if (process.env.NODE_ENV === 'production') {
-    // Production email configuration
-    // You can switch between different providers here
-    return {
-      host: process.env.EMAIL_HOST,
-      port: Number(process.env.EMAIL_PORT),
-      secure: true,
-      auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASSWORD,
-      },
-    };
-  }
-
-  // Development/Staging - Mailtrap configuration
-  return {
-    host: 'sandbox.smtp.mailtrap.io',
-    port: 2525,
-    auth: {
-      user: process.env.MAILTRAP_USER,
-      pass: process.env.MAILTRAP_PASSWORD,
-    },
-  };
-};
-
-// Create reusable transporter
-const transporter = nodemailer.createTransport(getEmailConfig());
+const resend = new Resend(process.env.RESEND_API_KEY);
 
 export async function sendEmail({
   to,
@@ -40,15 +12,20 @@ export async function sendEmail({
   html: string;
 }) {
   try {
-    const info = await transporter.sendMail({
-      from: process.env.EMAIL_FROM || 'noreply@yourdomain.com',
+    const { data, error } = await resend.emails.send({
+      from: process.env.EMAIL_FROM || 'Weekly Pulse <onboarding@resend.dev>',
       to,
       subject,
       html,
     });
 
-    console.log('Email sent:', info.messageId);
-    return { success: true, messageId: info.messageId };
+    if (error) {
+      console.error('Error sending email:', error);
+      return { success: false, error };
+    }
+
+    console.log('Email sent:', data?.id);
+    return { success: true, messageId: data?.id };
   } catch (error) {
     console.error('Error sending email:', error);
     return { success: false, error };
