@@ -18,6 +18,7 @@ export default function WeeklyPulseForm() {
   const [currentScreen, setCurrentScreen] = useState(0);
   const [progress, setProgress] = useState(0);
   const [formData, setFormData] = useState<WeeklyPulseFormData>({
+    userId: user?.id || '',
     email: user?.email || '',
     weekNumber: 17, // You can make this dynamic
     primaryProject: { name: '', hours: 0 },

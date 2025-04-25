@@ -5,18 +5,18 @@ import { WeeklyPulseFormData } from '@/types/weekly-pulse';
 export async function POST(request: Request) {
   try {
     const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
+    const formData: WeeklyPulseFormData = await request.json();
 
-    console.log('User:', user);
+    // Get user ID from form data instead of auth
+    const userId = formData.userId;
 
-    if (!user) {
+    if (!userId) {
       return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
+        { error: 'User ID is required' },
+        { status: 400 }
       );
     }
 
-    const formData: WeeklyPulseFormData = await request.json();
     const currentDate = new Date();
 
     // Validate required fields
@@ -44,12 +44,6 @@ export async function POST(request: Request) {
       .eq('week_number', weekNumber)
       .single();
 
-    // Debug logging for week query
-    console.log('Week query result:', { week, weekError });
-    console.log('Week number used in query:', weekNumber);
-    console.log('Year used in query:', new Date().getFullYear());
-    console.log('==================');
-
     if (weekError || !week) {
       return NextResponse.json(
         { error: 'Invalid week number' },
@@ -62,7 +56,7 @@ export async function POST(request: Request) {
 
     // Format data for database
     const submissionData = {
-      user_id: user.id,
+      user_id: userId, // Use userId from form data
       year: week.year,
       week_number: week.week_number,
       primary_project_name: formData.primaryProject.name,

@@ -15,6 +15,7 @@ export interface AdditionalProject {
 }
 
 export interface WeeklyPulseFormData {
+  userId: string;
   email: string;
   weekNumber: number;
   primaryProject: Project;
