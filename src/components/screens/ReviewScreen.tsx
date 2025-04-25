@@ -18,6 +18,7 @@ export default function ReviewScreen({ onBack, formData, onNext }: ScreenProps) 
         headers: {
           'Content-Type': 'application/json',
         },
+        credentials: 'include',
         body: JSON.stringify(formData),
       });
 
