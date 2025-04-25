@@ -2,44 +2,35 @@ import { ArrowLeft, Check } from 'lucide-react';
 import { ScreenProps } from '@/types/weekly-pulse';
 import { useState } from 'react';
 
-export default function ReviewScreen({ onNext, onBack, formData }: ScreenProps) {
+export default function ReviewScreen({ onBack, formData, onNext }: ScreenProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
 
   const handleSubmit = async () => {
     try {
       setIsSubmitting(true);
-      
+      setError(null);
+
+      // Send raw form data to backend
       const response = await fetch('/api/submissions', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          email: formData.email,
-          week_number: formData.weekNumber,
-          primary_project: {
-            name: formData.primaryProject.name,
-            hours: formData.primaryProject.hours,
-          },
-          additional_projects: formData.additionalProjects,
-          manager: formData.manager,
-          feedback: formData.feedback,
-          changes_next_week: formData.changesNextWeek,
-          milestones: formData.milestones,
-          other_feedback: formData.otherFeedback,
-          hours_reporting_impact: formData.hoursReportingImpact,
-          form_completion_time: formData.formCompletionTime,
-        }),
+        body: JSON.stringify(formData),
       });
 
+      const data = await response.json();
+
       if (!response.ok) {
-        throw new Error('Failed to submit');
+        throw new Error(data.error || 'Failed to submit form');
       }
 
       onNext();
     } catch (error) {
       console.error('Error submitting:', error);
-      alert('Failed to submit. Please try again.');
+      setError(error instanceof Error ? error.message : 'Failed to submit form');
     } finally {
       setIsSubmitting(false);
     }
@@ -48,6 +39,12 @@ export default function ReviewScreen({ onNext, onBack, formData }: ScreenProps) 
   return (
     <div className="flex flex-col h-full px-6">
       <h2 className="text-2xl font-bold mb-8">Review & Submit</h2>
+      
+      {error && (
+        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded mb-4">
+          {error}
+        </div>
+      )}
       
       <div className="bg-gray-50 rounded-lg p-6 mb-8">
         <div className="mb-4">
@@ -60,7 +57,7 @@ export default function ReviewScreen({ onNext, onBack, formData }: ScreenProps) 
             <div className="text-sm text-gray-500 mb-1">Additional Projects</div>
             {formData.additionalProjects.map((proj, index) => (
               <div key={index} className="font-medium">
-                {proj.project}, {proj.hours}
+                {proj.project}, {proj.hours} hours
               </div>
             ))}
           </div>
@@ -89,7 +86,7 @@ export default function ReviewScreen({ onNext, onBack, formData }: ScreenProps) 
         </button>
         <button 
           onClick={handleSubmit}
-          className="bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-full font-medium flex items-center gap-2 flex-1 justify-center"
+          className="bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-full font-medium flex items-center gap-2 flex-1 justify-center disabled:bg-green-400"
           disabled={isSubmitting}
         >
           {isSubmitting ? 'Submitting...' : 'Submit Now'} <Check size={18} />

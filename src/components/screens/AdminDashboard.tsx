@@ -7,7 +7,7 @@ import { useRouter } from 'next/navigation';
 interface Submission {
   email: string;
   week_number: number;
-  status: 'On Time' | 'Late' | 'Not Submitted';
+  status: 'On Time' | 'Late';
   primary_project: {
     name: string;
     hours: number;
@@ -31,15 +31,17 @@ export default function AdminDashboard() {
     const fetchSubmissions = async () => {
       try {
         setLoading(true);
-        const params = new URLSearchParams({
-          email: searchQuery,
-          week: weekFilter,
-          status: statusFilter
-        });
+        const params = new URLSearchParams();
+        if (searchQuery) params.append('email', searchQuery);
+        if (weekFilter !== 'all') params.append('week', weekFilter);
+        if (statusFilter !== 'all') params.append('status', statusFilter);
         
         const response = await fetch(`/api/submissions/admin?${params}`);
-        const result = await response.json();
+        if (!response.ok) {
+          throw new Error('Failed to fetch submissions');
+        }
         
+        const result = await response.json();
         if (!result.success) {
           throw new Error(result.error || 'Failed to fetch submissions');
         }

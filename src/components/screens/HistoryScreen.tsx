@@ -14,9 +14,10 @@ export default function HistoryScreen() {
     const loadSubmission = async () => {
       if (user?.email) {
         try {
-          const response = await fetch(`/api/submissions/history?email=${user.email}`);
+          const response = await fetch('/api/submissions');
           if (!response.ok) throw new Error('Failed to fetch submissions');
           const data = await response.json();
+          console.log('data', data);
           const latest = data.sort((a: Submission, b: Submission) => b.week_number - a.week_number)[0];
           setSubmission(latest);
         } catch {
@@ -58,7 +59,7 @@ export default function HistoryScreen() {
             <div className="bg-gray-50 rounded-lg p-4">
               <div className="text-sm text-gray-500 mb-1">Primary Project</div>
               <div className="font-medium">
-                {submission.primary_project?.name} ({submission.primary_project?.hours} hours)
+                {submission.primary_project_name} ({submission.primary_project_hours} hours)
               </div>
             </div>
 

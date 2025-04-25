@@ -3,7 +3,7 @@ import { config } from 'dotenv';
 import { resolve } from 'path';
 
 // Load environment variables from .env.local
-config({ path: resolve(process.cwd(), '.env.local') });
+config({ path: resolve(process.cwd(), '.env') });
 
 const runMigrate = async () => {
   if (!process.env.DATABASE_URL) {
@@ -26,6 +26,14 @@ const runMigrate = async () => {
     `;
 
     await client`
+      drop table if exists public.submissions cascade
+    `;
+
+    await client`
+      drop table if exists public.weeks cascade
+    `;
+
+    await client`
       drop table if exists public.users cascade
     `;
 
@@ -38,6 +46,47 @@ const runMigrate = async () => {
         is_admin boolean default false,
         created_at timestamp with time zone default timezone('utc'::text, now()) not null,
         primary key (id)
+      )
+    `;
+
+    // Create weeks table
+    await client`
+      create table public.weeks (
+        id serial primary key,
+        year integer not null,
+        week_number integer not null,
+        start_date timestamp with time zone not null,
+        end_date timestamp with time zone not null,
+        submission_start timestamp with time zone not null,
+        submission_end timestamp with time zone not null,
+        late_submission_end timestamp with time zone not null,
+        created_at timestamp with time zone default timezone('utc'::text, now()) not null,
+        unique(year, week_number)
+      )
+    `;
+
+    // Create submissions table
+    await client`
+      create table public.submissions (
+        id uuid default gen_random_uuid() primary key,
+        user_id uuid not null references public.users(id) on delete cascade,
+        year integer not null,
+        week_number integer not null,
+        primary_project_name text not null,
+        primary_project_hours integer not null,
+        additional_projects jsonb default '[]'::jsonb,
+        manager text not null,
+        feedback text,
+        changes_next_week text,
+        milestones text,
+        other_feedback text,
+        hours_reporting_impact text,
+        form_completion_time integer,
+        status text not null default 'pending',
+        is_late boolean default false,
+        submitted_at timestamp with time zone default timezone('utc'::text, now()) not null,
+        created_at timestamp with time zone default timezone('utc'::text, now()) not null,
+        foreign key (year, week_number) references public.weeks(year, week_number)
       )
     `;
 

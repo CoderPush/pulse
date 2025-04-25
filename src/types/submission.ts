@@ -2,10 +2,8 @@ export interface Submission {
   id: string;
   email: string;
   week_number: number;
-  primary_project: {
-    name: string;
-    hours: number;
-  };
+  primary_project_name: string;
+  primary_project_hours: number;
   additional_projects: Array<{
     project: string;
     hours: number;
