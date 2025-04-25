@@ -1,57 +1,89 @@
+import { createClient } from '@/utils/supabase/server';
 import { NextResponse } from 'next/server';
-import { getSubmissions } from '@/lib/storage';
-import { Submission } from '@/types/submission';
 
 export async function GET(request: Request) {
   try {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+
+    if (!user) {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      );
+    }
+
+    // Check if user is admin
+    const { data: userData } = await supabase
+      .from('users')
+      .select('is_admin')
+      .eq('id', user.id)
+      .single();
+
+    if (!userData?.is_admin) {
+      return NextResponse.json(
+        { error: 'Forbidden' },
+        { status: 403 }
+      );
+    }
+
     const { searchParams } = new URL(request.url);
-    const email = searchParams.get('email') || '';
+    const email = searchParams.get('email');
     const week = searchParams.get('week');
     const status = searchParams.get('status');
 
-    // Get all submissions
-    const submissions = await getSubmissions();
+    // Build the query
+    let query = supabase
+      .from('submissions')
+      .select(`
+        *,
+        profiles:user_id (
+          email
+        )
+      `)
+      .order('created_at', { ascending: false });
 
-    // Filter submissions
-    let filteredSubmissions = submissions;
-
-    // Filter by email (case-insensitive)
+    // Apply filters
     if (email) {
-      filteredSubmissions = filteredSubmissions.filter((submission: Submission) => 
-        submission.email.toLowerCase().includes(email.toLowerCase())
-      );
+      query = query.ilike('profiles.email', `%${email}%`);
     }
-
-    // Filter by week
     if (week && week !== 'all') {
-      filteredSubmissions = filteredSubmissions.filter((submission: Submission) => 
-        submission.week_number.toString() === week
-      );
+      query = query.eq('week_number', Number(week));
     }
-
-    // Filter by status
     if (status && status !== 'all') {
-      filteredSubmissions = filteredSubmissions.filter((submission: Submission) => 
-        submission.status === status
+      query = query.eq('status', status);
+    }
+
+    const { data: submissions, error } = await query;
+
+    if (error) {
+      console.error('Error fetching submissions:', error);
+      return NextResponse.json(
+        { error: 'Failed to fetch submissions' },
+        { status: 500 }
       );
     }
 
-    // Sort by week number (descending) and then by email
-    filteredSubmissions.sort((a: Submission, b: Submission) => {
-      if (b.week_number !== a.week_number) {
-        return b.week_number - a.week_number;
-      }
-      return a.email.localeCompare(b.email);
-    });
+    // Transform the data to match the expected format
+    const transformedSubmissions = submissions.map(submission => ({
+      email: submission.profiles?.email,
+      week_number: submission.week_number,
+      status: submission.is_late ? 'Late' : 'On Time',
+      primary_project: {
+        name: submission.primary_project_name,
+        hours: submission.primary_project_hours
+      },
+      additional_projects: submission.additional_projects || []
+    }));
 
-    return NextResponse.json({ 
-      success: true, 
-      data: filteredSubmissions 
+    return NextResponse.json({
+      success: true,
+      data: transformedSubmissions
     });
   } catch (error) {
-    console.error('Error fetching submissions:', error);
+    console.error('Error in admin submissions route:', error);
     return NextResponse.json(
-      { success: false, error: 'Failed to fetch submissions' },
+      { error: 'Internal server error' },
       { status: 500 }
     );
   }
