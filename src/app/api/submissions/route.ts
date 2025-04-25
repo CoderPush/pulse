@@ -1,10 +1,10 @@
-import { createClient } from '@/utils/supabase/server';
-import { NextResponse } from 'next/server';
+import createClient from '@/utils/supabase/api';
+import { NextResponse, NextRequest } from 'next/server';
 import { WeeklyPulseFormData } from '@/types/weekly-pulse';
 
 export async function POST(request: Request) {
   try {
-    const supabase = await createClient();
+    const supabase = createClient(request as NextRequest, new NextResponse());
     const formData: WeeklyPulseFormData = await request.json();
 
     // Get user ID from form data instead of auth
@@ -101,9 +101,9 @@ export async function POST(request: Request) {
   }
 }
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
-    const supabase = await createClient();
+    const supabase = createClient(request as NextRequest, new NextResponse());
     const { data: { user } } = await supabase.auth.getUser();
 
     if (!user) {
