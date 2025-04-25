@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { Check, FileText } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
@@ -24,12 +25,12 @@ export default function SuccessScreen() {
           <div className="font-bold">3 weeks</div>
         </div> */}
         
-        <button 
+        {/* <button 
           onClick={() => router.push('/history')}
           className="border border-gray-300 hover:border-gray-400 px-6 py-3 rounded-full font-medium flex items-center gap-2 justify-center"
         >
           <FileText size={18} /> View My History
-        </button>
+        </button> */}
       </div>
     </div>
   );
