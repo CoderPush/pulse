@@ -49,6 +49,15 @@ export default function CallbackPage() {
           refresh_token: refreshToken || ''
         });
 
+        await fetch('/api/auth/set-cookie', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            access_token: accessToken,
+            refresh_token: refreshToken,
+          }),
+        });
+
         if (sessionError) {
           setError('Failed to set session: ' + sessionError.message);
           setLoading(false);
