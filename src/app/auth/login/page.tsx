@@ -1,9 +1,40 @@
 'use client';
 
+import { useEffect } from 'react';
+import { useSearchParams } from 'next/navigation';
 import GoogleSignInButton from '@/components/GoogleSignInButton';
 import { CalendarCheck } from 'lucide-react';
+import { createClient } from '@/utils/supabase/client';
 
 export default function LoginPage() {
+  const searchParams = useSearchParams();
+  const email = searchParams.get('email');
+
+  useEffect(() => {
+    const handleAutoLogin = async () => {
+      if (!email) return;
+
+      const supabase = createClient();
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: `${window.location.origin}/auth/callback`,
+          queryParams: {
+            access_type: 'offline',
+            prompt: 'consent',
+            login_hint: email
+          }
+        }
+      });
+
+      if (error) {
+        console.error('Error signing in with Google:', error);
+      }
+    };
+
+    handleAutoLogin();
+  }, [email]);
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-50">
       <div className="max-w-md w-full mx-4">
@@ -25,7 +56,6 @@ export default function LoginPage() {
           <div className="space-y-6">
             <GoogleSignInButton />
           </div>
-
         </div>
       </div>
     </div>
