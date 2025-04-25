@@ -7,6 +7,8 @@ export async function POST(request: Request) {
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
 
+    console.log('User:', user);
+
     if (!user) {
       return NextResponse.json(
         { error: 'Unauthorized' },
