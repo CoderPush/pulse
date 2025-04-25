@@ -9,12 +9,12 @@ export async function POST(request: Request) {
 
     console.log('User:', user);
 
-    // if (!user) {
-    //   return NextResponse.json(
-    //     { error: 'Unauthorized' },
-    //     { status: 401 }
-    //   );
-    // }
+    if (!user) {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      );
+    }
 
     const formData: WeeklyPulseFormData = await request.json();
     const currentDate = new Date();

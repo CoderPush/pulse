@@ -17,6 +17,7 @@ export default function CallbackPage() {
         if (!hash) {
           setError('No token found in URL');
           setLoading(false);
+          router.push('/auth/login');
           return;
         }
 
@@ -27,6 +28,7 @@ export default function CallbackPage() {
         if (!accessToken) {
           setError('No access token found');
           setLoading(false);
+          router.push('/auth/login');
           return;
         }
 
@@ -50,6 +52,7 @@ export default function CallbackPage() {
         if (sessionError) {
           setError('Failed to set session: ' + sessionError.message);
           setLoading(false);
+          router.push('/auth/login');
           return;
         }
 
@@ -60,6 +63,7 @@ export default function CallbackPage() {
         if (getSessionError || !session) {
           setError('Failed to verify session');
           setLoading(false);
+          router.push('/auth/login');
           return;
         }
 
@@ -68,6 +72,7 @@ export default function CallbackPage() {
         if (getUserError || !user) {
           setError('Failed to get user data');
           setLoading(false);
+          router.push('/auth/login');
           return;
         }
         
@@ -76,6 +81,7 @@ export default function CallbackPage() {
       } catch {
         setError('An unexpected error occurred');
         setLoading(false);
+        router.push('/auth/login');
       }
     };
 
@@ -94,10 +100,8 @@ export default function CallbackPage() {
     return (
       <div className="flex min-h-screen items-center justify-center">
         <div className="text-center">
-          <h1 className="text-2xl font-bold mb-4 text-red-500">Error</h1>
-          <p className="mb-4">{error}</p>
           <button
-            onClick={() => window.location.href = '/auth/login'}
+            onClick={() => router.push('/auth/login')}
             className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
           >
             Back to Login
