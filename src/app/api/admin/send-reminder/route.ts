@@ -3,14 +3,6 @@ import { NextResponse } from 'next/server';
 import { sendEmail } from '@/lib/email';
 import { getEmailSubject, getEmailTemplate } from '@/lib/email-templates';
 
-interface User {
-  id: string;
-  email: string;
-  name: string | null;
-  is_admin: boolean;
-  last_submission_date: string | null;
-}
-
 export async function POST(request: Request) {
   try {
     // Create admin client with service role key
@@ -49,47 +41,49 @@ export async function POST(request: Request) {
     }
 
     // Process each user
-    const results = await Promise.all(
-      usersData.map(async (user: User) => {
-        try {
-          // Generate magic link using admin API
-          const { data, error: authError } = await supabase.auth.admin.generateLink({
-            type: 'magiclink',
-            email: user.email,
-            options: {
-              redirectTo: `${process.env.NEXT_PUBLIC_APP_URL}/auth/callback`
-            }
-          });
+    const results = [];
+    for (const user of usersData) {
+      try {
+        // Add a delay of 1 second between each email send
+        await new Promise(resolve => setTimeout(resolve, 1000));
 
-          if (authError) throw authError;
+        // Generate magic link using admin API
+        const { data, error: authError } = await supabase.auth.admin.generateLink({
+          type: 'magiclink',
+          email: user.email,
+          options: {
+            redirectTo: `${process.env.NEXT_PUBLIC_APP_URL}/auth/callback`
+          }
+        });
 
-          // Use the action_link directly from Supabase
-          const magicLink = data.properties.action_link;
+        if (authError) throw authError;
 
-          // Send email with our custom template
-          const name = user.name || 'there';
-          const { error: emailError } = await sendEmail({
-            to: user.email,
-            subject: getEmailSubject('initial'),
-            html: getEmailTemplate('initial', name, magicLink),
-          });
+        // Use the action_link directly from Supabase
+        const magicLink = data.properties.action_link;
 
-          if (emailError) throw emailError;
+        // Send email with our custom template
+        const name = user.name || 'there';
+        const { error: emailError } = await sendEmail({
+          to: user.email,
+          subject: getEmailSubject('initial'),
+          html: getEmailTemplate('initial', name, magicLink),
+        });
 
-          return {
-            email: user.email,
-            success: true,
-          };
-        } catch (error) {
-          console.error(`Error processing user ${user.email}:`, error);
-          return {
-            email: user.email,
-            success: false,
-            error: error instanceof Error ? error.message : 'Unknown error',
-          };
-        }
-      })
-    );
+        if (emailError) throw emailError;
+
+        results.push({
+          email: user.email,
+          success: true,
+        });
+      } catch (error) {
+        console.error(`Error processing user ${user.email}:`, error);
+        results.push({
+          email: user.email,
+          success: false,
+          error: error instanceof Error ? error.message : 'Unknown error',
+        });
+      }
+    }
 
     return NextResponse.json({
       success: true,
