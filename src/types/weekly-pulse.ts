@@ -3,6 +3,24 @@ export interface Project {
   hours: number;
 }
 
+export interface Submission {
+  email: string;
+  week_number: number;
+  status: 'On Time' | 'Late';
+  submission_at: string;
+  created_at: string;
+  manager: string;
+  primary_project: Project;
+  additional_projects: Project[];
+  feedback?: string;
+  changes_next_week?: string;
+  milestones?: string;
+  other_feedback?: string;
+  hours_reporting_impact?: string;
+  form_completion_time?: number;
+}
+
+
 export interface ProjectHistory {
   week: number;
   project: string;

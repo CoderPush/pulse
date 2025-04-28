@@ -3,22 +3,8 @@
 import { useState, useEffect } from 'react';
 import { ArrowLeft, Search, ChevronDown } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-
-interface Submission {
-  email: string;
-  week_number: number;
-  status: 'On Time' | 'Late';
-  submission_at: string;
-  manager: string;
-  primary_project: {
-    name: string;
-    hours: number;
-  };
-  additional_projects: {
-    name: string;
-    hours: number;
-  }[];
-}
+import SubmissionDetailsModal from './SubmissionDetailsModal';
+import { Submission } from '../../types/weekly-pulse';
 
 export default function AdminDashboard() {
   const router = useRouter();
@@ -28,6 +14,8 @@ export default function AdminDashboard() {
   const [submissions, setSubmissions] = useState<Submission[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [selectedSubmission, setSelectedSubmission] = useState<Submission | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   useEffect(() => {
     const fetchSubmissions = async () => {
@@ -71,7 +59,7 @@ export default function AdminDashboard() {
           <div className="flex items-center space-x-4">
             <button
               onClick={() => router.push('/')}
-              className="p-2 rounded-full hover:bg-gray-100"
+              className="p-2 rounded-full hover:bg-gray-100 cursor-pointer"
             >
               <ArrowLeft className="w-5 h-5" />
             </button>
@@ -100,7 +88,7 @@ export default function AdminDashboard() {
               <select
                 value={weekFilter}
                 onChange={(e) => setWeekFilter(e.target.value)}
-                className="appearance-none pl-4 pr-10 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white min-w-[140px]"
+                className="appearance-none pl-4 pr-10 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white min-w-[140px] cursor-pointer"
               >
                 <option value="all">All Weeks</option>
                 <option value="17">Week 17</option>
@@ -114,12 +102,11 @@ export default function AdminDashboard() {
               <select
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value)}
-                className="appearance-none pl-4 pr-10 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white min-w-[140px]"
+                className="appearance-none pl-4 pr-10 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white min-w-[140px] cursor-pointer"
               >
                 <option value="all">All Statuses</option>
                 <option value="On Time">On Time</option>
                 <option value="Late">Late</option>
-                <option value="Not Submitted">Not Submitted</option>
               </select>
               <ChevronDown className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4 pointer-events-none" />
             </div>
@@ -202,6 +189,11 @@ export default function AdminDashboard() {
                       </svg>
                     </div>
                   </th>
+                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider border-b border-gray-200">
+                    <div className="flex items-center space-x-1">
+                      <span>Actions</span>
+                    </div>
+                  </th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
@@ -224,6 +216,17 @@ export default function AdminDashboard() {
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                       {new Date(submission.submission_at).toLocaleString()}
                     </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      <button
+                        onClick={() => {
+                          setSelectedSubmission(submission);
+                          setIsModalOpen(true);
+                        }}
+                        className="text-indigo-600 hover:text-indigo-900 cursor-pointer"
+                      >
+                        View Details
+                      </button>
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -231,6 +234,13 @@ export default function AdminDashboard() {
           )}
         </div>
       </div>
+
+      {/* Details Modal */}
+      <SubmissionDetailsModal
+        submission={selectedSubmission!}
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+      />
     </div>
   );
 } 
