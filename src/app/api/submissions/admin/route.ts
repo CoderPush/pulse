@@ -86,12 +86,19 @@ export async function GET(request: Request) {
       week_number: submission.week_number,
       status: submission.is_late ? 'Late' : 'On Time',
       submission_at: submission.submitted_at,
+      created_at: submission.created_at,
       manager: submission.manager,
       primary_project: {
         name: submission.primary_project_name,
         hours: submission.primary_project_hours
       },
-      additional_projects: submission.additional_projects || []
+      additional_projects: submission.additional_projects || [],
+      feedback: submission.feedback,
+      changes_next_week: submission.changes_next_week,
+      milestones: submission.milestones,
+      other_feedback: submission.other_feedback,
+      hours_reporting_impact: submission.hours_reporting_impact,
+      form_completion_time: submission.form_completion_time
     }));
 
     return NextResponse.json({
