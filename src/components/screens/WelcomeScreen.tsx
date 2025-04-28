@@ -23,14 +23,14 @@ export default function WelcomeScreen({ onNext, user }: WelcomeScreenProps) {
       <div className="flex flex-col gap-4">
         <button 
           onClick={onNext}
-          className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 rounded-full font-medium flex items-center gap-2 transition-all transform hover:scale-105"
+          className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 rounded-full font-medium flex items-center gap-2 transition-all transform hover:scale-105 cursor-pointer"
         >
           Start <ArrowRight size={18} />
         </button>
         <form action={signOut}>
           <button 
             type="submit"
-            className="bg-gray-600 hover:bg-gray-700 text-white px-8 py-3 rounded-full font-medium transition-all transform hover:scale-105"
+            className="bg-gray-600 hover:bg-gray-700 text-white px-8 py-3 rounded-full font-medium transition-all transform hover:scale-105 cursor-pointer"
           >
             Sign Out
           </button>
