@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { WeeklyPulseFormData } from '@/types/weekly-pulse';
-import { useAuth } from '@/providers/AuthProvider';
+import { User } from '@supabase/supabase-js';
 import WelcomeScreen from './screens/WelcomeScreen';
 import ProjectSelectionScreen from './screens/ProjectSelectionScreen';
 import HoursWorkedScreen from './screens/HoursWorkedScreen';
@@ -13,8 +13,11 @@ import TimeInputScreen from './screens/TimeInputScreen';
 import ReviewScreen from './screens/ReviewScreen';
 import SuccessScreen from './screens/SuccessScreen';
 
-export default function WeeklyPulseForm() {
-  const { user } = useAuth();
+interface WeeklyPulseFormProps {
+  user: User;
+}
+
+export default function WeeklyPulseForm({ user }: WeeklyPulseFormProps) {
   const [currentScreen, setCurrentScreen] = useState(0);
   const [progress, setProgress] = useState(0);
   const [formData, setFormData] = useState<WeeklyPulseFormData>({
@@ -62,7 +65,7 @@ export default function WeeklyPulseForm() {
 
     switch(currentScreen) {
       case 0:
-        return <WelcomeScreen onNext={handleNext} />;
+        return <WelcomeScreen user={user} onNext={handleNext} />;
       case 1:
         return <ProjectSelectionScreen {...screenProps} />;
       case 2:
