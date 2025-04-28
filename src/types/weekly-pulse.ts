@@ -3,7 +3,7 @@ export interface Project {
   hours: number;
 }
 
-export interface Submission {
+export interface WeeklyPulseSubmission {
   email: string;
   week_number: number;
   status: 'On Time' | 'Late';
@@ -19,7 +19,6 @@ export interface Submission {
   hours_reporting_impact?: string;
   form_completion_time?: number;
 }
-
 
 export interface ProjectHistory {
   week: number;

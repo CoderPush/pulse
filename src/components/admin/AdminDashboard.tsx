@@ -4,17 +4,17 @@ import { useState, useEffect } from 'react';
 import { ArrowLeft, Search, ChevronDown } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import SubmissionDetailsModal from './SubmissionDetailsModal';
-import { Submission } from '../../types/weekly-pulse';
+import { WeeklyPulseSubmission } from '../../types/weekly-pulse';
 
 export default function AdminDashboard() {
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState('');
   const [weekFilter, setWeekFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
-  const [submissions, setSubmissions] = useState<Submission[]>([]);
+  const [submissions, setSubmissions] = useState<WeeklyPulseSubmission[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [selectedSubmission, setSelectedSubmission] = useState<Submission | null>(null);
+  const [selectedSubmission, setSelectedSubmission] = useState<WeeklyPulseSubmission | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   useEffect(() => {
