@@ -3,7 +3,7 @@
 import { ArrowRight } from 'lucide-react';
 import { ScreenProps } from '@/types/weekly-pulse';
 import { User } from '@supabase/supabase-js';
-import { signOut } from '@/app/actions';
+import { signOut } from '@/utils/actions';
 
 interface WelcomeScreenProps extends Pick<ScreenProps, 'onNext'> {
   user: User | null;
