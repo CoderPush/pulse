@@ -79,7 +79,6 @@ export default function ManagerScreen({ onNext, onBack, formData, setFormData }:
         <button 
           onClick={onNext}
           className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-full font-medium flex items-center gap-2 flex-1 justify-center"
-          disabled={!formData.manager}
         >
           Next <ArrowRight size={18} />
         </button>
