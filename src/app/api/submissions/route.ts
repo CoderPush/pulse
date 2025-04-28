@@ -20,7 +20,7 @@ export async function POST(request: Request) {
     const currentDate = new Date();
 
     // Validate required fields
-    if (!formData.weekNumber || !formData.primaryProject.name || !formData.primaryProject.hours || !formData.manager) {
+    if (!formData.weekNumber || !formData.primaryProject.name || !formData.primaryProject.hours) {
       return NextResponse.json(
         { error: 'Missing required fields' },
         { status: 400 }

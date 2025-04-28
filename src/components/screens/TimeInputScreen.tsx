@@ -14,12 +14,32 @@ export default function TimeInputScreen({
     });
   };
 
+  const handleCustomTimeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = parseInt(e.target.value);
+    if (!isNaN(value) && value > 0) {
+      handleTimeChange(value);
+    } else if (e.target.value === '') {
+      handleTimeChange(0);
+    }
+  };
+
   return (
     <div className="flex flex-col h-full px-6">
       <div className="flex-1">
         <h2 className="text-2xl font-bold mb-4">How long did it take you to fill this out?</h2>
         <p className="text-gray-600 mb-6">Quick estimate. Round it. Don&lsquo;t overthink it.</p>
         
+        <div className="relative mb-6">
+          <input
+            type="number"
+            min="1"
+            placeholder="Enter custom minutes..."
+            value={formData.formCompletionTime || ''}
+            onChange={handleCustomTimeChange}
+            className="w-full p-4 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+        </div>
+
         <div className="grid grid-cols-3 gap-4">
           {[1, 2, 3, 5, 10, 15].map((minutes) => (
             <button
@@ -47,6 +67,7 @@ export default function TimeInputScreen({
         <button 
           onClick={onNext}
           className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-full font-medium flex items-center gap-2 flex-1 justify-center"
+          disabled={!formData.formCompletionTime}
         >
           Next <ArrowRight size={18} />
         </button>
