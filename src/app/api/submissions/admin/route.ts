@@ -37,15 +37,31 @@ export async function GET(request: Request) {
       .from('submissions')
       .select(`
         *,
-        profiles:user_id (
+        users:user_id (
           email
         )
       `)
-      .order('created_at', { ascending: false });
+      .order('submitted_at', { ascending: false });
 
     // Apply filters
     if (email) {
-      query = query.ilike('profiles.email', `%${email}%`);
+      // First get the user_ids for emails that match the search
+      const { data: usersData } = await supabase
+        .from('users')
+        .select('id')
+        .ilike('email', `%${email}%`);
+
+      if (!usersData || usersData.length === 0) {
+        // If no users found with matching email, return empty array
+        return NextResponse.json({
+          success: true,
+          data: []
+        });
+      }
+
+      // Filter submissions by the found user_ids
+      const userIds = usersData.map(user => user.id);
+      query = query.in('user_id', userIds);
     }
     if (week && week !== 'all') {
       query = query.eq('week_number', Number(week));
@@ -66,9 +82,11 @@ export async function GET(request: Request) {
 
     // Transform the data to match the expected format
     const transformedSubmissions = submissions.map(submission => ({
-      email: submission.profiles?.email,
+      email: submission.users?.email,
       week_number: submission.week_number,
       status: submission.is_late ? 'Late' : 'On Time',
+      submission_at: submission.submitted_at,
+      manager: submission.manager,
       primary_project: {
         name: submission.primary_project_name,
         hours: submission.primary_project_hours

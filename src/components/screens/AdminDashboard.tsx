@@ -8,6 +8,8 @@ interface Submission {
   email: string;
   week_number: number;
   status: 'On Time' | 'Late';
+  submission_at: string;
+  manager: string;
   primary_project: {
     name: string;
     hours: number;
@@ -178,7 +180,23 @@ export default function AdminDashboard() {
                   </th>
                   <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider border-b border-gray-200">
                     <div className="flex items-center space-x-1">
+                      <span>Manager</span>
+                      <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
+                      </svg>
+                    </div>
+                  </th>
+                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider border-b border-gray-200">
+                    <div className="flex items-center space-x-1">
                       <span>Status</span>
+                      <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
+                      </svg>
+                    </div>
+                  </th>
+                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider border-b border-gray-200">
+                    <div className="flex items-center space-x-1">
+                      <span>Submitted At</span>
                       <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
                       </svg>
@@ -193,6 +211,7 @@ export default function AdminDashboard() {
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">Week {submission.week_number}</td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{submission.primary_project?.name}</td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{submission.primary_project?.hours}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{submission.manager}</td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
                         submission.status === 'On Time' ? 'bg-green-100 text-green-800' :
@@ -201,6 +220,9 @@ export default function AdminDashboard() {
                       }`}>
                         {submission.status}
                       </span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      {new Date(submission.submission_at).toLocaleString()}
                     </td>
                   </tr>
                 ))}
