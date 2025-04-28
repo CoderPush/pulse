@@ -1,16 +1,10 @@
 import { useState, useEffect } from 'react';
-import { ArrowRight, ArrowLeft, User, X } from 'lucide-react';
+import { ArrowRight, ArrowLeft } from 'lucide-react';
 import { ScreenProps } from '@/types/weekly-pulse';
-
-const managers = [
-  'jane@company.com',
-  'john@company.com',
-  'michael@company.com',
-  'sarah@company.com'
-];
 
 export default function ManagerScreen({ onNext, onBack, formData, setFormData }: ScreenProps) {
   const [shouldNavigate, setShouldNavigate] = useState(false);
+  const [dontKnow, setDontKnow] = useState(false);
 
   useEffect(() => {
     if (shouldNavigate) {
@@ -26,46 +20,49 @@ export default function ManagerScreen({ onNext, onBack, formData, setFormData }:
     });
   };
 
-  const handleManagerSelect = (manager: string) => {
-    handleManagerChange(manager);
-    setShouldNavigate(true);
+  const handleDontKnowChange = (checked: boolean) => {
+    setDontKnow(checked);
+    if (checked) {
+      setFormData({
+        ...formData,
+        manager: 'I don\'t know'
+      });
+    } else {
+      setFormData({
+        ...formData,
+        manager: ''
+      });
+    }
   };
 
   return (
     <div className="flex flex-col h-full px-6">
-      <h2 className="text-2xl font-bold mb-8">Who&apos;s your manager right now? <span className="text-red-500 ml-1">*</span></h2>
+      <h2 className="text-2xl font-bold mb-8">Who&apos;s your manager right now? </h2>
       
       <div className="flex flex-col gap-4 mb-6">
         <div className="relative">
           <input
-            type="text"
-            placeholder="Type a name or email..."
+            type="email"
+            placeholder="Enter manager's email..."
             value={formData.manager}
             onChange={(e) => handleManagerChange(e.target.value)}
             className="w-full p-4 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            disabled={dontKnow}
           />
-          
-          {formData.manager && (
-            <button 
-              className="absolute right-4 top-4 text-gray-400 hover:text-gray-600"
-              onClick={() => handleManagerChange('')}
-            >
-              <X size={16} />
-            </button>
-          )}
         </div>
-        
-        {formData.manager && managers.some(m => m.includes(formData.manager.toLowerCase())) && (
-          <div 
-            className="bg-gray-100 p-3 rounded cursor-pointer hover:bg-gray-200 flex items-center gap-3"
-            onClick={() => handleManagerSelect(managers.find(m => m.includes(formData.manager.toLowerCase())) || '')}
-          >
-            <div className="bg-gray-300 rounded-full p-1">
-              <User size={16} />
-            </div>
-            {managers.find(m => m.includes(formData.manager.toLowerCase()))}
-          </div>
-        )}
+
+        <div className="flex items-center gap-2 mt-2">
+          <input
+            type="checkbox"
+            id="dont-know"
+            checked={dontKnow}
+            onChange={(e) => handleDontKnowChange(e.target.checked)}
+            className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+          />
+          <label htmlFor="dont-know" className="text-sm text-gray-600">
+            I don&apos;t know who my manager is
+          </label>
+        </div>
       </div>
       
       <div className="text-sm text-gray-500 pb-4">
