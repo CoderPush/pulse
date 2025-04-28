@@ -65,7 +65,7 @@ export default function ReviewScreen({ onBack, formData, onNext }: ScreenProps) 
         
         <div>
           <div className="text-sm text-gray-500 mb-1">Who&apos;s your manager right now?</div>
-          <div className="font-medium">{formData.manager}</div>
+          <div className="font-medium">{formData?.manager}</div>
         </div>
         
         {formData.feedback && (
