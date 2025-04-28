@@ -3,22 +3,8 @@ import { NextResponse } from 'next/server';
 import { sendEmail } from '@/lib/email';
 import { getEmailSubject, getEmailTemplate } from '@/lib/email-templates';
 
-interface User {
-  id: string;
-  email: string;
-  name: string | null;
-  is_admin: boolean;
-  last_submission_date: string | null;
-}
-
 export async function POST(request: Request) {
   try {
-    // Create admin client with service role key
-    const supabase = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!
-    );
-
     // Verify admin API key
     const authHeader = request.headers.get('Authorization');
     if (!authHeader?.startsWith('Bearer ')) {
@@ -36,56 +22,63 @@ export async function POST(request: Request) {
       );
     }
 
-    // Get all users
-    const { data: usersData, error: usersError } = await supabase
-      .from('users')
-      .select('*');
+    const { emails } = await request.json();
 
-    console.log('Users query result:', { usersData, usersError });
-
-    if (usersError) {
-      console.error('Error fetching users:', usersError);
-      throw usersError;
+    if (!emails || !Array.isArray(emails) || emails.length === 0) {
+      return NextResponse.json(
+        { error: 'No emails provided' },
+        { status: 400 }
+      );
     }
 
-    // Process each user
+    // Create admin client with service role key
+    const supabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    );
+
     const results = await Promise.all(
-      usersData.map(async (user: User) => {
+      emails.map(async (email) => {
         try {
-          // Generate magic link using admin API
-          const { data, error: authError } = await supabase.auth.admin.generateLink({
+          // Generate magic link for each email
+          const { data, error } = await supabase.auth.admin.generateLink({
             type: 'magiclink',
-            email: user.email,
-            options: {
-              redirectTo: `${process.env.NEXT_PUBLIC_APP_URL}/auth/callback`
-            }
+            email: email
           });
 
-          if (authError) throw authError;
+          if (error) throw error;
 
-          // Use the action_link directly from Supabase
-          const magicLink = data.properties.action_link;
+          // Extract token_hash from the action_link
+          const url = new URL(data.properties.action_link);
+          const token_hash = url.searchParams.get('token');
 
-          // Send email with our custom template
-          const name = user.name || 'there';
+          console.log('url', url);
+          console.log('token_hash', token_hash);
+          
+          if (!token_hash) throw new Error('No token hash found');
+
+          // Construct our own confirmation URL
+          const confirmationUrl = `${process.env.NEXT_PUBLIC_APP_URL}/auth/confirm?token_hash=${token_hash}&type=email`;
+
+          // Send email using our email library
           const { error: emailError } = await sendEmail({
-            to: user.email,
+            to: email,
             subject: getEmailSubject('initial'),
-            html: getEmailTemplate('initial', name, magicLink),
+            html: getEmailTemplate('initial', 'there', confirmationUrl)
           });
 
           if (emailError) throw emailError;
 
           return {
-            email: user.email,
-            success: true,
+            email,
+            success: true
           };
         } catch (error) {
-          console.error(`Error processing user ${user.email}:`, error);
+          console.error(`Error processing email ${email}:`, error);
           return {
-            email: user.email,
+            email,
             success: false,
-            error: error instanceof Error ? error.message : 'Unknown error',
+            error: error instanceof Error ? error.message : 'Unknown error'
           };
         }
       })
@@ -93,11 +86,11 @@ export async function POST(request: Request) {
 
     return NextResponse.json({
       success: true,
-      message: 'Successfully sent reminder emails to all users',
-      results,
+      message: 'Successfully sent magic links to specified users',
+      results
     });
   } catch (error) {
-    console.error('Error in send-reminder:', error);
+    console.error('Error in send reminder:', error);
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }
