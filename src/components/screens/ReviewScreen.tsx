@@ -6,7 +6,6 @@ export default function ReviewScreen({ onBack, formData, onNext }: ScreenProps) 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-
   const handleSubmit = async () => {
     try {
       setIsSubmitting(true);
@@ -47,32 +46,60 @@ export default function ReviewScreen({ onBack, formData, onNext }: ScreenProps) 
         </div>
       )}
       
-      <div className="bg-gray-50 rounded-lg p-6 mb-8">
-        <div className="mb-4">
+      <div className="bg-gray-50 rounded-lg p-6 mb-8 space-y-6">
+        <div>
           <div className="text-sm text-gray-500 mb-1">Primary Project</div>
           <div className="font-medium">{formData.primaryProject.name} ({formData.primaryProject.hours} hours)</div>
         </div>
         
         {formData.additionalProjects.length > 0 && (
-          <div className="mb-4">
-            <div className="text-sm text-gray-500 mb-1">Additional Projects</div>
+          <div>
+            <div className="text-sm text-gray-500 mb-1">Any other projects?</div>
             {formData.additionalProjects.map((proj, index) => (
               <div key={index} className="font-medium">
-                {proj.project}, {proj.hours} hours
+                {proj.project} ({proj.hours} hours)
               </div>
             ))}
           </div>
         )}
         
-        <div className="mb-4">
-          <div className="text-sm text-gray-500 mb-1">Manager</div>
+        <div>
+          <div className="text-sm text-gray-500 mb-1">Who&apos;s your manager right now?</div>
           <div className="font-medium">{formData.manager}</div>
         </div>
         
         {formData.feedback && (
           <div>
-            <div className="text-sm text-gray-500 mb-1">Notes</div>
+            <div className="text-sm text-gray-500 mb-1">Any blockers, changes, or feedback this week?</div>
             <div className="font-medium">{formData.feedback}</div>
+          </div>
+        )}
+
+        {formData.changesNextWeek && (
+          <div>
+            <div className="text-sm text-gray-500 mb-1">Any changes next week?</div>
+            <div className="font-medium">{formData.changesNextWeek}</div>
+          </div>
+        )}
+
+        {formData.otherFeedback && (
+          <div>
+            <div className="text-sm text-gray-500 mb-1">Anything else to share?</div>
+            <div className="font-medium">{formData.otherFeedback}</div>
+          </div>
+        )}
+
+        {formData.hoursReportingImpact && (
+          <div>
+            <div className="text-sm text-gray-500 mb-1">How has reporting the hours each week affected you?</div>
+            <div className="font-medium">{formData.hoursReportingImpact}</div>
+          </div>
+        )}
+
+        {formData.formCompletionTime && (
+          <div>
+            <div className="text-sm text-gray-500 mb-1">How long did it take you to fill this out?</div>
+            <div className="font-medium">{formData.formCompletionTime} minutes</div>
           </div>
         )}
       </div>
