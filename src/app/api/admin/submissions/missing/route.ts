@@ -15,7 +15,7 @@ interface ReminderLog {
   user_id: string;
   sent_at: string;
   sent_by: string;
-  sender: {
+  sender?: {
     name: string | null;
   };
 }
@@ -45,7 +45,9 @@ export async function GET(request: Request) {
     // Get year and week from query params, default to current
     const { searchParams } = new URL(request.url);
     const targetYear = parseInt(searchParams.get('year') || new Date().getFullYear().toString());
-    const targetWeek = parseInt(searchParams.get('week') || new Date().getWeek().toString());
+    const targetWeek = parseInt(searchParams.get('week') || '1');
+
+    console.log('Fetching missing submissions for:', { targetYear, targetWeek });
 
     // First get the week info
     const { data: weekData, error: weekError } = await supabase
@@ -55,7 +57,8 @@ export async function GET(request: Request) {
       .eq('week_number', targetWeek)
       .single<WeekInfo>();
 
-    if (weekError || !weekData) {
+    if (weekError) {
+      console.error('Error fetching week info:', weekError);
       return NextResponse.json(
         { error: 'Invalid week' },
         { status: 400 }
@@ -69,6 +72,7 @@ export async function GET(request: Request) {
       .returns<User[]>();
 
     if (usersError) {
+      console.error('Error fetching users:', usersError);
       return NextResponse.json(
         { error: 'Failed to fetch users' },
         { status: 500 }
@@ -84,6 +88,7 @@ export async function GET(request: Request) {
       .returns<Submission[]>();
 
     if (submissionsError) {
+      console.error('Error fetching submissions:', submissionsError);
       return NextResponse.json(
         { error: 'Failed to fetch submissions' },
         { status: 500 }
@@ -106,6 +111,7 @@ export async function GET(request: Request) {
       .returns<ReminderLog[]>();
 
     if (remindersError) {
+      console.error('Error fetching reminders:', remindersError);
       return NextResponse.json(
         { error: 'Failed to fetch reminders' },
         { status: 500 }
@@ -126,7 +132,7 @@ export async function GET(request: Request) {
         remindersByUser.set(reminder.user_id, {
           sent_at: reminder.sent_at,
           sent_by: reminder.sent_by,
-          sent_by_name: reminder.sender?.name
+          sent_by_name: reminder.sender?.name ?? null
         });
       }
     });
