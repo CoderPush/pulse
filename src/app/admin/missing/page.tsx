@@ -38,9 +38,12 @@ export default function MissingSubmissionsPage() {
   const { toast } = useToast();
   const currentWeek = getWeekNumber();
   const currentYear = new Date().getFullYear();
+  
+  // Default to previous week
+  const defaultWeek = currentWeek > 1 ? currentWeek - 1 : currentWeek;
 
   const [selectedYear, setSelectedYear] = useState(currentYear);
-  const [selectedWeek, setSelectedWeek] = useState(currentWeek);
+  const [selectedWeek, setSelectedWeek] = useState(defaultWeek);
   const [missingUsers, setMissingUsers] = useState<MissingUser[]>([]);
   const [weekInfo, setWeekInfo] = useState<WeekInfo | null>(null);
   const [loading, setLoading] = useState(true);
@@ -56,9 +59,21 @@ export default function MissingSubmissionsPage() {
   // Sort users with selected ones at the top
   const sortedUsers = useMemo(() => {
     return [...missingUsers].sort((a, b) => {
+      // First sort by selected status
       if (selectedUsers.includes(a.id) && !selectedUsers.includes(b.id)) return -1;
       if (!selectedUsers.includes(a.id) && selectedUsers.includes(b.id)) return 1;
-      return 0;
+      
+      // Then sort by last reminder (never reminded first)
+      if (!a.last_reminder && b.last_reminder) return -1;
+      if (a.last_reminder && !b.last_reminder) return 1;
+      if (a.last_reminder && b.last_reminder) {
+        const aDate = new Date(a.last_reminder.sent_at);
+        const bDate = new Date(b.last_reminder.sent_at);
+        return aDate.getTime() - bDate.getTime();
+      }
+      
+      // Finally sort by email alphabetically
+      return a.email.localeCompare(b.email);
     });
   }, [missingUsers, selectedUsers]);
 
