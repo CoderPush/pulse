@@ -59,16 +59,14 @@ export async function POST(request: Request) {
         };
       }
 
-      const { data: reminderCount } = await supabase
+      const { data: reminderLogs, count: previousReminderCount } = await supabase
         .from('reminder_logs')
-        .select('*')
+        .select('*', { count: 'exact' })
         .eq('user_id', recipient.id)
         .eq('week_number', week)
-        .order('sent_at', { ascending: false })
-        .limit(1)
-        .single();
+        .order('sent_at', { ascending: false });
 
-      const count = (reminderCount ? 1 : 0) + 1;
+      const count = (previousReminderCount || 0) + 1;
       let template;
       let type: ReminderType;
       switch (count) {
