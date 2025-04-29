@@ -3,6 +3,7 @@
 ## Tech Stack Overview
 
 - **Frontend**: Next.js 15 with App Router, React 19, Tailwind CSS 4
+- **UI Components**: shadcn/ui
 - **Backend**: Supabase (Auth + Database)
 - **Database**: PostgreSQL with Drizzle ORM
 - **Email**: Resend for production, Mailtrap for staging
@@ -20,11 +21,91 @@ src/
 │   ├── history/           # User history view
 │   └── page.tsx           # Main submission form
 ├── components/            # Reusable UI components
+│   ├── ui/               # shadcn/ui components
+│   ├── screens/          # Form screens
+│   └── admin/            # Admin components
 ├── constants/             # App-wide constants
 ├── db/                    # Database schema and queries
 ├── lib/                   # Utility functions
 ├── types/                 # TypeScript type definitions
 └── utils/                 # Helper functions
+```
+
+## UI Component Strategy
+
+### shadcn/ui Integration
+
+1. **Core Components**
+   ```bash
+   npx shadcn-ui@latest add button input textarea select progress card command dialog toast tabs table calendar tooltip
+   ```
+
+2. **Form Components to Replace**
+   - Custom inputs → shadcn `Input`
+   - Custom textareas → shadcn `Textarea`
+   - Custom selects → shadcn `Select` and `Command`
+   - Custom progress bar → shadcn `Progress`
+   - Custom buttons → shadcn `Button`
+   - Form container → shadcn `Card`
+
+3. **New Components to Add**
+   - `Command` for project search/selection
+   - `Dialog` for confirmation modals
+   - `Toast` for notifications
+   - `Tabs` for admin dashboard views
+   - `DataTable` for submission history
+   - `Calendar` for week selection
+   - `Tooltip` for info icons
+
+4. **Form Handling**
+   - Use React Hook Form with shadcn form components
+   - Implement form validation with zod
+   - Use shadcn's form error handling
+
+### Component Examples
+
+```tsx
+// Project Selection Screen
+import { Button } from "@/components/ui/button"
+import { Card } from "@/components/ui/card"
+import { Command } from "@/components/ui/command"
+
+export function ProjectSelectionScreen() {
+  return (
+    <Card className="p-6">
+      <Command>
+        <CommandInput placeholder="Search projects..." />
+        <CommandList>
+          <CommandEmpty>No projects found.</CommandEmpty>
+          <CommandGroup>
+            {projects.map((project) => (
+              <CommandItem
+                key={project.id}
+                onSelect={() => setFormData({ ...formData, project })}
+              >
+                {project.name}
+              </CommandItem>
+            ))}
+          </CommandGroup>
+        </CommandList>
+      </Command>
+    </Card>
+  )
+}
+
+// Admin Dashboard
+import { DataTable } from "@/components/ui/data-table"
+
+export function AdminDashboard() {
+  return (
+    <DataTable
+      columns={columns}
+      data={submissions}
+      filterable
+      sortable
+    />
+  )
+}
 ```
 
 ## Data Model
@@ -65,39 +146,40 @@ src/
 1. **Welcome Screen**
    - Greeting with user name
    - Current week display
-   - Start button
+   - Start button (shadcn Button)
 
 2. **Project Selection**
-   - Searchable dropdown
+   - Command component for searchable dropdown
    - Recent projects autocomplete
    - Project creation if not found
 
 3. **Hours Worked**
    - Number input with validation (10-80)
-   - Info tooltip
+   - Tooltip for info
 
 4. **Manager Selection**
-   - Autocomplete input
+   - Command component for autocomplete
    - Team member lookup
 
 5. **Feedback**
-   - Optional text area
-   - Character limit (500)
+   - Textarea with character limit (500)
+   - Optional field indicator
 
 6. **Review & Submit**
    - Summary of all inputs
-   - Submit button
+   - Submit button with confirmation dialog
 
 ### Admin Dashboard
-- Submission tracking
-- Team/employee filters
+- DataTable for submission tracking
+- Tabs for different views
+- Filter components
 - Export functionality
 - Historical data view
 
 ### History View
-- Personal submission history
+- DataTable for personal submission history
 - Download option (CSV/PDF)
-- Week navigation
+- Calendar for week navigation
 
 ## API Routes
 
@@ -143,7 +225,7 @@ MAILTRAP_API_KEY=your_mailtrap_key
 ## Implementation Guidelines
 
 1. **Mobile First**
-   - All components should be responsive
+   - All shadcn components are responsive by default
    - Touch-friendly inputs
    - Minimal scrolling
 
@@ -153,11 +235,12 @@ MAILTRAP_API_KEY=your_mailtrap_key
    - Lazy loading for history
 
 3. **Error Handling**
-   - Form validation
+   - Form validation with zod
    - Network error recovery
-   - User-friendly error messages
+   - Toast notifications for errors
 
 4. **Accessibility**
+   - shadcn components are accessible by default
    - ARIA labels
    - Keyboard navigation
    - Color contrast compliance
