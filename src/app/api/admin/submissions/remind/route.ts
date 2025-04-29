@@ -41,9 +41,9 @@ export async function POST(request: Request) {
 
   const { data: recentReminders } = await supabase
     .from('reminder_logs')
-    .select('user_id, count')
+    .select('user_id')
     .in('user_id', userIds)
-    .gte('created_at', twentyFourHoursAgo.toISOString());
+    .gte('sent_at', twentyFourHoursAgo.toISOString());
 
   const recentlyRemindedUserIds = new Set(recentReminders?.map(r => r.user_id) || []);
 
@@ -61,15 +61,14 @@ export async function POST(request: Request) {
 
       const { data: reminderCount } = await supabase
         .from('reminder_logs')
-        .select('count')
+        .select('*')
         .eq('user_id', user.id)
-        .eq('week', week)
-        .eq('year', year)
-        .order('created_at', { ascending: false })
+        .eq('week_number', week)
+        .order('sent_at', { ascending: false })
         .limit(1)
         .single();
 
-      const count = (reminderCount?.count || 0) + 1;
+      const count = (reminderCount ? 1 : 0) + 1;
       let template;
       let type: ReminderType;
       switch (count) {
@@ -114,9 +113,7 @@ export async function POST(request: Request) {
           .from('reminder_logs')
           .insert({
             user_id: user.id,
-            week,
-            year,
-            count,
+            week_number: week,
             sent_by: user.id
           });
 
