@@ -5,7 +5,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Activity, Clock, FileText, UserMinus } from 'lucide-react';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
-import '@/utils/date'; // Import date utilities
+import { getWeekNumber } from '@/utils/date';
 
 export default function AdminDashboard() {
   const [missingCount, setMissingCount] = useState<number | null>(null);
@@ -15,7 +15,7 @@ export default function AdminDashboard() {
     const fetchMissingCount = async () => {
       try {
         const currentDate = new Date();
-        const currentWeek = currentDate.getWeek();
+        const currentWeek = getWeekNumber(currentDate);
         const targetWeek = currentWeek > 1 ? currentWeek - 1 : currentWeek;
         setLastWeek(targetWeek);
         
