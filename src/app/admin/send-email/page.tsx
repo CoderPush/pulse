@@ -13,16 +13,11 @@ export default function SendEmailPage() {
   const [isSending, setIsSending] = useState(false)
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
 
-  const validateEmail = (email: string) => {
-    const re = /\S+@\S+\.\S+/
-    return re.test(email)
-  }
-
   const handleAddEmails = () => {
     const emails = emailInput
       .split(/[\n,]+/) // Split by newlines and commas
       .map(email => email.trim())
-      .filter(email => email && validateEmail(email) && !emailList.includes(email))
+      .filter(email => email && !emailList.includes(email))
     
     if (emails.length > 0) {
       setEmailList([...emailList, ...emails])
@@ -88,7 +83,7 @@ export default function SendEmailPage() {
   const getPreviewContent = () => {
     const previewEmail = 'user@example.com'
     const previewName = previewEmail.split('@')[0]
-    const previewLink = 'https://example.com/auth/login?email=user@example.com'
+    const previewLink = 'https://example.com/auth/login'
     return getEmailTemplate(selectedType, previewName, previewLink)
   }
 
