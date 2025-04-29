@@ -5,6 +5,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Activity, Clock, FileText, UserMinus } from 'lucide-react';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
+import '@/utils/date'; // Import date utilities
 
 export default function AdminDashboard() {
   const [missingCount, setMissingCount] = useState<number | null>(null);
@@ -13,12 +14,13 @@ export default function AdminDashboard() {
   useEffect(() => {
     const fetchMissingCount = async () => {
       try {
-        const currentWeek = new Date().getWeek();
+        const currentDate = new Date();
+        const currentWeek = currentDate.getWeek();
         const targetWeek = currentWeek > 1 ? currentWeek - 1 : currentWeek;
         setLastWeek(targetWeek);
         
         const response = await fetch(
-          `/api/admin/submissions/missing?year=${new Date().getFullYear()}&week=${targetWeek}`
+          `/api/admin/submissions/missing?year=${currentDate.getFullYear()}&week=${targetWeek}`
         );
         const data = await response.json();
         
