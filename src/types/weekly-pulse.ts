@@ -6,7 +6,7 @@ export interface Project {
 export interface WeeklyPulseSubmission {
   email: string;
   week_number: number;
-  status: 'On Time' | 'Late';
+  status: string;
   submission_at: string;
   created_at: string;
   manager: string;
