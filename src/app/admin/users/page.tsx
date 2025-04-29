@@ -13,6 +13,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
+import ImportDialog from '@/components/admin/ImportDialog';
 
 interface User {
   id: string;
@@ -28,6 +29,7 @@ export default function UsersPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const [isImportDialogOpen, setIsImportDialogOpen] = useState(false);
 
   const fetchUsers = async (search?: string) => {
     try {
@@ -99,6 +101,14 @@ export default function UsersPage() {
             </button>
             <h1 className="text-xl font-semibold">User Management</h1>
           </div>
+          <Button
+            variant="outline"
+            onClick={() => setIsImportDialogOpen(true)}
+            className="flex items-center gap-2"
+          >
+            <Upload className="w-4 h-4" />
+            Import Users
+          </Button>
         </div>
       </div>
 
@@ -174,6 +184,12 @@ export default function UsersPage() {
           )}
         </div>
       </div>
+
+      <ImportDialog
+        isOpen={isImportDialogOpen}
+        onClose={() => setIsImportDialogOpen(false)}
+        onImportComplete={() => fetchUsers(searchQuery)}
+      />
     </div>
   );
 } 
