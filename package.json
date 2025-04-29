@@ -14,15 +14,23 @@
   },
   "dependencies": {
     "@next/third-parties": "^15.3.1",
+    "@radix-ui/react-scroll-area": "^1.2.6",
+    "@radix-ui/react-slot": "^1.2.0",
+    "@radix-ui/react-tabs": "^1.1.9",
     "@supabase/ssr": "^0.6.1",
     "@supabase/supabase-js": "^2.49.4",
+    "add": "^2.0.6",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
     "drizzle-orm": "^0.42.0",
     "lucide-react": "^0.503.0",
     "next": "15.3.1",
     "nodemailer": "^6.10.1",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
-    "resend": "^4.4.0"
+    "react-scroll-area⠇pnpm": "link:@radix-ui/react-scroll-area⠇pnpm",
+    "resend": "^4.4.0",
+    "tailwind-merge": "^3.2.0"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",
@@ -38,6 +46,7 @@
     "postgres": "^3.4.5",
     "tailwindcss": "^4",
     "tsx": "^4.19.3",
+    "tw-animate-css": "^1.2.8",
     "typescript": "^5"
   },
   "packageManager": "pnpm@10.7.1+sha512.2d92c86b7928dc8284f53494fb4201f983da65f0fb4f0d40baafa5cf628fa31dae3e5968f12466f17df7e97310e30f343a648baea1b9b350685dafafffdf5808"
