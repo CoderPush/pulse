@@ -111,6 +111,7 @@ export async function POST(request: Request) {
           .from('reminder_logs')
           .insert({
             user_id: recipient.id,
+            year: year,
             week_number: week,
             sent_by: dbUser.id
           });

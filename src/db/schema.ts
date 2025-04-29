@@ -54,9 +54,10 @@ export const submissions = pgTable('submissions', {
 export const reminderLogs = pgTable('reminder_logs', {
   id: uuid('id').defaultRandom().primaryKey(),
   userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  year: integer('year').notNull(),
   weekNumber: integer('week_number').notNull(),
   sentAt: timestamp('sent_at', { withTimezone: true }).defaultNow().notNull(),
   sentBy: uuid('sent_by').notNull().references(() => users.id, { onDelete: 'cascade' }),
 }, (table) => ({
-  userWeekIdx: index('idx_reminder_logs_user_week').on(table.userId, table.weekNumber),
+  userWeekIdx: index('idx_reminder_logs_user_week').on(table.userId, table.year, table.weekNumber),
 })); 

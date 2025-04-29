@@ -1,7 +1,8 @@
+import { drizzle } from 'drizzle-orm/postgres-js';
 import postgres from 'postgres';
 import { config } from 'dotenv';
 import { resolve } from 'path';
-import { readFileSync } from 'fs';
+import { readFileSync, readdirSync } from 'fs';
 
 // Load environment variables from .env
 config({ path: resolve(process.cwd(), '.env') });
@@ -11,17 +12,25 @@ const runMigrate = async () => {
     throw new Error('DATABASE_URL is not defined');
   }
 
-  const connectionString = process.env.DATABASE_URL;
-  const sql = postgres(connectionString, { max: 1 });
+  const sql = postgres(process.env.DATABASE_URL, { max: 1 });
+  const db = drizzle(sql);
 
   console.log('⏳ Running migrations...');
 
   try {
-    // Read and execute the migration SQL file
-    const migrationSQL = readFileSync(resolve(process.cwd(), 'drizzle/0000_initial.sql'), 'utf8');
-    await sql.unsafe(migrationSQL);
+    // Get all migration files and sort them
+    const migrationFiles = readdirSync(resolve(process.cwd(), 'drizzle'))
+      .filter(file => file.endsWith('.sql'))
+      .sort();
+
+    // Execute each migration in order
+    for (const file of migrationFiles) {
+      console.log(`Running migration: ${file}`);
+      const migrationSQL = readFileSync(resolve(process.cwd(), 'drizzle', file), 'utf8');
+      await sql.unsafe(migrationSQL);
+    }
     
-    console.log('✅ Migration completed successfully');
+    console.log('✅ All migrations completed successfully');
   } catch (error) {
     console.error('❌ Migration failed:', error);
     throw error;

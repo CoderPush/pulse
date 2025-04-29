@@ -1,5 +1,5 @@
 {
-  "id": "04e6aeaf-bf1e-4760-ba64-d7ced38bc703",
+  "id": "809ef40e-3a0e-4839-be73-5824476b7531",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -58,6 +58,12 @@
           "primaryKey": false,
           "notNull": true
         },
+        "year": {
+          "name": "year",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
         "week_number": {
           "name": "week_number",
           "type": "integer",
@@ -78,7 +84,35 @@
           "notNull": true
         }
       },
-      "indexes": {},
+      "indexes": {
+        "idx_reminder_logs_user_week": {
+          "name": "idx_reminder_logs_user_week",
+          "columns": [
+            {
+              "expression": "user_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "year",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "week_number",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
       "foreignKeys": {
         "reminder_logs_user_id_users_id_fk": {
           "name": "reminder_logs_user_id_users_id_fk",

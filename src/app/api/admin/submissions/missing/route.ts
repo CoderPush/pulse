@@ -106,6 +106,7 @@ export async function GET(request: Request) {
           name
         )
       `)
+      .eq('year', targetYear)
       .eq('week_number', targetWeek)
       .order('sent_at', { ascending: false })
       .returns<ReminderLog[]>();
