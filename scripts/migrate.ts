@@ -90,6 +90,22 @@ const runMigrate = async () => {
       )
     `;
 
+    // Create reminder_logs table
+    await client`
+      create table public.reminder_logs (
+        id uuid default gen_random_uuid() primary key,
+        user_id uuid not null references public.users(id) on delete cascade,
+        week_number integer not null,
+        sent_at timestamp with time zone default timezone('utc'::text, now()) not null,
+        sent_by uuid not null references public.users(id) on delete cascade
+      )
+    `;
+
+    // Create index for reminder_logs
+    await client`
+      create index idx_reminder_logs_user_week on public.reminder_logs (user_id, week_number)
+    `;
+
     // Create function to handle new user creation
     await client`
       create function public.handle_new_user()
