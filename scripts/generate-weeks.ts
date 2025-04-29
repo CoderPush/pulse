@@ -1,6 +1,7 @@
 import postgres from 'postgres';
 import { config } from 'dotenv';
 import { resolve } from 'path';
+import { getWeekNumber } from '../src/utils/date';
 
 // Load environment variables
 config({ path: resolve(process.cwd(), '.env') });
@@ -72,16 +73,12 @@ const generateWeeks = async (year: number) => {
   }
 };
 
-// Get year from command line argument or use current year
-const year = process.argv[2] ? parseInt(process.argv[2]) : new Date().getFullYear();
-
-if (isNaN(year)) {
-  console.error('❌ Invalid year provided');
-  process.exit(1);
-}
-
-generateWeeks(year).catch((err) => {
-  console.error('❌ Script failed');
-  console.error(err);
+// Run for current year and next year
+const currentYear = new Date().getFullYear();
+Promise.all([
+  generateWeeks(currentYear),
+  generateWeeks(currentYear + 1)
+]).catch((err) => {
+  console.error('Failed to generate weeks:', err);
   process.exit(1);
 }); 

@@ -3,13 +3,14 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { ArrowLeft, Mail, Send, X, Plus } from 'lucide-react'
-import { getEmailSubject, getEmailTemplate } from '@/lib/email-templates'
+import { getReminderSubject, getReminderTemplate, ReminderType } from '@/utils/email-templates'
+import { getWeekNumber } from '@/utils/date'
 
 export default function SendEmailPage() {
   const router = useRouter()
   const [emailInput, setEmailInput] = useState('')
   const [emailList, setEmailList] = useState<string[]>([])
-  const [selectedType, setSelectedType] = useState('initial')
+  const [selectedType, setSelectedType] = useState<ReminderType>('on-time')
   const [isSending, setIsSending] = useState(false)
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
 
@@ -83,8 +84,13 @@ export default function SendEmailPage() {
   const getPreviewContent = () => {
     const previewEmail = 'user@example.com'
     const previewName = previewEmail.split('@')[0]
-    const previewLink = 'https://example.com/auth/login'
-    return getEmailTemplate(selectedType, previewName, previewLink)
+    const weekNumber = getWeekNumber()
+    const year = new Date().getFullYear()
+    return getReminderTemplate(selectedType, {
+      userName: previewName,
+      weekNumber,
+      year
+    })
   }
 
   return (
@@ -181,12 +187,13 @@ export default function SendEmailPage() {
               <select
                 id="type"
                 value={selectedType}
-                onChange={(e) => setSelectedType(e.target.value)}
+                onChange={(e) => setSelectedType(e.target.value as ReminderType)}
                 className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               >
-                <option value="initial">Initial Form Access</option>
                 <option value="on-time">On-Time Reminder</option>
-                <option value="late-1">Late Submission</option>
+                <option value="late-1">First Late Reminder</option>
+                <option value="late-2">Second Late Reminder</option>
+                <option value="late-3">Final Late Reminder</option>
               </select>
             </div>
 
@@ -194,7 +201,11 @@ export default function SendEmailPage() {
             <div className="border rounded-lg overflow-hidden">
               <div className="bg-gray-50 p-4 border-b">
                 <h3 className="font-medium text-gray-700">Email Preview</h3>
-                <p className="text-sm text-gray-500">Subject: {getEmailSubject(selectedType)}</p>
+                <p className="text-sm text-gray-500">Subject: {getReminderSubject(selectedType, {
+                  userName: null,
+                  weekNumber: getWeekNumber(),
+                  year: new Date().getFullYear()
+                })}</p>
               </div>
               <div className="p-4 prose max-w-none">
                 <div dangerouslySetInnerHTML={{ __html: getPreviewContent() }} />
