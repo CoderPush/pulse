@@ -54,7 +54,7 @@ export async function GET(request: Request) {
       success: true,
       data: users
     });
-  } catch (error) {
+  } catch {
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }
@@ -121,7 +121,7 @@ export async function PATCH(request: Request) {
       success: true,
       message: 'User updated successfully'
     });
-  } catch (error) {
+  } catch {
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

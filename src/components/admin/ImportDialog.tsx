@@ -1,7 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import { Upload, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -21,7 +20,6 @@ interface ImportDialogProps {
 }
 
 export default function ImportDialog({ isOpen, onClose, onImportComplete }: ImportDialogProps) {
-  const [file, setFile] = useState<File | null>(null);
   const [emails, setEmails] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
@@ -39,7 +37,6 @@ export default function ImportDialog({ isOpen, onClose, onImportComplete }: Impo
       return;
     }
 
-    setFile(selectedFile);
     parseCSV(selectedFile);
   };
 
@@ -137,7 +134,7 @@ export default function ImportDialog({ isOpen, onClose, onImportComplete }: Impo
         <DialogHeader>
           <DialogTitle>Import Users</DialogTitle>
           <DialogDescription>
-            Upload a CSV file containing email addresses to import users. The file can optionally include a header row with "Email" as the first column. Existing users will be skipped.
+            Upload a CSV file containing email addresses to import users. The file can optionally include a header row with &quot;Email&quot; as the first column. Existing users will be skipped.
           </DialogDescription>
         </DialogHeader>
         <div className="grid gap-4 py-4">
@@ -152,7 +149,7 @@ export default function ImportDialog({ isOpen, onClose, onImportComplete }: Impo
               <p className="font-medium">CSV Format Requirements:</p>
               <ul className="list-disc pl-4 space-y-1">
                 <li>Email addresses must be in the first column</li>
-                <li>Optional header row with "Email" as the first column</li>
+                <li>Optional header row with &quot;Email&quot; as the first column</li>
                 <li>One email address per line</li>
                 <li>Empty lines are automatically skipped</li>
                 <li>Invalid email formats are ignored</li>
