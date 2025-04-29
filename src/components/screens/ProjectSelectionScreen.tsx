@@ -1,29 +1,7 @@
 import { useState, useEffect } from 'react';
 import { ArrowRight, Plus } from 'lucide-react';
 import { ScreenProps } from '@/types/weekly-pulse';
-
-const projects = [
-  'Athletica',
-  'Capsule Transit',
-  'Casebook',
-  'Coin Theaters',
-  'Commun1ty',
-  'Ensign',
-  'Inhalio',
-  'Joe Coffee',
-  'Groopl',
-  'Lemonade',
-  'Locket',
-  'Moneta',
-  'R&D',
-  'Rsportz',
-  'Sleek',
-  'Skylab',
-  'HR/Ops',
-  'Marketing/Sales/Bizdev',
-  'Shrimpl',
-  'Orchestars'
-];
+import { PROJECTS } from '@/constants/projects';
 
 export default function ProjectSelectionScreen({ onNext, formData, setFormData }: ScreenProps) {
   const [showOtherInput, setShowOtherInput] = useState(false);
@@ -39,7 +17,7 @@ export default function ProjectSelectionScreen({ onNext, formData, setFormData }
 
   // Check if the current project is not in the predefined list
   useEffect(() => {
-    if (formData.primaryProject.name && !projects.includes(formData.primaryProject.name)) {
+    if (formData.primaryProject.name && !PROJECTS.includes(formData.primaryProject.name)) {
       setShowOtherInput(true);
       setOtherProject(formData.primaryProject.name);
     }
@@ -78,7 +56,7 @@ export default function ProjectSelectionScreen({ onNext, formData, setFormData }
         <div className="mb-6">
           <h3 className="text-lg font-semibold text-gray-700 mb-4">Select a project</h3>
           <div className="grid grid-cols-2 gap-3">
-            {projects.map((project, i) => (
+            {PROJECTS.map((project, i) => (
               <button
                 key={i}
                 onClick={() => selectProject(project)}

@@ -1,0 +1,22 @@
+export const PROJECTS: string[] = [
+  'Athletica',
+  'Capsule Transit',
+  'Casebook',
+  'Coin Theaters',
+  'Commun1ty',
+  'Ensign',
+  'Inhalio',
+  'Joe Coffee',
+  'Groopl',
+  'Lemonade',
+  'Locket',
+  'Moneta',
+  'R&D',
+  'Rsportz',
+  'Sleek',
+  'Skylab',
+  'HR/Ops',
+  'Marketing/Sales/Bizdev',
+  'Shrimpl',
+  'Orchestars'
+]; 
