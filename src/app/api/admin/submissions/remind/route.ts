@@ -59,7 +59,7 @@ export async function POST(request: Request) {
         };
       }
 
-      const { data: reminderLogs, count: previousReminderCount } = await supabase
+      const { count: previousReminderCount } = await supabase
         .from('reminder_logs')
         .select('*', { count: 'exact' })
         .eq('user_id', recipient.id)
