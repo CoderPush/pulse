@@ -87,7 +87,7 @@ export default function AdditionalProjectsScreen({ onNext, onBack, formData, set
       
       {/* Projects Grid */}
       <div className="mb-6">
-        <h3 className="text-lg font-semibold text-gray-700 mb-4">Select a project</h3>
+        <h3 className="text-lg font-semibold text-gray-700 mb-4">Select projects</h3>
         <div className="grid grid-cols-2 gap-3">
           {PROJECTS.map((project, i) => (
             <div key={i} className="flex flex-col gap-2">
