@@ -1,26 +1,31 @@
 import { useState } from 'react';
 import { ArrowRight, ArrowLeft, Plus, Trash2 } from 'lucide-react';
 import { ScreenProps, AdditionalProject } from '@/types/weekly-pulse';
+import { PROJECTS } from '@/constants/projects';
 
 export default function AdditionalProjectsScreen({ onNext, onBack, formData, setFormData }: ScreenProps) {
-  const [additionalProjectInput, setAdditionalProjectInput] = useState('');
-  const [additionalHoursInput, setAdditionalHoursInput] = useState('');
+  const [showOtherInput, setShowOtherInput] = useState(false);
+  const [otherProject, setOtherProject] = useState('');
+  const [hoursInput, setHoursInput] = useState('');
+  const [selectedProject, setSelectedProject] = useState<string | null>(null);
+  const [projectHours, setProjectHours] = useState('');
 
-  const addAdditionalProject = () => {
-    if (additionalProjectInput && additionalHoursInput) {
-      const newProject: AdditionalProject = {
-        project: additionalProjectInput,
-        hours: parseInt(additionalHoursInput)
-      };
-      
-      setFormData({
-        ...formData,
-        additionalProjects: [...formData.additionalProjects, newProject]
-      });
-      
-      setAdditionalProjectInput('');
-      setAdditionalHoursInput('');
-    }
+  const addAdditionalProject = (projectName: string, hours: number) => {
+    const newProject: AdditionalProject = {
+      project: projectName,
+      hours: hours
+    };
+    
+    setFormData({
+      ...formData,
+      additionalProjects: [...formData.additionalProjects, newProject]
+    });
+    
+    setShowOtherInput(false);
+    setOtherProject('');
+    setHoursInput('');
+    setSelectedProject(null);
+    setProjectHours('');
   };
 
   const removeAdditionalProject = (index: number) => {
@@ -30,6 +35,28 @@ export default function AdditionalProjectsScreen({ onNext, onBack, formData, set
       ...formData,
       additionalProjects: updatedProjects
     });
+  };
+
+  const handleOtherProjectSubmit = () => {
+    if (otherProject.trim() && hoursInput) {
+      addAdditionalProject(otherProject.trim(), parseInt(hoursInput));
+    }
+  };
+
+  const handleOtherClick = () => {
+    setShowOtherInput(true);
+    setSelectedProject(null);
+  };
+
+  const handleProjectSelect = (project: string) => {
+    setSelectedProject(project);
+    setShowOtherInput(false);
+  };
+
+  const handleProjectHoursSubmit = () => {
+    if (selectedProject && projectHours) {
+      addAdditionalProject(selectedProject, parseInt(projectHours));
+    }
   };
 
   return (
@@ -56,49 +83,90 @@ export default function AdditionalProjectsScreen({ onNext, onBack, formData, set
         </div>
       )}
       
-      {/* Add new project form */}
-      <div className="flex flex-col gap-4 mb-6">
-        <div className="flex gap-2">
+      {/* Projects Grid */}
+      <div className="mb-6">
+        <h3 className="text-lg font-semibold text-gray-700 mb-4">Select a project</h3>
+        <div className="grid grid-cols-2 gap-3">
+          {PROJECTS.map((project, i) => (
+            <div key={i} className="flex flex-col gap-2">
+              <button
+                onClick={() => handleProjectSelect(project)}
+                className={`p-3 rounded-lg text-left transition-colors ${
+                  formData.additionalProjects.some(p => p.project === project)
+                    ? 'bg-blue-100 text-blue-700'
+                    : selectedProject === project
+                    ? 'bg-blue-200 text-blue-800 border-2 border-blue-300'
+                    : 'bg-gray-50 hover:bg-gray-100'
+                }`}
+              >
+                {project}
+              </button>
+              {selectedProject === project && (
+                <div className="flex gap-2 bg-blue-50 p-3 rounded-lg">
+                  <input
+                    type="number"
+                    placeholder="hours"
+                    value={projectHours}
+                    onChange={(e) => setProjectHours(e.target.value)}
+                    min="1"
+                    max="80"
+                    className="w-80 p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                  />
+                  <button
+                    onClick={handleProjectHoursSubmit}
+                    disabled={!projectHours}
+                    className="px-3 py-2 bg-blue-500 text-white rounded-lg disabled:bg-gray-300 disabled:cursor-not-allowed text-sm hover:bg-blue-600"
+                  >
+                    Add
+                  </button>
+                </div>
+              )}
+            </div>
+          ))}
+          <div className="flex flex-col gap-2">
+            <button
+              onClick={handleOtherClick}
+              className={`p-3 rounded-lg transition-colors flex items-center gap-2 ${
+                showOtherInput
+                  ? 'bg-blue-200 text-blue-800 border-2 border-blue-300'
+                  : 'bg-gray-50 hover:bg-gray-100'
+              }`}
+            >
+              <Plus size={16} />
+              Other
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Other Project Input - Outside Grid */}
+      {showOtherInput && (
+        <div className="flex gap-2 bg-blue-50 p-3 rounded-lg mb-6">
           <input
             type="text"
-            placeholder="Project name"
-            value={additionalProjectInput}
-            onChange={(e) => setAdditionalProjectInput(e.target.value)}
-            className="flex-1 p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            placeholder="Enter project name..."
+            value={otherProject}
+            onChange={(e) => setOtherProject(e.target.value)}
+            className="flex-1 p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
           />
           <input
             type="number"
-            placeholder="Hours"
-            value={additionalHoursInput}
-            onChange={(e) => setAdditionalHoursInput(e.target.value)}
+            placeholder="hour"
+            value={hoursInput}
+            onChange={(e) => setHoursInput(e.target.value)}
             min="1"
             max="80"
-            className="w-24 p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-80 p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
           />
+          <button
+            onClick={handleOtherProjectSubmit}
+            disabled={!otherProject.trim() || !hoursInput}
+            className="px-3 py-2 bg-blue-500 text-white rounded-lg disabled:bg-gray-300 disabled:cursor-not-allowed text-sm hover:bg-blue-600"
+          >
+            Add
+          </button>
         </div>
-        
-        <button 
-          onClick={addAdditionalProject}
-          disabled={!additionalProjectInput || !additionalHoursInput}
-          className={`flex items-center justify-center gap-2 p-3 rounded-lg ${
-            additionalProjectInput && additionalHoursInput 
-            ? 'bg-blue-100 text-blue-600 hover:bg-blue-200' 
-            : 'bg-gray-100 text-gray-400'
-          }`}
-        >
-          <Plus size={16} /> Add Project
-        </button>
-      </div>
-      
-      <div className="text-sm text-gray-500 mb-4">
-        Use the format: Project Name, Hours
-      </div>
-      
-      <div className="p-3 bg-blue-50 rounded-lg text-sm text-gray-600 mb-8">
-        <div className="font-medium mb-1">Example:</div>
-        Project A, 2<br />
-        Project B, 3
-      </div>
+      )}
       
       <div className="mt-auto flex gap-3">
         <button 
