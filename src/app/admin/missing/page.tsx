@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -62,7 +62,7 @@ export default function MissingSubmissionsPage() {
     });
   }, [missingUsers, selectedUsers]);
 
-  const fetchMissingSubmissions = async () => {
+  const fetchMissingSubmissions = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
@@ -81,11 +81,11 @@ export default function MissingSubmissionsPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [selectedYear, selectedWeek]);
 
   useEffect(() => {
     fetchMissingSubmissions();
-  }, [selectedYear, selectedWeek]);
+  }, [fetchMissingSubmissions]);
 
   const handleRowClick = (userId: string) => {
     setSelectedUsers(prev => {

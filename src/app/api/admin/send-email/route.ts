@@ -1,7 +1,8 @@
 import { createClient } from '@/utils/supabase/server';
 import { NextResponse } from 'next/server';
 import { sendEmail } from '@/lib/email';
-import { getEmailTemplate, getEmailSubject } from '@/lib/email-templates';
+import { getReminderSubject, getReminderTemplate, ReminderType } from '@/utils/email-templates';
+import { getWeekNumber } from '@/utils/date';
 
 // Helper function to sleep for X ms
 function sleep(ms: number) {
@@ -51,9 +52,18 @@ export async function POST(request: Request) {
 
       const batchResults = await Promise.all(
         batch.map(async (email) => {
-          const magicLink = `${process.env.NEXT_PUBLIC_APP_URL}`;
-          const template = getEmailTemplate(type, email, magicLink);
-          const subject = getEmailSubject(type);
+          const weekNumber = getWeekNumber();
+          const year = new Date().getFullYear();
+          const template = getReminderTemplate(type as ReminderType, {
+            userName: email.split('@')[0],
+            weekNumber,
+            year
+          });
+          const subject = getReminderSubject(type as ReminderType, {
+            userName: email.split('@')[0],
+            weekNumber,
+            year
+          });
 
           return sendEmail({
             to: email,

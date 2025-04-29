@@ -57,10 +57,6 @@ export const reminderLogs = pgTable('reminder_logs', {
   weekNumber: integer('week_number').notNull(),
   sentAt: timestamp('sent_at', { withTimezone: true }).defaultNow().notNull(),
   sentBy: uuid('sent_by').notNull().references(() => users.id, { onDelete: 'cascade' }),
-});
-
-// Create an index for reminder_logs
-export const reminderLogsIndex = {
-  name: 'idx_reminder_logs_user_week',
-  columns: [reminderLogs.userId, reminderLogs.weekNumber],
-}; 
+}, (table) => ({
+  userWeekIdx: index('idx_reminder_logs_user_week').on(table.userId, table.weekNumber),
+})); 
