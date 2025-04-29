@@ -16,10 +16,12 @@ export default function AdditionalProjectsScreen({ onNext, onBack, formData, set
       hours: hours
     };
     
-    setFormData({
-      ...formData,
-      additionalProjects: [...formData.additionalProjects, newProject]
-    });
+    if (!formData.additionalProjects.some(p => p.project === projectName)) {
+      setFormData({
+        ...formData,
+        additionalProjects: [...formData.additionalProjects, newProject]
+      });
+    }
     
     setShowOtherInput(false);
     setOtherProject('');
@@ -39,7 +41,7 @@ export default function AdditionalProjectsScreen({ onNext, onBack, formData, set
 
   const handleOtherProjectSubmit = () => {
     if (otherProject.trim() && hoursInput) {
-      addAdditionalProject(otherProject.trim(), parseInt(hoursInput));
+      addAdditionalProject(otherProject.trim(), parseInt(hoursInput, 10));
     }
   };
 
@@ -55,7 +57,7 @@ export default function AdditionalProjectsScreen({ onNext, onBack, formData, set
 
   const handleProjectHoursSubmit = () => {
     if (selectedProject && projectHours) {
-      addAdditionalProject(selectedProject, parseInt(projectHours));
+      addAdditionalProject(selectedProject, parseInt(projectHours, 10));
     }
   };
 
