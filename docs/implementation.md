@@ -3,7 +3,7 @@
 ## Tech Stack Overview
 
 - **Frontend**: Next.js 15 with App Router, React 19, Tailwind CSS 4
-- **UI Components**: shadcn/ui
+- **UI Components**: shadcn
 - **Backend**: Supabase (Auth + Database)
 - **Database**: PostgreSQL with Drizzle ORM
 - **Email**: Resend for production, Mailtrap for staging
@@ -21,7 +21,7 @@ src/
 │   ├── history/           # User history view
 │   └── page.tsx           # Main submission form
 ├── components/            # Reusable UI components
-│   ├── ui/               # shadcn/ui components
+│   ├── ui/               # shadcn components
 │   ├── screens/          # Form screens
 │   └── admin/            # Admin components
 ├── constants/             # App-wide constants
@@ -33,11 +33,11 @@ src/
 
 ## UI Component Strategy
 
-### shadcn/ui Integration
+### shadcn Integration
 
 1. **Core Components**
    ```bash
-   npx shadcn-ui@latest add button input textarea select progress card command dialog toast tabs table calendar tooltip
+   pnpm dlx shadcn@latest add button input textarea select progress card command dialog toast tabs table calendar tooltip
    ```
 
 2. **Form Components to Replace**
