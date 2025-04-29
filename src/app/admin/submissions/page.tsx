@@ -13,6 +13,7 @@ import {
 } from '@/components/ui/table';
 import { FileText, Search } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import SubmissionDetailsModal from '@/components/admin/SubmissionDetailsModal';
 
 interface Submission {
   email: string;
@@ -21,9 +22,20 @@ interface Submission {
     name: string;
     hours: number;
   };
+  additional_projects: Array<{
+    name: string;
+    hours: number;
+  }>;
   manager: string;
-  status: string;
+  status: 'On Time' | 'Late';
   submission_at: string;
+  created_at: string;
+  feedback?: string;
+  changes_next_week?: string;
+  milestones?: string;
+  other_feedback?: string;
+  hours_reporting_impact?: string;
+  form_completion_time?: number;
 }
 
 export default function SubmissionsPage() {
@@ -31,6 +43,8 @@ export default function SubmissionsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const [selectedSubmission, setSelectedSubmission] = useState<Submission | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   const fetchSubmissions = async (search?: string) => {
     try {
@@ -145,8 +159,8 @@ export default function SubmissionsPage() {
                         variant="outline"
                         size="sm"
                         onClick={() => {
-                          // TODO: Implement view details functionality
-                          console.log('View details:', submission);
+                          setSelectedSubmission(submission);
+                          setIsModalOpen(true);
                         }}
                       >
                         View Details
@@ -159,6 +173,17 @@ export default function SubmissionsPage() {
           </Table>
         </CardContent>
       </Card>
+
+      {selectedSubmission && (
+        <SubmissionDetailsModal
+          submission={selectedSubmission}
+          isOpen={isModalOpen}
+          onClose={() => {
+            setIsModalOpen(false);
+            setSelectedSubmission(null);
+          }}
+        />
+      )}
     </div>
   );
 } 
