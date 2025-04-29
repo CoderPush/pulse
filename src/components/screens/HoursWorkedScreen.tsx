@@ -21,14 +21,14 @@ export default function HoursWorkedScreen({ onNext, onBack, formData, setFormDat
           <div className="relative">
             <input
               type="range"
-              min="10"
+              min="0"
               max="80"
               value={formData.primaryProject.hours}
               onChange={(e) => handleHoursChange(parseInt(e.target.value))}
               className="w-full h-2 bg-gray-200 rounded appearance-none cursor-pointer"
             />
             <div className="flex justify-between text-xs text-gray-500 mt-1">
-              <span>10h</span>
+              <span>0h</span>
               <span>80h</span>
             </div>
           </div>
