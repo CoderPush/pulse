@@ -144,6 +144,8 @@ export async function GET(request: Request) {
         last_reminder: remindersByUser.get(user.id) || null
       }));
 
+    console.log('Missing users count:', missingUsers?.length);
+
     return NextResponse.json({
       success: true,
       data: {
