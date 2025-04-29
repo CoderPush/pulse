@@ -6,15 +6,15 @@ import { sendEmail } from '@/lib/email';
 export async function POST(request: Request) {
   const supabase = await createClient();
   
-  const { data: { user }, error: authError } = await supabase.auth.getUser();
-  if (authError || !user) {
+  const { data: { user: authUser }, error: authError } = await supabase.auth.getUser();
+  if (authError || !authUser) {
     return new NextResponse('Unauthorized', { status: 401 });
   }
 
   const { data: dbUser } = await supabase
     .from('users')
-    .select('is_admin')
-    .eq('id', user.id)
+    .select('id, is_admin')
+    .eq('id', authUser.id)
     .single();
 
   if (!dbUser?.is_admin) {
@@ -50,10 +50,10 @@ export async function POST(request: Request) {
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
 
   const results = await Promise.all(
-    users.map(async (user) => {
-      if (recentlyRemindedUserIds.has(user.id)) {
+    users.map(async (recipient) => {
+      if (recentlyRemindedUserIds.has(recipient.id)) {
         return {
-          userId: user.id,
+          userId: recipient.id,
           success: false,
           error: 'User was reminded in the last 24 hours'
         };
@@ -62,7 +62,7 @@ export async function POST(request: Request) {
       const { data: reminderCount } = await supabase
         .from('reminder_logs')
         .select('*')
-        .eq('user_id', user.id)
+        .eq('user_id', recipient.id)
         .eq('week_number', week)
         .order('sent_at', { ascending: false })
         .limit(1)
@@ -91,16 +91,16 @@ export async function POST(request: Request) {
 
       const submissionLink = `${baseUrl}/?week=${week}&year=${year}`;
       const emailContent = template({ 
-        name: user.name, 
+        name: recipient.name, 
         week, 
         year,
         link: submissionLink
       });
-      const subject = getReminderSubject(type, { userName: user.name, weekNumber: week, year });
+      const subject = getReminderSubject(type, { userName: recipient.name, weekNumber: week, year });
 
       try {
         const { success, error } = await sendEmail({
-          to: user.email,
+          to: recipient.email,
           subject,
           html: emailContent,
         });
@@ -112,19 +112,19 @@ export async function POST(request: Request) {
         await supabase
           .from('reminder_logs')
           .insert({
-            user_id: user.id,
+            user_id: recipient.id,
             week_number: week,
-            sent_by: user.id
+            sent_by: dbUser.id
           });
 
         return {
-          userId: user.id,
+          userId: recipient.id,
           success: true
         };
       } catch (error) {
         console.error('Error sending reminder:', error);
         return {
-          userId: user.id,
+          userId: recipient.id,
           success: false,
           error: error instanceof Error ? error.message : 'Unknown error'
         };
