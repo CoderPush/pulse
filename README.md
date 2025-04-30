@@ -45,7 +45,10 @@ pnpm install
 
 3. Set up environment variables:
 ```bash
+# set up database, email, and other services
 cp .env.example .env
+# set up google login via supabase
+cp supabase/.env.example supabase/.env
 ```
 
 

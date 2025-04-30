@@ -3,12 +3,7 @@
 # dependencies
 /node_modules
 /.pnp
-.pnp.*
-.yarn/*
-!.yarn/patches
-!.yarn/plugins
-!.yarn/releases
-!.yarn/versions
+.pnp.js
 
 # testing
 /coverage
@@ -27,11 +22,19 @@
 # debug
 npm-debug.log*
 yarn-debug.log*
-yarn-error.log*
-.pnpm-debug.log*
+pnpm-debug.log*
 
-# env files (can opt-in for committing if needed)
-.env*
+# local env files
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+supabase/.env
+
+# allow example env files
+!.env.example
+!supabase/.env.example
 
 # vercel
 .vercel
@@ -39,4 +42,9 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
-backups/
+
+# Supabase
+.supabase/
+
+# local tmp
+tmp/
