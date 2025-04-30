@@ -6,7 +6,7 @@ export async function middleware(request: NextRequest) {
   // First update the session
   const response = await updateSession(request)
 
-  // If the request is for an admin route, only check authentication
+  // If the request is for an admin route, check authentication and admin status
   if (request.nextUrl.pathname.startsWith('/admin')) {
     const supabase = createServerClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -23,10 +23,22 @@ export async function middleware(request: NextRequest) {
       }
     )
 
-    // Only check if user is authenticated
+    // First check if user is authenticated
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) {
       return Response.redirect(new URL('/auth/login', request.url))
+    }
+
+    // Then check if user is admin
+    const { data: userData } = await supabase
+      .from('users')
+      .select('is_admin')
+      .eq('id', user.id)
+      .single()
+
+    if (!userData?.is_admin) {
+      // Redirect non-admin users to home page
+      return Response.redirect(new URL('/', request.url))
     }
   }
 
