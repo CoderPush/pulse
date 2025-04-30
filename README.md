@@ -173,7 +173,7 @@ Key Component Interactions:
 1. Configure environment variables in hosting platform
 2. Run database migrations:
 ```bash
-pnpm db:push
+supabase db push
 ```
 3. Generate initial weeks:
 ```bash
