@@ -1,0 +1,24 @@
+digraph INFRA {
+  node [ color = "black", fillcolor = "#E6E6E6", height =1, style = "filled,bold,rounded", fontname = "Arial" ];
+  "PostgreSQL Database" [ label = "PostgreSQL Database
+(AWS::RDS::DBInstance)", shape =cylinder, fillcolor = "#FFCFB3" ];
+  "authUsers Table" [ label = "authUsers Table
+(AWS::RDS::DBTable)", shape =cylinder, fillcolor = "#FFCFB3" ];
+  "users Table" [ label = "users Table
+(AWS::RDS::DBTable)", shape =cylinder, fillcolor = "#FFCFB3" ];
+  "weeks Table" [ label = "weeks Table
+(AWS::RDS::DBTable)", shape =cylinder, fillcolor = "#FFCFB3" ];
+  "submissions Table" [ label = "submissions Table
+(AWS::RDS::DBTable)", shape =cylinder, fillcolor = "#FFCFB3" ];
+  "reminderLogs Table" [ label = "reminderLogs Table
+(AWS::RDS::DBTable)", shape =cylinder, fillcolor = "#FFCFB3" ];
+  "authUsers Table" -> "PostgreSQL Database";
+  "users Table" -> "PostgreSQL Database";
+  "users Table" -> "authUsers Table";
+  "weeks Table" -> "PostgreSQL Database";
+  "submissions Table" -> "PostgreSQL Database";
+  "submissions Table" -> "users Table";
+  "submissions Table" -> "weeks Table";
+  "reminderLogs Table" -> "PostgreSQL Database";
+  "reminderLogs Table" -> "users Table";
+}
