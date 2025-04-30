@@ -14,10 +14,11 @@ The application provides a streamlined multi-step form interface for team member
 │   ├── lib/                 # Utility functions for email and general helpers
 │   ├── types/              # TypeScript type definitions
 │   └── utils/              # Utility functions for dates, Supabase, and actions
-├── drizzle/                 # Database migration files and configuration
+├── supabase/                # Database migrations and configuration
+│   └── migrations/         # SQL migration files
 ├── scripts/                 # Utility scripts for database operations
 │   ├── generate-weeks.ts   # Script to generate weekly submission windows
-│   └── migrate.ts          # Database migration script
+│   └── setup-triggers.sh   # Script to set up database triggers
 ├── docs/                    # Project documentation
 └── public/                 # Static assets
 ```
@@ -51,15 +52,23 @@ cp .env.example .env
 cp supabase/.env.example supabase/.env
 ```
 
-
-4. Initialize the database:
+4. Start local Supabase:
 ```bash
-pnpm db:generate
-pnpm db:push
-pnpm db:generate-weeks
+supabase start
 ```
 
-5. Start the development server:
+5. Initialize the database:
+```bash
+supabase db reset
+```
+
+6. Set up triggers:
+```bash
+chmod +x scripts/setup-triggers.sh
+./scripts/setup-triggers.sh
+```
+
+7. Start the development server:
 ```bash
 pnpm dev
 ```
@@ -133,7 +142,7 @@ Key Component Interactions:
 1. User authentication through Google OAuth via Supabase
 2. Form data collection through multi-step interface
 3. Server-side validation and processing
-4. Database storage with Drizzle ORM
+4. Database storage with Supabase
 5. Administrative review and management interface
 6. Automated reminder system for missing submissions
 7. Report generation and data export capabilities
