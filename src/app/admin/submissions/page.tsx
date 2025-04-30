@@ -13,24 +13,16 @@ import {
 } from '@/components/ui/table';
 import { FileText, Search } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-
-interface Submission {
-  email: string;
-  week_number: number;
-  primary_project: {
-    name: string;
-    hours: number;
-  };
-  manager: string;
-  status: string;
-  submission_at: string;
-}
+import SubmissionDetailsModal from '@/components/admin/SubmissionDetailsModal';
+import { WeeklyPulseSubmission } from '@/types/weekly-pulse';
 
 export default function SubmissionsPage() {
-  const [submissions, setSubmissions] = useState<Submission[]>([]);
+  const [submissions, setSubmissions] = useState<WeeklyPulseSubmission[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const [selectedSubmission, setSelectedSubmission] = useState<WeeklyPulseSubmission | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   const fetchSubmissions = async (search?: string) => {
     try {
@@ -132,7 +124,7 @@ export default function SubmissionsPage() {
                       <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
                         submission.status === 'On Time' ? 'bg-green-100 text-green-800' :
                         submission.status === 'Late' ? 'bg-red-100 text-red-800' :
-                        'bg-yellow-100 text-yellow-800'
+                        'bg-gray-100 text-gray-800'
                       }`}>
                         {submission.status}
                       </span>
@@ -145,8 +137,8 @@ export default function SubmissionsPage() {
                         variant="outline"
                         size="sm"
                         onClick={() => {
-                          // TODO: Implement view details functionality
-                          console.log('View details:', submission);
+                          setSelectedSubmission(submission);
+                          setIsModalOpen(true);
                         }}
                       >
                         View Details
@@ -159,6 +151,17 @@ export default function SubmissionsPage() {
           </Table>
         </CardContent>
       </Card>
+
+      {selectedSubmission && (
+        <SubmissionDetailsModal
+          submission={selectedSubmission}
+          isOpen={isModalOpen}
+          onClose={() => {
+            setIsModalOpen(false);
+            setSelectedSubmission(null);
+          }}
+        />
+      )}
     </div>
   );
 } 
