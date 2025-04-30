@@ -60,4 +60,25 @@ export const reminderLogs = pgTable('reminder_logs', {
   sentBy: uuid('sent_by').notNull().references(() => users.id, { onDelete: 'cascade' }),
 }, (table) => ({
   userWeekIdx: index('idx_reminder_logs_user_week').on(table.userId, table.year, table.weekNumber),
-})); 
+}));
+
+// Add trigger definition
+export const userSyncTrigger = {
+  name: 'on_auth_user_created',
+  table: 'auth.users',
+  when: 'AFTER',
+  event: 'INSERT',
+  function: 'public.handle_new_user',
+  functionDefinition: `
+    CREATE OR REPLACE FUNCTION public.handle_new_user()
+    RETURNS TRIGGER AS $$
+    BEGIN
+      INSERT INTO public.users (id, email, created_at)
+      VALUES (NEW.id, NEW.email, NEW.created_at)
+      ON CONFLICT (id) DO UPDATE
+      SET email = EXCLUDED.email;
+      RETURN NEW;
+    END;
+    $$ LANGUAGE plpgsql SECURITY DEFINER;
+  `,
+}; 
