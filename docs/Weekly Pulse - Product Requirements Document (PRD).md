@@ -8,281 +8,156 @@
 
 ## **✨ TL;DR**
 
-Ship a lightweight internal tool by **Friday 4/25 at 5PM** to collect weekly updates from 70+ remote team members. Employees submit updates via a seamless web form (Supabase auth, no login friction). Admins track submissions and dig into insights. Reminders and lockouts are enforced to drive habit and compliance. The system starts with 6 weeks of backfilled data to give employees an immediate sense of history and ownership.
+A lightweight internal tool to collect weekly updates from remote team members. Employees submit updates via a seamless web form (Supabase auth, no login friction). Admins track submissions and dig into insights. Reminders and lockouts are enforced to drive habit and compliance.
 
 ---
 
-## **🗓 Launch Plan & Timelines**
+## **📋 Weekly Submission Window**
 
-### **🟢 Go-Live Date: Friday, April 25, 5PM**
-
-* Pulse opens for **Week 17**
-
-* Reminder system activates
-
-* Submission deadline is **Monday, April 28, 2PM**
-
-* Late window reminders: Mon 5PM, Tue 9AM & 12PM
-
-* Final cutoff: **Tuesday, April 29, 5PM**
-
-### **🟠 Data Import**
-
-* Backfill historical data for **Weeks 9 to 15**
-
-* Week 16 was a break (no submission)
-
-* Users will see a **history view** with their past submissions
-
-* Admins can browse all historical data by employee/team
-
----
-
-## **📋 Weekly Submission Window Logic**
-
-| Action | Day/Time (UTC-5) |
+| Action | Day/Time (UTC) |
 | ----- | ----- |
 | Form Opens | Friday 5PM |
 | On-Time Deadline | Monday 2PM |
-| Reminder \#1 | Monday 5PM |
-| Reminder \#2 | Tuesday 9AM |
-| Reminder \#3 | Tuesday 12PM |
-| Final Submission Cutoff | Tuesday 5PM (hard close) |
+| First Reminder | Monday 5PM |
+| Second Reminder | Tuesday 9AM |
+| Final Cutoff | Tuesday 5PM |
 
 After Tuesday 5PM, form is locked and late entries are not accepted.
 
 ---
 
-## **🧩 UX & Features (Revised)**
+## **🧩 Current Features**
 
 ### **✅ Authentication**
+* Supabase Auth (Google + Magic Link)
+* Seamless login experience
+* Admin-configured email whitelist
 
-* Supabase Auth (Google \+ Magic Link)
+### **📝 Weekly Submission**
+* Multi-step form interface
+* Project and hours tracking
+* Manager feedback collection
+* Mobile-responsive design
 
-* Clicking from a link logs the user in
+### **🗂 Submission History** (In Development)
+* View past submissions
+* Table with: project, hours, manager, challenges
+* "Download My History" feature (CSV/PDF)
 
-* Admin configures email whitelist
-
-### **🗂 Submission History**
-
-* **Users see their own past weeks** (Week 9–15 initially, Week 17 forward)
-
-* Table with: project, hours, manager, challenges, submission time
-
-* “Download My History” feature (CSV or PDF)
-
-### **📊 Admin Dashboard Enhancements**
-
-* View by employee, by week, by team
-
+### **📊 Admin Dashboard** (In Development)
+* View by employee, week, team
 * Filter: submitted vs not, on-time vs late
-
-* Access and export any past pulse
-
-* Summary charts: submission rate trend, average hours, tag cloud of challenges
-
-* Import interface for initial batch (Week 9–15)
+* Access and export submissions
+* Summary charts and analytics
 
 ---
 
-## **🧠 Success Metrics (Updated for Phase 1\)**
+## **🧠 Success Metrics**
 
-* 🚀 Pulse \#1 launched by April 25, 5PM
-
-* 🎯 80%+ submission rate by Monday, April 28, 2PM
-
-* 📈 Late submission rate under 10% after Tue 5PM
-
-* 🧠 Admins and CEO able to view data same-day
-
-* 💬 50%+ of users click into and view their submission history
+* 🎯 80%+ submission rate by deadline
+* 📈 Late submission rate under 10%
+* 🧠 Same-day data access for admins
+* 💬 50%+ user history view engagement
 
 ---
 
-## **✅ Phase 1 Must-Haves for Friday**
+## **✅ Implementation Status**
 
-* Login via Supabase (magic link & Google)
+### **Completed**
+* Login via Supabase
+* Mobile-first form
+* Basic form validation
+* Project and hours tracking
+* Manager feedback collection
 
-* Mobile-first form (project, hours, manager \+ optional questions)
-
-* Submission dashboard for admin
-
-* Reminder system (configured schedule)
-
-* Past data import and user history view
-
+### **In Progress**
+* Submission dashboard
+* Reminder system
+* Historical data view
 * Admin filters and export
-
 * Submission lock logic
 
 ---
 
-## **⚙️ Tech Infrastructure Summary (Locked In)**
+## **⚙️ Tech Infrastructure**
 
 | Component | Tech |
 | ----- | ----- |
-| Frontend | Next.js \+ Tailwind |
+| Frontend | Next.js + Tailwind |
 | Backend/Auth | Supabase |
 | CI/CD | GitHub Actions |
 | Deployment | Vercel |
 | Background | Vercel Cron Jobs |
-| Email | SMTP (Mailtrap for staging) |
-| Messaging | Mattermost (API Reminder) |
+| Email | Resend (Production) |
+| Email | Mailtrap (Staging) |
 
 ---
 
-## **🛠 Enhancement Phase (Post Launch)**
+## **🛠 Future Enhancements**
 
 * Rotating question engine
-
-* AI summary \+ weekly sentiment
-
-* Manager auto-suggestion via directory
-
-* Employee dashboard with charts and milestone views
-
-* Nudge incentives (e.g., 52-week badge, perfect submission streak)
+* AI summary + weekly sentiment
+* Manager auto-suggestion
+* Employee dashboard with charts
+* Achievement system
 
 ---
 
-# **🧑‍💻 Submission Flow (First Launch – MVP)**
+# **🧑‍💻 Submission Flow**
 
-### **🔑 Entry Point**
+## **Screen 1: Welcome**
+👋 Hi, {name}!  
+This is your Weekly Pulse. It takes < 2 minutes.  
+Ready? Let's go ➡️
 
-* User clicks **Mattermost message or email link**  
-* Link includes magic login token (Supabase)  
-* On click, user is automatically logged in → redirected to the form
-
----
-
-## **🧭 Screen 1: Welcome**
-
-**Purpose:** Greet user and show context  
- **Copy:**
-
-👋 Hi, Anna\!  
- This is your Weekly Pulse for **Week 17**. It takes \< 2 minutes.  
- Ready? Let’s go ➡️
-
-**Buttons:**
-
-* `Start` → Begins the flow
-
----
-
-## **🧩 Screen 2: What project did you spend most of your time on?**
-
-**Type:** Dropdown (searchable)  
- **Placeholder:** “Search or select a project…”  
- **Extras:**
-
+## **Screen 2: Project Selection**
+* Search or select primary project
 * Autocomplete from recent entries
+* Option to add new project
 
-* Optional small subtext: “This helps us track team allocations.”
+## **Screen 3: Hours Worked**
+* Number input (10-80 hours)
+* Clear validation feedback
+* Helper text for accuracy
 
-**Buttons:**
+## **Screen 4: Manager**
+* Manager name/email input
+* Team member lookup
+* Reporting line clarity
 
-* `Next`
+## **Screen 5: Feedback**
+* Optional but encouraged
+* Multi-line text input
+* Character limit: 500
 
----
+## **Screen 6: Review**
+* Summary of all inputs
+* Option to edit any field
+* Clear submission button
 
-## **⏱ Screen 3: How many hours did you work this week?**
-
-**Type:** Number input  
- **Validation:** Must be between 10 and 80  
- **Extras:**
-
-* Info icon: “Don’t worry, this doesn’t replace billable tracking — just a rough pulse.”
-
-**Buttons:**
-
-* `Back`, `Next`
-
----
-
-## **📧 Screen 4: Who's your manager right now?**
-
-**Type:** Autocomplete text input  
- **Placeholder:** “Type a name or email…”  
- **Extras:**
-
-* Match against known team list (if configured)
-
-* Note: “Helps us spot confusion in reporting lines.”
-
-**Buttons:**
-
-* `Back`, `Next`
-
----
-
-## **🔄 Screen 5: Any blockers, changes, or feedback this week?**
-
-**Type:** Text area (multi-line, optional)  
- **Label:** “Open thoughts (optional but appreciated)”  
- **Character count:** (Max 500\)
-
-**Buttons:**
-
-* `Back`, `Next`
-
----
-
-## **✅ Screen 6: Review & Submit**
-
-**Copy:**
-
-All done\! Here’s what you’re about to send.
-
-**Review panel:**
-
-* Project: X
-
-* Hours: Y
-
-* Manager: Z
-
-* Notes: \[if filled\]
-
-**Buttons:**
-
-* `Back`, `Submit Now`
-
----
-
-## **🎉 Screen 7: Success\!**
-
-**Message:**
-
-✅ Submission received\!  
- You’re helping us all stay in sync 🙌
-
-**Link:**
-
-* `View my history`
-
----
+## **Screen 7: Success**
+* Confirmation message
+* Link to view history
+* Preview next week's deadline
 
 # **🎨 Mock UI Wireframes**
 
-Here’s a basic wireframe view for key screens. (Note: Visual fidelity is basic, but it'll give your dev/design team clear direction):
+Here's a basic wireframe view for key screens. (Note: Visual fidelity is basic, but it'll give your dev/design team clear direction):
 
 ---
 
 ### **Screen 1: Welcome**
-
 \+-------------------------------------------+  
-| 👋 Hi, Anna\!                              |  
-| This is your Weekly Pulse for Week 17\.    |  
-| It takes \< 2 minutes.                     |  
+| 👋 Hi, {name}!                              |  
+| This is your Weekly Pulse.                   |  
+| It takes < 2 minutes.                        |  
 |                                           |  
-|  \[ Start \]                                |  
+|  \[ Start \]                                 |  
 \+-------------------------------------------+
 
 ---
 
 ### **Screen 2: Project Selection**
-
 \+-------------------------------------------+  
 | What project did you spend most time on?  |  
 | \[ Search or select project...         ▼ \] |  
@@ -293,7 +168,6 @@ Here’s a basic wireframe view for key screens. (Note: Visual fidelity is basic
 ---
 
 ### **Screen 3: Hours Worked**
-
 \+-------------------------------------------+  
 | How many hours did you work this week?    |  
 | \[      40 hours       \]                   |  
@@ -304,7 +178,6 @@ Here’s a basic wireframe view for key screens. (Note: Visual fidelity is basic
 ---
 
 ### **Screen 4: Manager**
-
 \+-------------------------------------------+  
 | Who's your manager right now?             |  
 | \[ Search name/email...                \]   |  
@@ -315,7 +188,6 @@ Here’s a basic wireframe view for key screens. (Note: Visual fidelity is basic
 ---
 
 ### **Screen 5: Open Feedback**
-
 \+-------------------------------------------+  
 | Any blockers or feedback this week?       |  
 | \[ Write something...                 \]     |  
@@ -326,7 +198,6 @@ Here’s a basic wireframe view for key screens. (Note: Visual fidelity is basic
 ---
 
 ### **Screen 6: Review & Submit**
-
 \+-------------------------------------------+  
 | ✅ Review your answers:                   |  
 | Project: Apollo                           |  
@@ -340,7 +211,6 @@ Here’s a basic wireframe view for key screens. (Note: Visual fidelity is basic
 ---
 
 ### **Screen 7: Success**
-
 \+-------------------------------------------+  
 | 🎉 Submission received\!                   |  
 | You're helping us all stay in sync 🙌     |  
@@ -350,5 +220,5 @@ Here’s a basic wireframe view for key screens. (Note: Visual fidelity is basic
 
 ---
 
-Want these mocks as real Figma components or just images you can share with your dev/design team? I can mock it up quickly or help write the implementation specs next. Let’s keep moving\!
+Want these mocks as real Figma components or just images you can share with your dev/design team? I can mock it up quickly or help write the implementation specs next. Let's keep moving\!
 
