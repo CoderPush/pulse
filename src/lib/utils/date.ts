@@ -1,6 +1,4 @@
 import {
-  startOfWeek,
-  endOfWeek,
   getISOWeek,
   getYear,
   setISOWeek,
