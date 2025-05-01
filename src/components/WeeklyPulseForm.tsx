@@ -40,6 +40,15 @@ export default function WeeklyPulseForm({ user, weekNumber = 17 }: WeeklyPulseFo
   const totalScreens = 11;
   
   const handleNext = () => {
+    setError(null); // Clear any previous errors
+    
+    // Validate current screen before proceeding
+    const validationError = validateCurrentScreen();
+    if (validationError) {
+      setError(validationError);
+      return;
+    }
+
     if (currentScreen < totalScreens - 1) {
       setCurrentScreen(currentScreen + 1);
       if (currentScreen > 0 && currentScreen < totalScreens - 2) {
@@ -49,6 +58,7 @@ export default function WeeklyPulseForm({ user, weekNumber = 17 }: WeeklyPulseFo
   };
   
   const handleBack = () => {
+    setError(null); // Clear any previous errors
     if (currentScreen > 0) {
       setCurrentScreen(currentScreen - 1);
       if (currentScreen > 1 && currentScreen < totalScreens - 1) {
@@ -56,13 +66,42 @@ export default function WeeklyPulseForm({ user, weekNumber = 17 }: WeeklyPulseFo
       }
     }
   };
+
+  const validateCurrentScreen = (): string | null => {
+    switch(currentScreen) {
+      case 1: // Project Selection
+        if (!formData.primaryProject.name.trim()) {
+          return "Please enter a project name";
+        }
+        break;
+      case 2: // Hours Worked
+        if (formData.primaryProject.hours <= 0) {
+          return "Please enter valid hours worked";
+        }
+        break;
+      case 3: // Manager
+        if (!formData.manager.trim()) {
+          return "Please enter your manager's name";
+        }
+        break;
+      case 7: // Hours Reporting Impact
+        if (!formData.hoursReportingImpact.trim()) {
+          return "Please share your experience with hour reporting";
+        }
+        break;
+      default:
+        return null;
+    }
+    return null;
+  };
   
   const renderScreen = () => {
     const screenProps = {
       onNext: handleNext,
       onBack: handleBack,
       formData,
-      setFormData
+      setFormData,
+      error // Pass error to screens
     };
 
     switch(currentScreen) {
@@ -129,6 +168,13 @@ export default function WeeklyPulseForm({ user, weekNumber = 17 }: WeeklyPulseFo
         {currentScreen > 0 && currentScreen < totalScreens - 2 && (
           <div className="absolute top-4 right-4 bg-gray-100 px-3 py-1 rounded-full text-xs text-gray-600 font-medium">
             {currentScreen}/{totalScreens - 2}
+          </div>
+        )}
+
+        {/* Error message */}
+        {error && (
+          <div className="absolute top-4 left-4 right-16 bg-red-50 border border-red-200 text-red-700 px-4 py-2 rounded-lg text-sm">
+            {error}
           </div>
         )}
         
