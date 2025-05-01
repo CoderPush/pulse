@@ -1,4 +1,6 @@
 import { getWeekNumber } from '../date';
+import { formatWeekNumber } from '../date';
+import { describe, it, expect } from 'vitest';
 
 describe('getWeekNumber', () => {
   it('should return correct week number for known dates', () => {
@@ -26,5 +28,22 @@ describe('getWeekNumber', () => {
     expect(typeof currentWeek).toBe('number');
     expect(currentWeek).toBeGreaterThanOrEqual(1);
     expect(currentWeek).toBeLessThanOrEqual(53);
+  });
+});
+
+describe('formatWeekNumber', () => {
+  it('formats single digit week numbers with leading zero', () => {
+    expect(formatWeekNumber(1)).toBe('Week 01');
+    expect(formatWeekNumber(9)).toBe('Week 09');
+  });
+
+  it('formats double digit week numbers correctly', () => {
+    expect(formatWeekNumber(10)).toBe('Week 10');
+    expect(formatWeekNumber(52)).toBe('Week 52');
+  });
+
+  it('throws error for invalid week numbers', () => {
+    expect(() => formatWeekNumber(0)).toThrow('Week number must be between 1 and 53');
+    expect(() => formatWeekNumber(54)).toThrow('Week number must be between 1 and 53');
   });
 }); 
