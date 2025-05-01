@@ -15,15 +15,17 @@ import SuccessScreen from './screens/SuccessScreen';
 
 interface WeeklyPulseFormProps {
   user: User;
+  weekNumber?: number;
 }
 
-export default function WeeklyPulseForm({ user }: WeeklyPulseFormProps) {
+export default function WeeklyPulseForm({ user, weekNumber = 17 }: WeeklyPulseFormProps) {
   const [currentScreen, setCurrentScreen] = useState(0);
   const [progress, setProgress] = useState(0);
+  const [error, setError] = useState<string | null>(null);
   const [formData, setFormData] = useState<WeeklyPulseFormData>({
     userId: user?.id || '',
     email: user?.email || '',
-    weekNumber: 17, // You can make this dynamic
+    weekNumber,
     primaryProject: { name: '', hours: 0 },
     additionalProjects: [],
     manager: '',
@@ -65,7 +67,7 @@ export default function WeeklyPulseForm({ user }: WeeklyPulseFormProps) {
 
     switch(currentScreen) {
       case 0:
-        return <WelcomeScreen user={user} onNext={handleNext} />;
+        return <WelcomeScreen user={user} onNext={handleNext} weekNumber={weekNumber} />;
       case 1:
         return <ProjectSelectionScreen {...screenProps} />;
       case 2:

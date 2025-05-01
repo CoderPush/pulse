@@ -24,6 +24,15 @@ export default function ReviewScreen({ onBack, formData, onNext }: ScreenProps) 
       const data = await response.json();
 
       if (!response.ok) {
+        // Log the full error details
+        console.error('Submission error details:', {
+          status: response.status,
+          statusText: response.statusText,
+          data,
+          weekNumber: formData.weekNumber
+        });
+
+        // Throw the actual error message from the server
         throw new Error(data.error || 'Failed to submit form');
       }
 

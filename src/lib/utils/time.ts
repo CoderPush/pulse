@@ -1,3 +1,5 @@
+import { getWeekNumber } from '@/utils/date';
+
 export function isFormOpen(): boolean {
   const now = new Date();
   const day = now.getDay(); // 0 = Sunday, 5 = Friday, 1 = Monday, 2 = Tuesday
@@ -59,4 +61,16 @@ export function getCurrentWeekNumber(): number {
   const diff = now.getTime() - startOfYear.getTime();
   const oneWeek = 1000 * 60 * 60 * 24 * 7;
   return Math.ceil(diff / oneWeek);
+}
+
+export function getMostRecentThursdayWeek(): number {
+  const now = new Date();
+  const dayOfWeek = now.getDay(); // 0 = Sunday, 4 = Thursday
+  const daysToSubtract = dayOfWeek >= 4 ? dayOfWeek - 4 : dayOfWeek + 3;
+  
+  // Get last Thursday
+  const lastThursday = new Date(now);
+  lastThursday.setDate(now.getDate() - daysToSubtract);
+  
+  return getWeekNumber(lastThursday);
 } 
