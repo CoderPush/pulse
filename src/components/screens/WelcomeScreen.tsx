@@ -1,41 +1,38 @@
 'use client';
 
-import { ArrowRight } from 'lucide-react';
-import { ScreenProps } from '@/types/weekly-pulse';
 import { User } from '@supabase/supabase-js';
-import { signOut } from '@/utils/actions';
+import { Button } from '@/components/ui/button';
+import { getWeekDates, getSubmissionWindow } from '@/lib/utils/date';
 
-interface WelcomeScreenProps extends Pick<ScreenProps, 'onNext'> {
-  user: User | null;
+interface WelcomeScreenProps {
+  user: User;
+  onNext: () => void;
+  weekNumber: number;
 }
 
-export default function WelcomeScreen({ onNext, user }: WelcomeScreenProps) {
-  const name = user?.email || 'there';
+export default function WelcomeScreen({ user, onNext, weekNumber }: WelcomeScreenProps) {
+  const { formattedRange } = getWeekDates(weekNumber);
+  const { formattedWindows } = getSubmissionWindow(weekNumber);
 
   return (
-    <div className="flex flex-col items-center justify-center text-center h-full gap-8 px-6">
-      <div className="text-6xl">👋</div>
-      <div>
-        <h1 className="text-2xl font-bold mb-2">Hi, {name}!</h1>
-        <p className="text-gray-600 mb-6">This is your Weekly Pulse for <span className="font-semibold">Week 17</span></p>
-        <p className="text-gray-600">Ready? Let&apos;s go</p>
+    <div className="px-8 flex flex-col items-center text-center">
+      <h1 className="text-2xl font-bold mb-6">Welcome back, {user.email}!</h1>
+      
+      <div className="mb-8">
+        <h2 className="text-xl font-semibold mb-2">Week {weekNumber}</h2>
+        <p className="text-gray-600">{formattedRange.start} - {formattedRange.end}</p>
       </div>
-      <div className="flex flex-col gap-4">
-        <button 
-          onClick={onNext}
-          className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 rounded-full font-medium flex items-center gap-2 transition-all transform hover:scale-105 cursor-pointer"
-        >
-          Start <ArrowRight size={18} />
-        </button>
-        <form action={signOut}>
-          <button 
-            type="submit"
-            className="bg-gray-600 hover:bg-gray-700 text-white px-8 py-3 rounded-full font-medium transition-all transform hover:scale-105 cursor-pointer"
-          >
-            Sign Out
-          </button>
-        </form>
+
+      <div className="bg-blue-50 p-6 rounded-lg mb-8 w-full">
+        <h3 className="font-semibold mb-2">Submission Window</h3>
+        <p className="text-sm text-gray-600 mb-1">Opens: {formattedWindows.start}</p>
+        <p className="text-sm text-gray-600 mb-1">Due by: {formattedWindows.end}</p>
+        <p className="text-sm text-gray-600">Late submissions until: {formattedWindows.lateEnd}</p>
       </div>
+
+      <Button onClick={onNext} className="w-full">
+        Start Weekly Pulse
+      </Button>
     </div>
   );
 } 

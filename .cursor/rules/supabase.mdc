@@ -1,0 +1,7 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+We work with supabase local. Do not confuse supabase local with supabase remote.
+Always confirm before you run "pnpm supabase db reset" because that resets database.
