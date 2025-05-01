@@ -2,8 +2,8 @@
 
 ## Tech Stack Overview
 
-- **Frontend**: Next.js 15 with App Router, React 19, Tailwind CSS 4
-- **UI Components**: shadcn
+- **Frontend**: Next.js 14 with App Router, React 18, Tailwind CSS 3
+- **UI Components**: shadcn/ui
 - **Backend**: Supabase (Auth + Database)
 - **Database**: PostgreSQL with Drizzle ORM
 - **Email**: Resend for production, Mailtrap for staging
@@ -27,91 +27,51 @@ src/
 ├── constants/             # App-wide constants
 ├── db/                    # Database schema and queries
 ├── lib/                   # Utility functions
-├── types/                 # TypeScript type definitions
-└── utils/                 # Helper functions
+├── types/                # TypeScript type definitions
+└── utils/                # Helper functions
 ```
 
 ## UI Component Strategy
 
-### shadcn Integration
+### Implemented shadcn Components
+- Button
+- Input
+- Textarea
+- Progress
+- Card
+- Form
+- Toast
+- Dialog
 
-1. **Core Components**
-   ```bash
-   pnpm dlx shadcn@latest add button input textarea select progress card command dialog toast tabs table calendar tooltip
-   ```
+### Components To Be Added
+- Command (for project search)
+- DataTable (for admin views)
+- Calendar (for week selection)
+- Tabs (for admin dashboard)
 
-2. **Form Components to Replace**
-   - Custom inputs → shadcn `Input`
-   - Custom textareas → shadcn `Textarea`
-   - Custom selects → shadcn `Select` and `Command`
-   - Custom progress bar → shadcn `Progress`
-   - Custom buttons → shadcn `Button`
-   - Form container → shadcn `Card`
-
-3. **New Components to Add**
-   - `Command` for project search/selection
-   - `Dialog` for confirmation modals
-   - `Toast` for notifications
-   - `Tabs` for admin dashboard views
-   - `DataTable` for submission history
-   - `Calendar` for week selection
-   - `Tooltip` for info icons
-
-4. **Form Handling**
-   - Use React Hook Form with shadcn form components
-   - Implement form validation with zod
-   - Use shadcn's form error handling
-
-### Component Examples
-
+### Form Implementation
 ```tsx
-// Project Selection Screen
+// Example form screen component
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
-import { Command } from "@/components/ui/command"
+import { Input } from "@/components/ui/input"
 
 export function ProjectSelectionScreen() {
   return (
     <Card className="p-6">
-      <Command>
-        <CommandInput placeholder="Search projects..." />
-        <CommandList>
-          <CommandEmpty>No projects found.</CommandEmpty>
-          <CommandGroup>
-            {projects.map((project) => (
-              <CommandItem
-                key={project.id}
-                onSelect={() => setFormData({ ...formData, project })}
-              >
-                {project.name}
-              </CommandItem>
-            ))}
-          </CommandGroup>
-        </CommandList>
-      </Command>
+      <Input 
+        placeholder="Enter project name"
+        onChange={(e) => setProject(e.target.value)}
+      />
+      <Button onClick={handleNext}>Next</Button>
     </Card>
-  )
-}
-
-// Admin Dashboard
-import { DataTable } from "@/components/ui/data-table"
-
-export function AdminDashboard() {
-  return (
-    <DataTable
-      columns={columns}
-      data={submissions}
-      filterable
-      sortable
-    />
   )
 }
 ```
 
 ## Data Model
 
-### Tables
-
+### Current Tables
 1. **users**
    - id (UUID, primary key)
    - email (string, unique)
@@ -130,94 +90,88 @@ export function AdminDashboard() {
    - submitted_at (timestamp)
    - is_late (boolean)
 
-3. **projects**
+### Planned Tables
+1. **projects**
    - id (UUID, primary key)
    - name (string, unique)
    - created_at (timestamp)
 
+2. **reminder_logs**
+   - id (UUID, primary key)
+   - user_id (UUID, foreign key)
+   - week_number (integer)
+   - sent_at (timestamp)
+   - type (enum: first, second, final)
+
 ## Key Components
 
-### Authentication
+### Authentication (Implemented)
 - Supabase Auth with Google and Magic Link
-- Middleware for protected routes
+- Protected routes via middleware
 - Admin role management
 
-### Submission Flow
-1. **Welcome Screen**
-   - Greeting with user name
-   - Current week display
-   - Start button (shadcn Button)
+### Submission Flow (Implemented)
+1. Welcome Screen
+2. Project Selection
+3. Hours Worked
+4. Manager Selection
+5. Feedback
+6. Review & Submit
 
-2. **Project Selection**
-   - Command component for searchable dropdown
-   - Recent projects autocomplete
-   - Project creation if not found
+### Admin Dashboard (In Progress)
+- Submission tracking
+- User management
+- Data export
+- Analytics dashboard
 
-3. **Hours Worked**
-   - Number input with validation (10-80)
-   - Tooltip for info
-
-4. **Manager Selection**
-   - Command component for autocomplete
-   - Team member lookup
-
-5. **Feedback**
-   - Textarea with character limit (500)
-   - Optional field indicator
-
-6. **Review & Submit**
-   - Summary of all inputs
-   - Submit button with confirmation dialog
-
-### Admin Dashboard
-- DataTable for submission tracking
-- Tabs for different views
-- Filter components
+### History View (Planned)
+- Personal submission history
+- Week navigation
 - Export functionality
-- Historical data view
-
-### History View
-- DataTable for personal submission history
-- Download option (CSV/PDF)
-- Calendar for week navigation
 
 ## API Routes
 
 1. `/api/submissions`
-   - POST: Create new submission
+   - POST: Create submission
    - GET: List submissions (with filters)
 
-2. `/api/projects`
+2. `/api/weeks`
+   - GET: Get current week
+   - GET: List available weeks
+
+Planned Routes:
+1. `/api/projects`
    - GET: List projects
    - POST: Create project
 
-3. `/api/users`
-   - GET: List users (admin only)
-   - GET: Current user info
+2. `/api/admin`
+   - GET: Dashboard stats
+   - GET: User management
+   - POST: Import data
 
-4. `/api/export`
-   - GET: Export submissions
+## Background Jobs (Planned)
 
-## Background Jobs
+### Reminder System
+1. **Friday 5PM**: Form opens for next week
+2. **Monday 2PM**: On-time deadline
+3. **Monday 5PM**: First reminder
+4. **Tuesday 9AM**: Second reminder
+5. **Tuesday 5PM**: Final cutoff
 
-1. **Reminder System**
-   - Friday 5PM: Form opens
-   - Monday 2PM: On-time deadline
-   - Monday 5PM: First reminder
-   - Tuesday 9AM: Second reminder
-   - Tuesday 12PM: Third reminder
-   - Tuesday 5PM: Final cutoff
-
-2. **Data Import**
-   - Initial backfill (Weeks 9-15)
-   - Weekly data cleanup
+### Data Management
+- Weekly submission window generation
+- Data cleanup and archival
+- Analytics generation
 
 ## Environment Variables
 
 ```env
+# Required
 NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
 SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
+
+# Optional
 RESEND_API_KEY=your_resend_key
 MAILTRAP_API_KEY=your_mailtrap_key
 ```
@@ -225,39 +179,38 @@ MAILTRAP_API_KEY=your_mailtrap_key
 ## Implementation Guidelines
 
 1. **Mobile First**
-   - All shadcn components are responsive by default
+   - All components are responsive
    - Touch-friendly inputs
    - Minimal scrolling
 
 2. **Performance**
-   - Optimistic updates
    - Client-side caching
+   - Optimistic updates
    - Lazy loading for history
 
 3. **Error Handling**
-   - Form validation with zod
+   - Form validation
    - Network error recovery
-   - Toast notifications for errors
+   - Toast notifications
 
 4. **Accessibility**
-   - shadcn components are accessible by default
    - ARIA labels
    - Keyboard navigation
    - Color contrast compliance
 
 ## Testing Strategy
 
-1. **Unit Tests**
+1. **Unit Tests** (To Be Implemented)
    - Form validation
    - Date calculations
    - Utility functions
 
-2. **Integration Tests**
+2. **Integration Tests** (To Be Implemented)
    - Submission flow
    - Authentication
    - Admin features
 
-3. **End-to-End Tests**
+3. **E2E Tests** (To Be Implemented)
    - Complete user journey
    - Admin workflows
 
@@ -270,11 +223,11 @@ MAILTRAP_API_KEY=your_mailtrap_key
    - Admin user creation
 
 2. **Launch**
-   - Data import
-   - Form activation
-   - Reminder system start
+   - Deploy to staging
+   - QA testing
+   - Deploy to production
 
 3. **Post-launch**
-   - Monitoring setup
-   - Error tracking
-   - Performance metrics 
+   - Monitor errors
+   - Track performance
+   - Gather feedback 
