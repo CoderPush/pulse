@@ -14,7 +14,11 @@ import { getISOWeek } from 'date-fns'
 const getCurrentYear = () => new Date().getFullYear();
 const getCurrentWeek = () => getISOWeek(new Date());
 
-export default async function HistoryPage({ searchParams }: { searchParams: { week?: string } }) {
+export default async function HistoryPage({ 
+  searchParams 
+}: { 
+  searchParams: Promise<{ week?: string }> 
+}) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/auth/login')
@@ -55,7 +59,8 @@ export default async function HistoryPage({ searchParams }: { searchParams: { we
   // 5. Determine selected week
   const defaultWeekValue = weekOptions.find(w => w.week_number === currentWeek && w.year === currentYear)?.value || 
     (weekOptions.length > 0 ? weekOptions[weekOptions.length - 1].value : '');
-  const selectedWeekParam = (await searchParams).week || defaultWeekValue;
+  const params = await searchParams;
+  const selectedWeekParam = params.week || defaultWeekValue;
   const [selectedYear, selectedWeek] = selectedWeekParam.split('-').map(Number);
 
   // 6. Find the week and submission
