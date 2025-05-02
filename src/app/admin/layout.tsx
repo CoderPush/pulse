@@ -23,6 +23,11 @@ const sidebarItems = [
     icon: LayoutDashboard,
   },
   {
+    title: 'Pulses',
+    href: '/admin/pulses',
+    icon: FileText,
+  },
+  {
     title: 'Submissions',
     href: '/admin/submissions',
     icon: FileText,
