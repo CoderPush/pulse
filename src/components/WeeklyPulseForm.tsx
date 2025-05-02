@@ -12,13 +12,15 @@ import TextInputScreen from './screens/TextInputScreen';
 import TimeInputScreen from './screens/TimeInputScreen';
 import ReviewScreen from './screens/ReviewScreen';
 import SuccessScreen from './screens/SuccessScreen';
+import SubmissionSuccessScreen from './screens/SubmissionSuccessScreen';
 
 interface WeeklyPulseFormProps {
   user: User;
   weekNumber?: number;
+  hasSubmittedThisWeek: boolean;
 }
 
-export default function WeeklyPulseForm({ user, weekNumber = 17 }: WeeklyPulseFormProps) {
+export default function WeeklyPulseForm({ user, weekNumber = 17, hasSubmittedThisWeek }: WeeklyPulseFormProps) {
   const [currentScreen, setCurrentScreen] = useState(0);
   const [progress, setProgress] = useState(0);
   const [error, setError] = useState<string | null>(null);
@@ -150,6 +152,14 @@ export default function WeeklyPulseForm({ user, weekNumber = 17 }: WeeklyPulseFo
         return null;
     }
   };
+  
+  if (hasSubmittedThisWeek) {
+    return (
+      <div className="flex justify-center items-center w-full h-full min-h-screen py-8">
+        <SubmissionSuccessScreen user={user} currentWeek={weekNumber} />
+      </div>
+    );
+  }
   
   return (
     <div className="flex justify-center items-center w-full h-full min-h-screen py-8">
