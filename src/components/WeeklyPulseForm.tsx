@@ -17,10 +17,10 @@ import SubmissionSuccessScreen from './screens/SubmissionSuccessScreen';
 interface WeeklyPulseFormProps {
   user: User;
   weekNumber?: number;
-  hasSubmittedThisWeek: boolean;
+  hasSubmittedThisWeek?: boolean;
 }
 
-export default function WeeklyPulseForm({ user, weekNumber = 17, hasSubmittedThisWeek }: WeeklyPulseFormProps) {
+export default function WeeklyPulseForm({ user, weekNumber = 17, hasSubmittedThisWeek = false }: WeeklyPulseFormProps) {
   const [currentScreen, setCurrentScreen] = useState(0);
   const [progress, setProgress] = useState(0);
   const [error, setError] = useState<string | null>(null);
