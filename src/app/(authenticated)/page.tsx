@@ -9,7 +9,7 @@ interface HomeProps {
   }>
 }
 
-export default async function Home({ searchParams }: HomeProps) {
+export default async function HomePage({ searchParams }: HomeProps) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
@@ -17,15 +17,25 @@ export default async function Home({ searchParams }: HomeProps) {
     redirect('/auth/login')
   }
 
-  // Await searchParams before using it
   const params = await searchParams
-  
-  // Use week from URL params or fallback to most recent Thursday's week
   const weekNumber = params.week ? parseInt(params.week) : getMostRecentThursdayWeek();
 
+  // Check if user has already submitted for this week
+  const { data: existingSubmission } = await supabase
+    .from('submissions')
+    .select('id')
+    .eq('user_id', user.id)
+    .eq('year', new Date().getFullYear())
+    .eq('week_number', weekNumber)
+    .single();
+
   return (
-    <main className="min-h-screen bg-gray-100 flex items-center justify-center p-4">     
-      <WeeklyPulseForm user={user} weekNumber={weekNumber} />
-    </main>
+    <div className="w-full px-4 -mt-16">
+      <WeeklyPulseForm 
+        user={user} 
+        weekNumber={weekNumber} 
+        hasSubmittedThisWeek={!!existingSubmission} 
+      />
+    </div>
   )
 }
