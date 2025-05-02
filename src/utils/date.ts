@@ -14,4 +14,11 @@ export function getWeekNumber(date: Date = new Date()): number {
   d.setUTCDate(d.getUTCDate() + 4 - dayNum);
   const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
   return Math.ceil((((d.getTime() - yearStart.getTime()) / 86400000) + 1) / 7);
+}
+
+export function formatWeekNumber(weekNumber: number): string {
+  if (weekNumber < 1 || weekNumber > 53) {
+    throw new Error('Week number must be between 1 and 53')
+  }
+  return `Week ${weekNumber.toString().padStart(2, '0')}`
 } 
