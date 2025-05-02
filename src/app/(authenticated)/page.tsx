@@ -20,9 +20,22 @@ export default async function HomePage({ searchParams }: HomeProps) {
   const params = await searchParams
   const weekNumber = params.week ? parseInt(params.week) : getMostRecentThursdayWeek();
 
+  // Check if user has already submitted for this week
+  const { data: existingSubmission } = await supabase
+    .from('submissions')
+    .select('id')
+    .eq('user_id', user.id)
+    .eq('year', new Date().getFullYear())
+    .eq('week_number', weekNumber)
+    .single();
+
   return (
     <div className="w-full px-4 -mt-16">
-      <WeeklyPulseForm user={user} weekNumber={weekNumber} />
+      <WeeklyPulseForm 
+        user={user} 
+        weekNumber={weekNumber} 
+        hasSubmittedThisWeek={!!existingSubmission} 
+      />
     </div>
   )
 }
