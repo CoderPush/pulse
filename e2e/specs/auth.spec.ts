@@ -37,7 +37,9 @@ test.describe('Authentication', () => {
     // 2. Intercept the initial navigation to the OAuth provider
     await page.route('**/auth/v1/authorize**', async (route) => {
       // Prevent actual navigation and simulate immediate redirect back to callback
-      const callbackUrl = new URL(route.request().url()).searchParams.get('redirect_to') || '/auth/callback';
+      const redirectTo = new URL(route.request().url()).searchParams.get('redirect_to');
+      expect(redirectTo).not.toBeNull();
+      const callbackUrl = redirectTo || '/auth/callback';
       await route.fulfill({
         status: 302,
         headers: {
@@ -72,7 +74,9 @@ test.describe('Authentication', () => {
     // 2. Intercept the initial navigation to the OAuth provider
     await page.route('**/auth/v1/authorize**', async (route) => {
       // Prevent actual navigation and simulate immediate redirect back to callback
-      const callbackUrl = new URL(route.request().url()).searchParams.get('redirect_to') || '/auth/callback';
+      const redirectTo = new URL(route.request().url()).searchParams.get('redirect_to');
+      expect(redirectTo).not.toBeNull();
+      const callbackUrl = redirectTo || '/auth/callback';
       await route.fulfill({
         status: 302,
         headers: {
@@ -91,5 +95,8 @@ test.describe('Authentication', () => {
 
     // Verify we're back on the login page with an error parameter
     await expect(page.url()).toMatch(/\/auth\/login\?error=.*/);
+
+    // Verify that an error message is displayed to the user
+    await expect(page.getByText(/authentication failed|login error|unable to sign in/i)).toBeVisible();
   });
 }); 
