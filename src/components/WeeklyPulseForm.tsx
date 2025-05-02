@@ -152,7 +152,7 @@ export default function WeeklyPulseForm({ user, weekNumber = 17 }: WeeklyPulseFo
   };
   
   return (
-    <div className="bg-gray-100 flex justify-center items-center w-full h-full min-h-screen py-8">
+    <div className="flex justify-center items-center w-full h-full min-h-screen py-8">
       <div className="bg-white rounded-xl shadow-lg w-full max-w-md h-full flex flex-col relative overflow-hidden">
         {/* Progress bar */}
         {currentScreen > 0 && currentScreen < totalScreens - 2 && (
