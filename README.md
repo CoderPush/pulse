@@ -33,8 +33,7 @@ The application provides a streamlined multi-step form interface for team member
 ├── supabase/                # Database migrations and configuration
 │   └── migrations/         # SQL migration files
 ├── scripts/                 # Utility scripts for database operations
-│   ├── generate-weeks.ts   # Script to generate weekly submission windows
-│   └── setup-triggers.sh   # Script to set up database triggers
+│   └── generate-weeks.ts   # Script to generate weekly submission windows
 ├── docs/                    # Project documentation
 └── public/                 # Static assets
 ```
@@ -78,13 +77,7 @@ supabase start
 supabase db reset
 ```
 
-6. Set up triggers:
-```bash
-chmod +x scripts/setup-triggers.sh
-./scripts/setup-triggers.sh
-```
-
-7. Start the development server:
+6. Start the development server:
 ```bash
 pnpm dev
 ```
