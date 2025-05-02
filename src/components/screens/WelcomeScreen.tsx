@@ -30,7 +30,7 @@ export default function WelcomeScreen({ user, onNext, weekNumber }: WelcomeScree
         <p className="text-sm text-gray-600">Late submissions until: {formattedWindows.lateEnd}</p>
       </div>
 
-      <Button onClick={onNext} className="w-full">
+      <Button onClick={onNext} className="w-full bg-blue-600 hover:bg-blue-700 px-6 py-3 rounded-full">
         Start Weekly Pulse
       </Button>
     </div>
