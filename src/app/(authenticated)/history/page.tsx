@@ -26,19 +26,32 @@ export default async function HistoryPage({
   const currentYear = getCurrentYear();
   const currentWeek = getCurrentWeek();
 
-  // 1. Fetch all weeks for the current year
-  const { data: allWeeks } = await supabase
-    .from('weeks')
-    .select('year, week_number')
-    .eq('year', currentYear)
-    .order('week_number', { ascending: true });
+  // Run both queries in parallel
+  const [{ data: allWeeks, error: weeksErr }, { data: submissions, error: subErr }] =
+    await Promise.all([
+      supabase
+        .from('weeks')
+        .select('year, week_number')
+        .eq('year', currentYear)
+        .order('week_number', { ascending: true }),
+      supabase
+        .from('submissions')
+        .select('*')
+        .eq('user_id', user.id)
+        .eq('year', currentYear),
+    ]);
 
-  // 2. Fetch all submissions for the user for the current year
-  const { data: submissions } = await supabase
-    .from('submissions')
-    .select('*')
-    .eq('user_id', user.id)
-    .eq('year', currentYear);
+  if (weeksErr || subErr) {
+    console.error({ weeksErr, subErr });
+    return (
+      <div className="container mx-auto py-8 px-4">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold text-red-600 dark:text-red-400 mb-4">Error Loading Data</h1>
+          <p className="text-muted-foreground">There was an error loading your history. Please try again later.</p>
+        </div>
+      </div>
+    );
+  }
 
   // 3. Build a map for quick lookup
   const submissionMap = new Map();

@@ -16,19 +16,10 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { signOut } from '@/utils/actions'
 import { User } from '@supabase/supabase-js'
+import { getInitials } from '@/utils/user'
 
 interface NavBarProps {
   user: User;
-}
-
-// Helper function to get initials
-function getInitials(email?: string): string {
-  if (!email) return 'U';
-  const parts = email.split('@')[0].split(/[\s._-]+/);
-  if (parts.length === 1) {
-    return parts[0].substring(0, 2).toUpperCase();
-  }
-  return (parts[0][0] + (parts[parts.length - 1][0] || '')).toUpperCase();
 }
 
 export default function NavBar({ user }: NavBarProps) {
