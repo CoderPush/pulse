@@ -54,8 +54,4 @@ node_modules/
 /test-results/
 /playwright-report/
 /blob-report/
-<<<<<<< HEAD
 /playwright/.cache/
-=======
-/playwright/.cache/
->>>>>>> main
