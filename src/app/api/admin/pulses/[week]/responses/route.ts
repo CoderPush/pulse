@@ -50,73 +50,37 @@ export async function GET(
     }
 
     // Transform the data to group by question
-    const questions = {
-      primary_project: {
-        responses: submissions.map(s => ({
-          user: s.users,
-          response: s.primary_project_name,
-          hours: s.primary_project_hours,
-          submitted_at: s.submitted_at,
-          is_late: s.is_late
-        }))
-      },
-      additional_projects: {
-        responses: submissions.map(s => ({
-          user: s.users,
-          response: s.additional_projects,
-          submitted_at: s.submitted_at,
-          is_late: s.is_late
-        }))
-      },
-      manager: {
-        responses: submissions.map(s => ({
-          user: s.users,
-          response: s.manager,
-          submitted_at: s.submitted_at,
-          is_late: s.is_late
-        }))
-      },
-      feedback: {
-        responses: submissions.map(s => ({
-          user: s.users,
-          response: s.feedback,
-          submitted_at: s.submitted_at,
-          is_late: s.is_late
-        })).filter(r => r.response)
-      },
-      changes_next_week: {
-        responses: submissions.map(s => ({
-          user: s.users,
-          response: s.changes_next_week,
-          submitted_at: s.submitted_at,
-          is_late: s.is_late
-        })).filter(r => r.response)
-      },
-      milestones: {
-        responses: submissions.map(s => ({
-          user: s.users,
-          response: s.milestones,
-          submitted_at: s.submitted_at,
-          is_late: s.is_late
-        })).filter(r => r.response)
-      },
-      other_feedback: {
-        responses: submissions.map(s => ({
-          user: s.users,
-          response: s.other_feedback,
-          submitted_at: s.submitted_at,
-          is_late: s.is_late
-        })).filter(r => r.response)
-      },
-      hours_reporting_impact: {
-        responses: submissions.map(s => ({
-          user: s.users,
-          response: s.hours_reporting_impact,
-          submitted_at: s.submitted_at,
-          is_late: s.is_late
-        })).filter(r => r.response)
-      }
+    const fieldMap = {
+      primary_project:     { field: 'primary_project_name',  keepEmpty: true,  includeHours: true },
+      additional_projects: { field: 'additional_projects',   keepEmpty: true,  includeHours: false },
+      manager:             { field: 'manager',               keepEmpty: true,  includeHours: false },
+      feedback:            { field: 'feedback',              keepEmpty: false, includeHours: false },
+      changes_next_week:   { field: 'changes_next_week',     keepEmpty: false, includeHours: false },
+      milestones:          { field: 'milestones',            keepEmpty: false, includeHours: false },
+      other_feedback:      { field: 'other_feedback',        keepEmpty: false, includeHours: false },
+      hours_reporting_impact: { field: 'hours_reporting_impact', keepEmpty: false, includeHours: false },
     };
+
+    const questions = Object.fromEntries(
+      Object.entries(fieldMap).map(([key, { field, keepEmpty, includeHours }]) => [
+        key,
+        {
+          responses: submissions
+            .map((s) => {
+              const base = {
+                user: s.users,
+                response: s[field],
+                submitted_at: s.submitted_at,
+                is_late: s.is_late,
+              };
+              return includeHours
+                ? { ...base, hours: s.primary_project_hours }
+                : base;
+            })
+            .filter((r) => keepEmpty || r.response),
+        },
+      ])
+    );
 
     return NextResponse.json({
       success: true,
