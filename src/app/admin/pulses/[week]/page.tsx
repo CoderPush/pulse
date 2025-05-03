@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, FileText } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -63,7 +63,7 @@ export default function PulsePreviewPage({ params }: { params: Promise<{ week: s
     fetchWeekData();
   }, [params]);
 
-  const renderQuestionPreview = (question: Question) => {
+  const renderQuestionPreview = useCallback((question: Question) => {
     switch (question.type) {
       case 'text':
         return (
@@ -104,7 +104,7 @@ export default function PulsePreviewPage({ params }: { params: Promise<{ week: s
           </div>
         );
     }
-  };
+  }, []);
 
   if (loading) {
     return (

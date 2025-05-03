@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import {
   Table,
   TableBody,
@@ -77,7 +77,7 @@ export default function PulseResponses({ weekNumber }: PulseResponsesProps) {
     fetchResponses();
   }, [weekNumber]);
 
-  const renderResponseTable = (responses: Response[]) => (
+  const renderResponseTable = useCallback((responses: Response[]) => (
     <Table>
       <TableHeader>
         <TableRow>
@@ -128,7 +128,7 @@ export default function PulseResponses({ weekNumber }: PulseResponsesProps) {
         ))}
       </TableBody>
     </Table>
-  );
+  ), []);
 
   if (loading) {
     return (
