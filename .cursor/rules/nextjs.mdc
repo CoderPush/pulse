@@ -1,0 +1,6 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+we are on nextjs 15 so make sure you reference to latest practices, not using older nextjs practices where applicable.

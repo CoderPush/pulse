@@ -14,6 +14,7 @@ import {
   LayoutDashboard,
   Settings,
   Users,
+  ListTodo,
 } from 'lucide-react';
 
 const sidebarItems = [
@@ -21,6 +22,11 @@ const sidebarItems = [
     title: 'Dashboard',
     href: '/admin',
     icon: LayoutDashboard,
+  },
+  {
+    title: 'Pulses',
+    href: '/admin/pulses',
+    icon: ListTodo,
   },
   {
     title: 'Submissions',
