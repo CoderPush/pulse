@@ -8,60 +8,86 @@ import Link from 'next/link';
 import { ArrowLeft, FileText } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
+/**
+ * Represents a single pulse survey week and its metadata.
+ */
 interface PulseWeek {
+  /** Calendar year */
   year: number;
+  /** Week number within the year (1-52) */
   week_number: number;
+  /** Start date of the week being surveyed (ISO string) */
   start_date: string;
+  /** End date of the week being surveyed (ISO string) */
   end_date: string;
+  /** Date when submissions open (ISO string) */
   submission_start: string;
+  /** Regular submission deadline (ISO string) */
   submission_end: string;
+  /** Final deadline for late submissions (ISO string) */
   late_submission_end: string;
+  /** Total number of submissions received */
   total_submissions?: number;
+  /** Percentage of expected submissions received (0-1) */
   completion_rate?: number;
 }
 
 export default function PulsesPage() {
   const router = useRouter();
+  const [rawWeeks, setRawWeeks] = useState<PulseWeek[]>([]);
   const [weeks, setWeeks] = useState<PulseWeek[]>([]);
   const [sortBy, setSortBy] = useState('latest');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // Fetch once
   useEffect(() => {
     const fetchWeeks = async () => {
       try {
         const response = await fetch('/api/admin/pulses');
         const data = await response.json();
-        
         if (!response.ok) {
           throw new Error(data.error || 'Failed to fetch pulse weeks');
         }
-
-        const sortedWeeks = [...data.weeks];
-        switch (sortBy) {
-          case 'latest':
-            sortedWeeks.sort((a, b) => b.week_number - a.week_number);
-            break;
-          case 'week':
-            sortedWeeks.sort((a, b) => a.week_number - b.week_number);
-            break;
-          case 'completion':
-            sortedWeeks.sort((a, b) => (b.completion_rate || 0) - (a.completion_rate || 0));
-            break;
-        }
-
-        setWeeks(sortedWeeks);
+        setRawWeeks(data.weeks);
         setError(null);
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'An error occurred');
+        setError('Unable to load pulse data. Please try again later.');
         console.error('Error fetching pulse weeks:', err);
       } finally {
         setLoading(false);
       }
     };
-
     fetchWeeks();
-  }, [sortBy]);
+  }, []);
+
+  // Sort locally
+  useEffect(() => {
+    if (rawWeeks.length === 0) return;
+    const sortedWeeks = [...rawWeeks];
+    switch (sortBy) {
+      case 'latest':
+        sortedWeeks.sort(
+          (a, b) =>
+            b.year !== a.year
+              ? b.year - a.year
+              : b.week_number - a.week_number
+        );
+        break;
+      case 'week':
+        sortedWeeks.sort(
+          (a, b) =>
+            a.year !== b.year
+              ? a.year - b.year
+              : a.week_number - b.week_number
+        );
+        break;
+      case 'completion':
+        sortedWeeks.sort((a, b) => (b.completion_rate || 0) - (a.completion_rate || 0));
+        break;
+    }
+    setWeeks(sortedWeeks);
+  }, [sortBy, rawWeeks]);
 
   const isCurrentWeek = (week: PulseWeek) => {
     const now = new Date();
@@ -126,8 +152,8 @@ export default function PulsesPage() {
                   <CardContent>
                     <div className="space-y-2">
                       <div className="text-sm text-gray-500">
-                        <p>Opens: {new Date(week.submission_start).toLocaleDateString()}</p>
-                        <p>Closes: {new Date(week.late_submission_end).toLocaleDateString()}</p>
+                        <p>Opens: {new Date(week.submission_start).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })}</p>
+                        <p>Closes: {new Date(week.late_submission_end).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })}</p>
                       </div>
                       <div className="pt-2 border-t">
                         <div className="flex justify-between items-center">
@@ -137,7 +163,11 @@ export default function PulsesPage() {
                         <div className="flex justify-between items-center">
                           <span className="text-sm text-gray-500">Completion</span>
                           <span className="font-medium">
-                            {week.completion_rate ? `${Math.round(week.completion_rate * 100)}%` : '0%'}
+                            {week.completion_rate
+                              ? (week.completion_rate < 0.01 && week.completion_rate > 0)
+                                ? '<1%'
+                                : `${Math.round(week.completion_rate * 100)}%`
+                              : '0%'}
                           </span>
                         </div>
                       </div>

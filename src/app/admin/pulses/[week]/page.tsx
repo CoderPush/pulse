@@ -36,7 +36,7 @@ export default function PulsePreviewPage({ params }: { params: Promise<{ week: s
   const [weekData, setWeekData] = useState<WeekData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<'preview' | 'responses'>('preview');
+  const [tab, setTab] = useState<'preview' | 'responses'>('preview');
 
   useEffect(() => {
     const fetchWeekData = async () => {
@@ -172,70 +172,51 @@ export default function PulsePreviewPage({ params }: { params: Promise<{ week: s
         </div>
 
         <div className="space-y-4">
-          <div className="flex space-x-4">
-            <button
-              onClick={() => setActiveTab('preview')}
-              className={`px-4 py-2 rounded-md ${
-                activeTab === 'preview'
-                  ? 'bg-indigo-600 text-white'
-                  : 'bg-white text-gray-600 hover:bg-gray-50'
-              }`}
-            >
-              Form Preview
-            </button>
-            <button
-              onClick={() => setActiveTab('responses')}
-              className={`px-4 py-2 rounded-md ${
-                activeTab === 'responses'
-                  ? 'bg-indigo-600 text-white'
-                  : 'bg-white text-gray-600 hover:bg-gray-50'
-              }`}
-            >
-              View Responses
-            </button>
-          </div>
-
-          {activeTab === 'preview' ? (
-            <Tabs defaultValue="project" className="space-y-4">
-              <TabsList>
-                <TabsTrigger value="project">Project</TabsTrigger>
-                <TabsTrigger value="hours">Hours</TabsTrigger>
-                <TabsTrigger value="manager">Manager</TabsTrigger>
-                <TabsTrigger value="feedback">Feedback</TabsTrigger>
-                <TabsTrigger value="impact">Impact</TabsTrigger>
-              </TabsList>
-
-              {['project', 'hours', 'manager', 'feedback', 'impact'].map((category) => (
-                <TabsContent key={category} value={category}>
-                  <div className="grid gap-6">
-                    {weekData.questions
-                      .filter((q) => q.category === category)
-                      .map((question) => (
-                        <Card key={question.id} className="p-6 space-y-4">
-                          <div className="flex justify-between items-start">
-                            <div>
-                              <h3 className="text-lg font-semibold">{question.title}</h3>
-                              <p className="text-sm text-gray-500">{question.description}</p>
+          <Tabs value={tab} onValueChange={v => setTab(v as 'preview' | 'responses')} className="w-full">
+            <TabsList className="mb-4">
+              <TabsTrigger value="preview">Form Preview</TabsTrigger>
+              <TabsTrigger value="responses">View Responses</TabsTrigger>
+            </TabsList>
+            <TabsContent value="preview">
+              <Tabs defaultValue="project" className="space-y-4">
+                <TabsList>
+                  <TabsTrigger value="project">Project</TabsTrigger>
+                  <TabsTrigger value="hours">Hours</TabsTrigger>
+                  <TabsTrigger value="manager">Manager</TabsTrigger>
+                  <TabsTrigger value="feedback">Feedback</TabsTrigger>
+                  <TabsTrigger value="impact">Impact</TabsTrigger>
+                </TabsList>
+                {(['project', 'hours', 'manager', 'feedback', 'impact'] as Question['category'][]).map((category) => (
+                  <TabsContent key={category} value={category}>
+                    <div className="grid gap-6">
+                      {weekData.questions
+                        .filter((q) => q.category === category)
+                        .map((question) => (
+                          <Card key={question.id} className="p-6 space-y-4">
+                            <div className="flex justify-between items-start">
+                              <div>
+                                <h3 className="text-lg font-semibold">{question.title}</h3>
+                                <p className="text-sm text-gray-500">{question.description}</p>
+                              </div>
+                              <Badge>{question.type}</Badge>
                             </div>
-                            <Badge>{question.type}</Badge>
-                          </div>
-                          
-                          {renderQuestionPreview(question)}
-                          
-                          <div className="flex items-center gap-2 text-sm text-gray-500">
-                            <span>{question.required ? 'Required' : 'Optional'}</span>
-                            <span>•</span>
-                            <span>Version {question.version}</span>
-                          </div>
-                        </Card>
-                      ))}
-                  </div>
-                </TabsContent>
-              ))}
-            </Tabs>
-          ) : (
-            <PulseResponses weekNumber={weekData.week_number} />
-          )}
+                            {renderQuestionPreview(question)}
+                            <div className="flex items-center gap-2 text-sm text-gray-500">
+                              <span>{question.required ? 'Required' : 'Optional'}</span>
+                              <span>•</span>
+                              <span>Version {question.version}</span>
+                            </div>
+                          </Card>
+                        ))}
+                    </div>
+                  </TabsContent>
+                ))}
+              </Tabs>
+            </TabsContent>
+            <TabsContent value="responses">
+              <PulseResponses weekNumber={weekData.week_number} />
+            </TabsContent>
+          </Tabs>
         </div>
       </div>
     </div>

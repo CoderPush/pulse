@@ -212,7 +212,7 @@ describe('Weekly submission flow', () => {
 ## Implementation Example
 
 ### Directory Structure
-```
+```plaintext
 src/
 ├── __tests__/
 │   ├── __mocks__/
@@ -262,7 +262,7 @@ This hybrid approach gives us:
 - Good developer experience
 
 Remember to:
-- Keep mocks up to date
+- Keep mocks up-to-date
 - Clean up test data
 - Document test patterns
 - Review test coverage regularly 

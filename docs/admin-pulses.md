@@ -46,8 +46,8 @@ Each question card includes:
 
 ### 1. Route Structure
 ```typescript
-/admin/pulses                    // List view of all pulses
-/admin/pulses/[week]            // Preview specific week's pulse
+/admin/pulses         // List view of all pulses
+/admin/pulses/[week]  // Preview specific week's pulse
 ```
 
 ### 2. Component Structure
