@@ -31,8 +31,8 @@ interface WeekData {
   questions: Question[];
 }
 
-function isPromise<T>(value: any): value is Promise<T> {
-  return typeof value === 'object' && value !== null && typeof value.then === 'function';
+function isPromise<T>(value: unknown): value is Promise<T> {
+  return typeof value === 'object' && value !== null && typeof (value as { then?: unknown }).then === 'function';
 }
 
 export default function PulsePreviewPage({ params }: { params: Promise<{ week: string }> | { week: string } }) {
