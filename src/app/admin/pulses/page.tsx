@@ -37,7 +37,7 @@ export default function PulsesPage() {
           throw new Error(data.error || 'Failed to fetch pulse weeks');
         }
 
-        let sortedWeeks = [...data.weeks];
+        const sortedWeeks = [...data.weeks];
         switch (sortBy) {
           case 'latest':
             sortedWeeks.sort((a, b) => b.week_number - a.week_number);

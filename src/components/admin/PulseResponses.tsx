@@ -16,9 +16,14 @@ interface User {
   name: string | null;
 }
 
+interface Project {
+  name: string;
+  hours: number;
+}
+
 interface Response {
   user: User;
-  response: any;
+  response: string | Project[];
   hours?: number;
   submitted_at: string;
   is_late: boolean;
@@ -95,7 +100,7 @@ export default function PulseResponses({ weekNumber }: PulseResponsesProps) {
             <TableCell>
               {Array.isArray(response.response) ? (
                 <div className="space-y-1">
-                  {response.response.map((project: any, idx: number) => (
+                  {response.response.map((project: Project, idx: number) => (
                     <div key={idx} className="flex items-center gap-2">
                       <span>{project.name}</span>
                       <Badge variant="secondary">{project.hours}h</Badge>
