@@ -3,9 +3,10 @@ import { createClient } from '@/utils/supabase/server';
 
 export async function GET(
   request: Request,
-  { params }: { params: { week: string } }
+  context: { params: Promise<{ week: string }> }
 ) {
   try {
+    const params = await context.params;
     const weekNumber = Number.parseInt(params.week, 10);
     if (Number.isNaN(weekNumber) || weekNumber <= 0) {
       return NextResponse.json({ error: 'Invalid week parameter' }, { status: 400 });

@@ -31,13 +31,9 @@ interface WeekData {
   questions: Question[];
 }
 
-function isPromise<T>(value: unknown): value is Promise<T> {
-  return typeof value === 'object' && value !== null && typeof (value as { then?: unknown }).then === 'function';
-}
-
-export default function PulsePreviewPage({ params }: { params: Promise<{ week: string }> | { week: string } }) {
+export default function PulsePreviewPage({ params }: { params: Promise<{ week: string }> }) {
   const router = useRouter();
-  const unwrappedParams = isPromise<{ week: string }>(params) ? use(params) : params;
+  const unwrappedParams = use(params);
   const [weekData, setWeekData] = useState<WeekData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
