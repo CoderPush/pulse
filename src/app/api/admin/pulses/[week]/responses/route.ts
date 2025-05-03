@@ -3,11 +3,13 @@ import { createClient } from '@/utils/supabase/server';
 
 export async function GET(
   request: Request,
-  context: { params: Promise<{ week: string }> }
+  { params }: { params: { week: string } }
 ) {
   try {
-    const params = await context.params;
-    const weekNumber = parseInt(params.week);
+    const weekNumber = Number.parseInt(params.week, 10);
+    if (Number.isNaN(weekNumber) || weekNumber <= 0) {
+      return NextResponse.json({ error: 'Invalid week parameter' }, { status: 400 });
+    }
     const supabase = await createClient();
 
     // Verify admin status

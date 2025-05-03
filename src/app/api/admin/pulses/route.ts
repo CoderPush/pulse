@@ -45,6 +45,12 @@ export async function GET() {
 
     if (weeksError) throw weeksError;
 
+    // Fetch totalUsers once
+    const { count: totalUsers } = await supabase
+      .from('users')
+      .select('*', { count: 'exact', head: true })
+      .eq('is_admin', false);
+
     // Get submission statistics for each week
     const weeksWithStats = await Promise.all(
       weeks.map(async (week) => {
@@ -54,15 +60,10 @@ export async function GET() {
           .eq('year', week.year)
           .eq('week_number', week.week_number);
 
-        const { count: totalUsers } = await supabase
-          .from('users')
-          .select('*', { count: 'exact', head: true })
-          .eq('is_admin', false);
-
         return {
           ...week,
           total_submissions: totalSubmissions ?? 0,
-          completion_rate: totalUsers && totalSubmissions ? totalSubmissions / totalUsers : 0
+          completion_rate: totalUsers ? (totalSubmissions ?? 0) / totalUsers : 0
         };
       })
     );

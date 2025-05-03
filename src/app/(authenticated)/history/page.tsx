@@ -17,7 +17,7 @@ const getCurrentWeek = () => getISOWeek(new Date());
 export default async function HistoryPage({ 
   searchParams 
 }: { 
-  searchParams: Promise<{ week?: string }> 
+  searchParams: { week?: string } 
 }) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
@@ -72,7 +72,7 @@ export default async function HistoryPage({
   // 5. Determine selected week
   const defaultWeekValue = weekOptions.find(w => w.week_number === currentWeek && w.year === currentYear)?.value || 
     (weekOptions.length > 0 ? weekOptions[weekOptions.length - 1].value : '');
-  const params = await searchParams;
+  const params = searchParams;
   const selectedWeekParam = params.week || defaultWeekValue;
   const [selectedYear, selectedWeek] = selectedWeekParam.split('-').map(Number);
 

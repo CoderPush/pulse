@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { use, useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, FileText } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -31,8 +31,13 @@ interface WeekData {
   questions: Question[];
 }
 
-export default function PulsePreviewPage({ params }: { params: Promise<{ week: string }> }) {
+function isPromise<T>(value: any): value is Promise<T> {
+  return typeof value === 'object' && value !== null && typeof value.then === 'function';
+}
+
+export default function PulsePreviewPage({ params }: { params: Promise<{ week: string }> | { week: string } }) {
   const router = useRouter();
+  const unwrappedParams = isPromise<{ week: string }>(params) ? use(params) : params;
   const [weekData, setWeekData] = useState<WeekData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -42,7 +47,10 @@ export default function PulsePreviewPage({ params }: { params: Promise<{ week: s
     const fetchWeekData = async () => {
       try {
         setLoading(true);
-        const weekNumber = (await params).week;
+        const weekNumber = Number.parseInt(unwrappedParams.week, 10);
+        if (Number.isNaN(weekNumber) || weekNumber <= 0) {
+          throw new Error('Invalid week parameter');
+        }
         const response = await fetch(`/api/admin/pulses/${weekNumber}`);
         const data = await response.json();
 
@@ -61,7 +69,7 @@ export default function PulsePreviewPage({ params }: { params: Promise<{ week: s
     };
 
     fetchWeekData();
-  }, [params]);
+  }, [unwrappedParams]);
 
   const renderQuestionPreview = useCallback((question: Question) => {
     switch (question.type) {

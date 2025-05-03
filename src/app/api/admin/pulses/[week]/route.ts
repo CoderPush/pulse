@@ -87,7 +87,10 @@ export async function GET(
 ) {
   try {
     const params = await context.params;
-    const weekNumber = parseInt(params.week);
+    const weekNumber = Number.parseInt(params.week, 10);
+    if (Number.isNaN(weekNumber) || weekNumber <= 0) {
+      return NextResponse.json({ error: 'Invalid week parameter' }, { status: 400 });
+    }
     const supabase = await createClient();
 
     // Verify admin status
