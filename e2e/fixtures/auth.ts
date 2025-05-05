@@ -69,19 +69,15 @@ export async function createTestUser(email: string): Promise<TestUser> {
  * Auto-login helper for E2E tests
  */
 export async function autoLogin(page: Page, email: string) {
-  try {
-    // Ensure user exists
-    const user = await createTestUser(email);
-    
-    // Generate token and perform auto-login
-    const token = await generateAutoLoginToken(user.email);
-    
-    // Visit auto-login URL
-    await page.goto(`/api/auth/auto-login?token=${token}`);
-    
-    // Wait for redirect to home page
-    await page.waitForURL('/');
-  } catch (error) {
-    throw error;
-  }
+  // Ensure user exists
+  const user = await createTestUser(email);
+  
+  // Generate token and perform auto-login
+  const token = await generateAutoLoginToken(user.email);
+  
+  // Visit auto-login URL
+  await page.goto(`/api/auth/auto-login?token=${token}`);
+  
+  // Wait for redirect to home page
+  await page.waitForURL('/');
 }
