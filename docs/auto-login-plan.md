@@ -10,19 +10,44 @@ This plan provides two distinct implementations for auto-login functionality:
 ## Version 1: Simple Auto-Login for E2E Testing
 
 ### Overview
-A simplified version designed to make E2E testing easier, particularly for testing authenticated user flows. This version includes basic password management while maintaining minimal security features.
+A simplified version designed to make E2E testing easier, particularly for testing authenticated user flows. This version uses environment variables for test credentials and minimal logging.
 
-### Implementation Details
+### File Structure
+```
+src/
+├── app/
+│   └── api/
+│       └── auth/
+│           └── auto-login/
+│               └── route.ts
+├── lib/
+│   └── auth/
+│       └── generateAutoLoginToken.ts
+e2e/
+├── fixtures/
+│   └── auth.ts
+└── specs/
+    └── auth.spec.ts
+```
 
-#### 1. Simple JWT Token Generation
+### Implementation Steps
+
+#### 1. JWT Token Generation
+**File:** `src/lib/auth/generateAutoLoginToken.ts`
 
 ```typescript
-interface SimpleAutoLoginToken {
+import jwt from 'jsonwebtoken';
+
+interface AutoLoginToken {
   userId: string;
   exp: number;
 }
 
-function generateSimpleAutoLoginToken(userId: string): string {
+export function generateAutoLoginToken(userId: string): string {
+  if (!process.env.JWT_SECRET) {
+    throw new Error('JWT_SECRET environment variable is not defined');
+  }
+
   return jwt.sign(
     { 
       userId,
@@ -33,155 +58,195 @@ function generateSimpleAutoLoginToken(userId: string): string {
 }
 ```
 
-#### 2. Password Management
-
-```typescript
-// src/lib/auth/password.ts
-function generateSimplePassword(): string {
-  // Generate a simple but secure password for testing
-  return crypto.randomBytes(16).toString('hex');
-}
-
-async function updateUserPassword(userId: string, newPassword: string) {
-  const { error } = await supabase.auth.admin.updateUserById(
-    userId,
-    { password: newPassword }
-  );
-  
-  if (error) {
-    throw new Error(`Failed to update password: ${error.message}`);
-  }
-}
-```
-
-#### 3. Auto-Login API Endpoint
-
+#### 2. Auto-Login API Route
 **File:** `src/app/api/auth/auto-login/route.ts`
 
 ```typescript
-import { createServerClient } from '@supabase/ssr'
-import { cookies } from 'next/headers'
+import { createClient } from '@/utils/supabase/server';
+import { createClient as createAdminClient } from '@supabase/supabase-js';
+import jwt from 'jsonwebtoken';
+
+interface AutoLoginToken {
+  userId: string;
+  exp: number;
+}
 
 export async function GET(request: Request) {
   const token = new URL(request.url).searchParams.get('token');
   
   if (!token) {
-    return new Response('Missing token', { status: 400 });
+    return Response.redirect(new URL('/auth/login', request.url));
   }
 
   try {
-    const payload = jwt.verify(token, process.env.JWT_SECRET) as SimpleAutoLoginToken;
+    // Verify token
+    const payload = jwt.verify(token, process.env.JWT_SECRET!) as AutoLoginToken;
     const { userId } = payload;
     
-    // Generate and update password
-    const newPassword = generateSimplePassword();
-    await updateUserPassword(userId, newPassword);
-    
-    // Create Supabase server client
-    const cookieStore = cookies()
-    const supabase = createServerClient(
+    // Get user by ID
+    const adminClient = createAdminClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!,
       {
-        cookies: {
-          get(name: string) {
-            return cookieStore.get(name)?.value
-          },
-          set(name: string, value: string, options: any) {
-            cookieStore.set({ name, value, ...options })
-          },
-          remove(name: string, options: any) {
-            cookieStore.set({ name, value: '', ...options })
-          },
-        },
+        auth: {
+          autoRefreshToken: false,
+          persistSession: false
+        }
       }
-    )
+    );
     
-    // Sign in user with Supabase
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email: userId,
-      password: newPassword
+    const { data: { user }, error: userError } = await adminClient.auth.admin.getUserById(userId);
+    if (userError || !user || !user.email) {
+      return Response.redirect(new URL('/auth/login', request.url));
+    }
+    
+    // Create regular client and sign in
+    const supabase = await createClient();
+    const { error: signInError } = await supabase.auth.signInWithPassword({
+      email: user.email,
+      password: process.env.TEST_USER_PASSWORD || 'Test123!'
     });
 
-    if (error) throw error;
+    if (signInError) {
+      return Response.redirect(new URL('/auth/login', request.url));
+    }
 
-    // Redirect to home page
+    // Success - redirect to home page
     return Response.redirect(new URL('/', request.url));
   } catch (error) {
-    return new Response('Invalid token', { status: 401 });
+    return Response.redirect(new URL('/auth/login', request.url));
   }
 }
 ```
 
-#### 4. Playwright Test Helper
-
-**File:** `tests/helpers/auth.ts`
+#### 3. E2E Test Helper
+**File:** `e2e/fixtures/auth.ts`
 
 ```typescript
-export async function autoLogin(page: Page, userId: string) {
-  const token = generateSimpleAutoLoginToken(userId);
-  await page.goto(`/api/auth/auto-login?token=${token}`);
-  // Wait for redirect to complete
-  await page.waitForURL('/');
+import { Page } from '@playwright/test';
+import { generateAutoLoginToken } from '@/lib/auth/generateAutoLoginToken';
+import { createClient as createAdminClient } from '@supabase/supabase-js';
+
+interface TestUser {
+  id: string;
+  email: string;
 }
 
-// Helper to create a test user if needed
-export async function createTestUser(email: string) {
-  const { data, error } = await supabase.auth.admin.createUser({
-    email,
-    email_confirm: true
-  });
-  
-  if (error) throw error;
-  return data.user;
+// Cache for created test users to avoid duplicates
+const testUsers = new Map<string, TestUser>();
+
+export async function createTestUser(email: string): Promise<TestUser> {
+  // Check if user already exists in cache
+  if (testUsers.has(email)) {
+    return testUsers.get(email)!;
+  }
+
+  const adminClient = createAdminClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    {
+      auth: {
+        autoRefreshToken: false,
+        persistSession: false
+      }
+    }
+  );
+
+  try {
+    // First check if user exists
+    const { data: { users }, error: listError } = await adminClient.auth.admin.listUsers();
+    if (listError) throw listError;
+    
+    const existingUser = users.find(u => u.email === email);
+    if (existingUser) {
+      const user = { id: existingUser.id, email: existingUser.email! };
+      testUsers.set(email, user);
+      return user;
+    }
+
+    // Create new user if doesn't exist
+    const { data, error } = await adminClient.auth.admin.createUser({
+      email,
+      email_confirm: true,
+      password: process.env.TEST_USER_PASSWORD || 'Test123!',
+      user_metadata: { is_test_user: true }
+    });
+
+    if (error) throw error;
+    if (!data.user) throw new Error('Failed to create test user: No user data returned');
+
+    const user = { id: data.user.id, email: data.user.email! };
+    testUsers.set(email, user);
+    return user;
+  } catch (error) {
+    throw error;
+  }
+}
+
+export async function autoLogin(page: Page, email: string) {
+  try {
+    // Ensure user exists
+    const user = await createTestUser(email);
+    
+    // Generate token and perform auto-login
+    const token = await generateAutoLoginToken(user.email);
+    
+    // Visit auto-login URL
+    await page.goto(`/api/auth/auto-login?token=${token}`);
+    
+    // Wait for redirect to home page
+    await page.waitForURL('/');
+  } catch (error) {
+    throw error;
+  }
 }
 ```
 
-#### 5. Test Examples
-
-**File:** `tests/auth/auto-login.spec.ts`
+#### 4. E2E Test Example
+**File:** `e2e/specs/auth.spec.ts`
 
 ```typescript
 import { test, expect } from '@playwright/test';
-import { autoLogin, createTestUser } from '../helpers/auth';
+import { autoLogin, createTestUser } from '../fixtures/auth';
 
 test.describe('Auto Login', () => {
-  test.beforeEach(async () => {
-    // Create test user if needed
-    await createTestUser('test@example.com');
-  });
+  test('can auto login with valid token and redirects to home', async ({ page }) => {
+    // Create test user
+    const testUser = await createTestUser('test@example.com');
 
-  test('can auto login with valid token', async ({ page }) => {
-    await autoLogin(page, 'test@example.com');
+    // Perform auto login
+    await autoLogin(page, testUser.email);
+
+    // Verify redirect to home page
     await expect(page).toHaveURL('/');
-    
-    // Verify session is set
-    const cookies = await page.context().cookies();
-    const sessionCookie = cookies.find(c => c.name === 'sb-access-token');
-    expect(sessionCookie).toBeTruthy();
-  });
-
-  test('redirects to home after successful login', async ({ page }) => {
-    await autoLogin(page, 'test@example.com');
-    await page.goto('/dashboard');
-    await expect(page).toHaveURL('/dashboard');
-  });
-
-  test('handles invalid token', async ({ page }) => {
-    await page.goto('/api/auth/auto-login?token=invalid');
-    await expect(page).toHaveURL('/login');
   });
 });
 ```
 
-#### 6. Environment Variables (Version 1)
-
+### Environment Variables
 ```env
 JWT_SECRET=your-secure-secret
 SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
 NEXT_PUBLIC_SUPABASE_URL=your-supabase-url
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your-supabase-anon-key
+TEST_USER_PASSWORD=your-test-password
 ```
+
+### Implementation Order
+
+1. Set up environment variables
+2. Create JWT token generation helper
+3. Implement auto-login API route
+4. Create E2E test helpers
+5. Write E2E tests
+
+### Security Notes
+- This implementation is for E2E testing only
+- Never expose this endpoint in production
+- Use strong JWT secret
+- Keep service role key secure
+- Use environment variables for test credentials
+- Minimal logging for cleaner code
 
 ## Version 2: Complete Reminder Flow
 
