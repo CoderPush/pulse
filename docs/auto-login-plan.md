@@ -17,8 +17,17 @@ This plan enables users to receive an email reminder with a secure, expiring aut
 
 - When sending a reminder email, generate a JWT token containing:
   - The user's ID (stable, immutable identifier)
-  - An expiration timestamp (e.g., 3 days)
-  - A random nonce for security
+  - An expiration timestamp (configurable via TOKEN_EXPIRY env var)
+    - Default: 3 days for regular reminders
+    - 1 hour for high-security operations
+    - Adjust based on use case:
+      - Admin reminders: 3 days
+      - Password reset: 1 hour
+      - High-security operations: 1 hour
+  - A unique token identifier (jti claim)
+    - Standard JWT claim for unique identification
+    - Helps prevent token reuse
+    - Improves interoperability with JWT tools
 - Sign the JWT with a strong server-side secret
 - Include the JWT as a query parameter in the auto-login link
 
@@ -75,7 +84,8 @@ interface ErrorResponse {
 
 ```env
 JWT_SECRET=your-secure-secret
-TOKEN_EXPIRY=259200  # 3 days in seconds
+TOKEN_EXPIRY=259200  # Default: 3 days in seconds
+TOKEN_EXPIRY_HIGH_SECURITY=3600  # 1 hour in seconds
 RATE_LIMIT_WINDOW=3600  # 1 hour in seconds
 RATE_LIMIT_MAX=5  # max attempts per window
 ```
@@ -86,7 +96,7 @@ RATE_LIMIT_MAX=5  # max attempts per window
 interface AutoLoginToken {
   user_id: string;
   exp: number;
-  nonce: string;
+  jti: string;  // Standard JWT ID claim
 }
 
 interface LoginAttempt {
@@ -105,13 +115,18 @@ interface LoginAttempt {
 const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
 
-function generateAutoLoginToken(userId: string) {
-  const nonce = crypto.randomBytes(16).toString('hex');
+function generateAutoLoginToken(userId: string, isHighSecurity: boolean = false) {
+  // Generate a unique token ID using crypto
+  const jti = crypto.randomBytes(16).toString('hex');
+  const expiry = isHighSecurity 
+    ? Number(process.env.TOKEN_EXPIRY_HIGH_SECURITY)
+    : Number(process.env.TOKEN_EXPIRY);
+
   return jwt.sign(
     { 
       user_id: userId,
-      exp: Math.floor(Date.now() / 1000) + 259200, // 3 days
-      nonce
+      exp: Math.floor(Date.now() / 1000) + expiry,
+      jti  // Using standard JWT ID claim
     },
     process.env.JWT_SECRET
   );
