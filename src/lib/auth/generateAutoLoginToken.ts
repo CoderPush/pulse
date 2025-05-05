@@ -36,7 +36,7 @@ export async function generateAutoLoginToken(email: string): Promise<string> {
     { 
       userId: user.id,
       exp: Math.floor(Date.now() / 1000) + 3600 // 1 hour expiry
-    },
+    } as AutoLoginToken,
     process.env.JWT_SECRET
   );
 } 

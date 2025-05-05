@@ -50,7 +50,7 @@ export async function GET(request: Request) {
 
     // Success - redirect to home page
     return Response.redirect(new URL('/', request.url));
-  } catch (error) {
+  } catch {
     return Response.redirect(new URL('/auth/login', request.url));
   }
 } 
