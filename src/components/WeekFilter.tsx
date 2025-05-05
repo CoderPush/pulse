@@ -9,7 +9,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { getISOWeek } from 'date-fns'
+import { getMostRecentThursdayWeek } from '@/lib/utils/time'
 
 interface WeekFilterProps {
   weeks: { value: string; label: string; week_number: number; year: number }[];
@@ -21,7 +21,7 @@ export function WeekFilter({ weeks }: WeekFilterProps) {
   const searchParams = useSearchParams();
   
   const currentYear = new Date().getFullYear();
-  const currentWeek = getISOWeek(new Date());
+  const currentWeek = getMostRecentThursdayWeek();
   
   const defaultWeekValue = weeks.find(w => w.week_number === currentWeek && w.year === currentYear)?.value || 
     (weeks.length > 0 ? weeks[weeks.length - 1].value : '');
