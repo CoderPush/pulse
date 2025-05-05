@@ -43,7 +43,7 @@ describe('/api/admin/submissions/remind POST Handler', () => {
   };
 
   // Set up the method chain
-  mockFrom.mockImplementation((tableName) => ({
+  mockFrom.mockImplementation(() => ({
     select: (selectArg: string, options?: { count: 'exact' }) => {
       if (options?.count === 'exact') {
         mockSelectWithOptions.mockReturnValue({ eq: mockEq });
@@ -79,7 +79,7 @@ describe('/api/admin/submissions/remind POST Handler', () => {
     mockSendEmail.mockResolvedValue({ success: true });
   });
 
-  const createMockRequest = (body: any): Request => {
+  const createMockRequest = (body: { userIds: string[]; week: number; year: number }): Request => {
     return { json: async () => body } as Request;
   };
 
