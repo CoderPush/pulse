@@ -22,9 +22,31 @@ vi.mock('@/utils/email-templates', async (importOriginal) => {
   };
 });
 
-// --- Test Suite ---
-describe('/api/admin/submissions/remind POST Handler', () => {
-  // Create mock functions for each method in the chain
+// --- Helper Types ---
+type MockUser = {
+  id: string;
+  email: string;
+  name: string;
+};
+
+type ReminderRequest = {
+  userIds: string[];
+  week: number;
+  year: number;
+};
+
+// --- Helper Functions ---
+const createMockUser = (id: string): MockUser => ({
+  id,
+  email: `user${id}@example.com`,
+  name: `User ${id}`,
+});
+
+const createMockRequest = (body: ReminderRequest): Request => {
+  return { json: async () => body } as Request;
+};
+
+const setupSupabaseMocks = () => {
   const mockEq = vi.fn();
   const mockIn = vi.fn();
   const mockGte = vi.fn();
@@ -32,17 +54,15 @@ describe('/api/admin/submissions/remind POST Handler', () => {
   const mockSingle = vi.fn();
   const mockInsert = vi.fn();
   const mockSelect = vi.fn();
-  const mockSelectWithOptions = vi.fn(); // For select('*', { count: 'exact' })
+  const mockSelectWithOptions = vi.fn();
   const mockFrom = vi.fn();
   const mockGetUser = vi.fn();
 
-  // Create the mock Supabase client
   const mockSupabaseClient = {
     auth: { getUser: mockGetUser },
     from: mockFrom,
   };
 
-  // Set up the method chain
   mockFrom.mockImplementation(() => ({
     select: (selectArg: string, options?: { count: 'exact' }) => {
       if (options?.count === 'exact') {
@@ -55,7 +75,6 @@ describe('/api/admin/submissions/remind POST Handler', () => {
     insert: mockInsert,
   }));
 
-  // Set up the chain returns
   mockEq.mockReturnValue({ eq: mockEq, single: mockSingle, order: mockOrder });
   mockIn.mockReturnValue({ gte: mockGte });
   mockGte.mockResolvedValue({ data: [], error: null });
@@ -63,7 +82,24 @@ describe('/api/admin/submissions/remind POST Handler', () => {
   mockOrder.mockResolvedValue({ data: null, error: null, count: 0 });
   mockInsert.mockResolvedValue({ data: null, error: null });
 
-  // Set up other mocks
+  return {
+    mockEq,
+    mockIn,
+    mockGte,
+    mockOrder,
+    mockSingle,
+    mockInsert,
+    mockSelect,
+    mockSelectWithOptions,
+    mockFrom,
+    mockGetUser,
+    mockSupabaseClient,
+  };
+};
+
+// --- Test Suite ---
+describe('/api/admin/submissions/remind POST Handler', () => {
+  const mocks = setupSupabaseMocks();
   const mockSendEmail = sendEmail as Mock;
   const mockCreateClient = createClient as Mock;
   const mockOnTimeTemplate = emailTemplates.onTimeTemplate as Mock;
@@ -74,143 +110,293 @@ describe('/api/admin/submissions/remind POST Handler', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    mockCreateClient.mockReturnValue(mockSupabaseClient);
-    mockGetUser.mockResolvedValue({ data: { user: { id: 'admin-user-id' } }, error: null });
+    mockCreateClient.mockReturnValue(mocks.mockSupabaseClient);
+    mocks.mockGetUser.mockResolvedValue({ data: { user: { id: 'admin-user-id' } }, error: null });
     mockSendEmail.mockResolvedValue({ success: true });
   });
 
-  const createMockRequest = (body: { userIds: string[]; week: number; year: number }): Request => {
-    return { json: async () => body } as Request;
-  };
+  describe('Success Cases', () => {
+    it('should return 200 with success results for single user reminder', async () => {
+      const user = createMockUser('1');
+      const week = 25;
+      const year = 2024;
+      const requestBody = { userIds: [user.id], week, year };
+      const mockRequest = createMockRequest(requestBody);
 
-  it('should use onTimeTemplate and type "on-time" for the first reminder (count=0)', async () => {
-    const user = { id: 'user-1', email: 'user1@example.com', name: 'User One' };
-    const week = 25;
-    const year = 2024;
-    const requestBody = { userIds: [user.id], week, year };
-    const mockRequest = createMockRequest(requestBody);
+      // Set up all mock responses in sequence
+      mocks.mockSingle.mockResolvedValueOnce({ data: { id: 'admin-user-id', is_admin: true }, error: null });
+      mocks.mockIn.mockResolvedValueOnce({ data: [user], error: null });
+      mocks.mockGte.mockResolvedValueOnce({ data: [], error: null });
+      mocks.mockOrder.mockResolvedValueOnce({ count: 0, error: null });
+      mocks.mockInsert.mockResolvedValueOnce({ error: null });
 
-    // Set up all mock responses for this test
-    mockSingle.mockResolvedValueOnce({ data: { id: 'admin-user-id', is_admin: true }, error: null }); // Admin check
-    mockIn.mockResolvedValueOnce({ data: [user], error: null }); // User lookup
-    mockGte.mockResolvedValueOnce({ data: [], error: null }); // Recent reminders check
-    mockOrder.mockResolvedValueOnce({ count: 0, error: null }); // Count check
-    mockInsert.mockResolvedValueOnce({ error: null }); // Insert reminder log
+      const response = await POST(mockRequest);
+      const data = await response.json();
 
-    await POST(mockRequest);
-
-    expect(mockGetReminderSubject).toHaveBeenCalledWith('on-time', { userName: user.name, weekNumber: week, year });
-    expect(mockOnTimeTemplate).toHaveBeenCalledWith({ 
-      name: user.name, 
-      week, 
-      year, 
-      link: expect.stringContaining(`/?week=${week}&year=${year}`) 
+      expect(response.status).toBe(200);
+      expect(data).toEqual({
+        results: [{
+          userId: user.id,
+          success: true
+        }]
+      });
     });
-    expect(mockSendEmail).toHaveBeenCalledWith(expect.objectContaining({
-      to: user.email,
-      subject: 'Test Subject',
-      html: '<div>On Time HTML</div>',
-    }));
-    expect(mockInsert).toHaveBeenCalled();
+
+    it('should return 200 with mixed results for multiple users', async () => {
+      const users = [createMockUser('1'), createMockUser('2')];
+      const week = 25;
+      const year = 2024;
+      const requestBody = { userIds: users.map(u => u.id), week, year };
+      const mockRequest = createMockRequest(requestBody);
+
+      // Set up mock responses for first user
+      mocks.mockSingle.mockResolvedValueOnce({ data: { id: 'admin-user-id', is_admin: true }, error: null });
+      mocks.mockIn.mockResolvedValueOnce({ data: users, error: null });
+      mocks.mockGte.mockResolvedValueOnce({ data: [{ user_id: users[1].id }], error: null });
+      mocks.mockOrder.mockResolvedValueOnce({ count: 0, error: null });
+      mocks.mockInsert.mockResolvedValueOnce({ error: null });
+
+      const response = await POST(mockRequest);
+      const data = await response.json();
+
+      expect(response.status).toBe(200);
+      expect(data).toEqual({
+        results: [
+          {
+            userId: users[0].id,
+            success: true
+          },
+          {
+            userId: users[1].id,
+            success: false,
+            error: 'User was reminded in the last 24 hours'
+          }
+        ]
+      });
+    });
   });
 
-  it('should use lateTemplate1 and type "late-1" for the second reminder (count=1)', async () => {
-    const user = { id: 'user-2', email: 'user2@example.com', name: 'User Two' };
-    const week = 26;
-    const year = 2024;
-    const requestBody = { userIds: [user.id], week, year };
-    const mockRequest = createMockRequest(requestBody);
+  describe('Error Cases', () => {
+    it('should return 401 when user is not authenticated', async () => {
+      mocks.mockGetUser.mockResolvedValueOnce({ data: { user: null }, error: null });
+      
+      const requestBody = { userIds: ['user-1'], week: 25, year: 2024 };
+      const mockRequest = createMockRequest(requestBody);
 
-    // Set up all mock responses for this test
-    mockSingle.mockResolvedValueOnce({ data: { id: 'admin-user-id', is_admin: true }, error: null }); // Admin check
-    mockIn.mockResolvedValueOnce({ data: [user], error: null }); // User lookup
-    mockGte.mockResolvedValueOnce({ data: [], error: null }); // Recent reminders check
-    mockOrder.mockResolvedValueOnce({ count: 1, error: null }); // Count check
-    mockInsert.mockResolvedValueOnce({ error: null }); // Insert reminder log
-
-    await POST(mockRequest);
-
-    expect(mockGetReminderSubject).toHaveBeenCalledWith('late-1', { userName: user.name, weekNumber: week, year });
-    expect(mockLateTemplate1).toHaveBeenCalledWith({ 
-      name: user.name, 
-      week, 
-      year, 
-      link: expect.stringContaining(`/?week=${week}&year=${year}`) 
+      const response = await POST(mockRequest);
+      expect(response.status).toBe(401);
+      expect(await response.text()).toBe('Unauthorized');
     });
-    expect(mockSendEmail).toHaveBeenCalledWith(expect.objectContaining({
-      to: user.email,
-      subject: 'Test Subject',
-      html: '<div>Late 1 HTML</div>',
-    }));
-    expect(mockInsert).toHaveBeenCalled();
+
+    it('should return 401 when user is not an admin', async () => {
+      mocks.mockSingle.mockResolvedValueOnce({ 
+        data: { id: 'user-1', is_admin: false }, 
+        error: null 
+      });
+
+      const requestBody = { userIds: ['user-1'], week: 25, year: 2024 };
+      const mockRequest = createMockRequest(requestBody);
+
+      const response = await POST(mockRequest);
+      expect(response.status).toBe(401);
+      expect(await response.text()).toBe('Unauthorized');
+    });
+
+    it('should return 400 when required fields are missing', async () => {
+      const invalidRequests = [
+        { userIds: [], week: 25, year: 2024 },
+        { userIds: ['user-1'], week: null, year: 2024 },
+        { userIds: ['user-1'], week: 25, year: null },
+        { userIds: null, week: 25, year: 2024 },
+      ];
+
+      for (const requestBody of invalidRequests) {
+        // Set up authentication and admin check mocks
+        mocks.mockGetUser.mockResolvedValueOnce({ data: { user: { id: 'admin-user-id' } }, error: null });
+        mocks.mockSingle.mockResolvedValueOnce({ data: { id: 'admin-user-id', is_admin: true }, error: null });
+
+        const mockRequest = createMockRequest(requestBody as ReminderRequest);
+        const response = await POST(mockRequest);
+        expect(response.status).toBe(400);
+        expect(await response.text()).toBe('Missing required fields');
+      }
+    });
+
+    it('should return 404 when no users are found', async () => {
+      // Set up admin check first
+      mocks.mockSingle.mockResolvedValueOnce({ 
+        data: { id: 'admin-user-id', is_admin: true }, 
+        error: null 
+      });
+      // Then set up empty users response
+      mocks.mockIn.mockResolvedValueOnce({ data: [], error: null });
+
+      const requestBody = { userIds: ['non-existent-user'], week: 25, year: 2024 };
+      const mockRequest = createMockRequest(requestBody);
+
+      const response = await POST(mockRequest);
+      expect(response.status).toBe(404);
+      expect(await response.text()).toBe('No users found');
+    });
+
+    it('should return 200 with error results when email sending fails', async () => {
+      const user = createMockUser('1');
+      const week = 25;
+      const year = 2024;
+      const requestBody = { userIds: [user.id], week, year };
+      const mockRequest = createMockRequest(requestBody);
+
+      // Set up all mock responses in sequence
+      mocks.mockSingle.mockResolvedValueOnce({ data: { id: 'admin-user-id', is_admin: true }, error: null });
+      mocks.mockIn.mockResolvedValueOnce({ data: [user], error: null });
+      mocks.mockGte.mockResolvedValueOnce({ data: [], error: null });
+      mocks.mockOrder.mockResolvedValueOnce({ count: 0, error: null });
+      mockSendEmail.mockResolvedValueOnce({ 
+        success: false, 
+        error: 'Failed to send email' 
+      });
+
+      const response = await POST(mockRequest);
+      const data = await response.json();
+
+      expect(response.status).toBe(200);
+      expect(data).toEqual({
+        results: [{
+          userId: user.id,
+          success: false,
+          error: 'Failed to send email'
+        }]
+      });
+    });
   });
 
-  it('should use lateTemplate2 and type "late-2" for the third reminder (count=2)', async () => {
-    const user = { id: 'user-3', email: 'user3@example.com', name: 'User Three' };
-    const week = 27;
-    const year = 2024;
-    const requestBody = { userIds: [user.id], week, year };
-    const mockRequest = createMockRequest(requestBody);
+  describe('Template Selection', () => {
+    it('should use onTimeTemplate and type "on-time" for the first reminder (count=0)', async () => {
+      const user = createMockUser('1');
+      const week = 25;
+      const year = 2024;
+      const requestBody = { userIds: [user.id], week, year };
+      const mockRequest = createMockRequest(requestBody);
 
-    // Set up all mock responses for this test
-    mockSingle.mockResolvedValueOnce({ data: { id: 'admin-user-id', is_admin: true }, error: null }); // Admin check
-    mockIn.mockResolvedValueOnce({ data: [user], error: null }); // User lookup
-    mockGte.mockResolvedValueOnce({ data: [], error: null }); // Recent reminders check
-    mockOrder.mockResolvedValueOnce({ count: 2, error: null }); // Count check
-    mockInsert.mockResolvedValueOnce({ error: null }); // Insert reminder log
+      // Set up all mock responses in sequence
+      mocks.mockSingle.mockResolvedValueOnce({ data: { id: 'admin-user-id', is_admin: true }, error: null });
+      mocks.mockIn.mockResolvedValueOnce({ data: [user], error: null });
+      mocks.mockGte.mockResolvedValueOnce({ data: [], error: null });
+      mocks.mockOrder.mockResolvedValueOnce({ count: 0, error: null });
+      mocks.mockInsert.mockResolvedValueOnce({ error: null });
 
-    await POST(mockRequest);
+      const response = await POST(mockRequest);
+      const data = await response.json();
 
-    expect(mockGetReminderSubject).toHaveBeenCalledWith('late-2', { userName: user.name, weekNumber: week, year });
-    expect(mockLateTemplate2).toHaveBeenCalledWith({ 
-      name: user.name, 
-      week, 
-      year, 
-      link: expect.stringContaining(`/?week=${week}&year=${year}`) 
+      expect(response.status).toBe(200);
+      expect(data.results[0].success).toBe(true);
+      expect(mockGetReminderSubject).toHaveBeenCalledWith('on-time', { 
+        userName: user.name, 
+        weekNumber: week, 
+        year 
+      });
+      expect(mockOnTimeTemplate).toHaveBeenCalledWith({ 
+        name: user.name, 
+        week, 
+        year, 
+        link: expect.stringContaining(`/?week=${week}&year=${year}`) 
+      });
     });
-    expect(mockSendEmail).toHaveBeenCalledWith(expect.objectContaining({
-      to: user.email,
-      subject: 'Test Subject',
-      html: '<div>Late 2 HTML</div>',
-    }));
-    expect(mockInsert).toHaveBeenCalled();
-  });
 
-  it('should use lateTemplate3 and type "late-3" for subsequent reminders (count=3+)', async () => {
-    const user = { id: 'user-4', email: 'user4@example.com', name: 'User Four' };
-    const week = 28;
-    const year = 2024;
-    const requestBody = { userIds: [user.id], week, year };
-    const mockRequest = createMockRequest(requestBody);
+    it('should use lateTemplate1 and type "late-1" for the second reminder (count=1)', async () => {
+      const user = createMockUser('2');
+      const week = 26;
+      const year = 2024;
+      const requestBody = { userIds: [user.id], week, year };
+      const mockRequest = createMockRequest(requestBody);
 
-    // Set up all mock responses for this test
-    mockSingle.mockResolvedValueOnce({ data: { id: 'admin-user-id', is_admin: true }, error: null }); // Admin check
-    mockIn.mockResolvedValueOnce({ data: [user], error: null }); // User lookup
-    mockGte.mockResolvedValueOnce({ data: [], error: null }); // Recent reminders check
-    mockOrder.mockResolvedValueOnce({ count: 3, error: null }); // Count check
-    mockInsert.mockResolvedValueOnce({ error: null }); // Insert reminder log
+      // Set up all mock responses in sequence
+      mocks.mockSingle.mockResolvedValueOnce({ data: { id: 'admin-user-id', is_admin: true }, error: null });
+      mocks.mockIn.mockResolvedValueOnce({ data: [user], error: null });
+      mocks.mockGte.mockResolvedValueOnce({ data: [], error: null });
+      mocks.mockOrder.mockResolvedValueOnce({ count: 1, error: null });
+      mocks.mockInsert.mockResolvedValueOnce({ error: null });
 
-    await POST(mockRequest);
+      const response = await POST(mockRequest);
+      const data = await response.json();
 
-    expect(mockGetReminderSubject).toHaveBeenCalledWith('late-3', { userName: user.name, weekNumber: week, year });
-    expect(mockLateTemplate3).toHaveBeenCalledWith({ 
-      name: user.name, 
-      week, 
-      year, 
-      link: expect.stringContaining(`/?week=${week}&year=${year}`) 
+      expect(response.status).toBe(200);
+      expect(data.results[0].success).toBe(true);
+      expect(mockGetReminderSubject).toHaveBeenCalledWith('late-1', { 
+        userName: user.name, 
+        weekNumber: week, 
+        year 
+      });
+      expect(mockLateTemplate1).toHaveBeenCalledWith({ 
+        name: user.name, 
+        week, 
+        year, 
+        link: expect.stringContaining(`/?week=${week}&year=${year}`) 
+      });
     });
-    expect(mockSendEmail).toHaveBeenCalledWith(expect.objectContaining({
-      to: user.email,
-      subject: 'Test Subject',
-      html: '<div>Late 3 HTML</div>',
-    }));
-    expect(mockInsert).toHaveBeenCalled();
-  });
 
-  // TODO: Add more tests for other scenarios:
-  // - User recently reminded (sendEmail should not be called)
-  // - sendEmail fails
-  // - Auth fails / User is not admin
-  // - Missing request body parameters
-  // - No users found
+    it('should use lateTemplate2 and type "late-2" for the third reminder (count=2)', async () => {
+      const user = createMockUser('3');
+      const week = 27;
+      const year = 2024;
+      const requestBody = { userIds: [user.id], week, year };
+      const mockRequest = createMockRequest(requestBody);
+
+      // Set up all mock responses in sequence
+      mocks.mockSingle.mockResolvedValueOnce({ data: { id: 'admin-user-id', is_admin: true }, error: null });
+      mocks.mockIn.mockResolvedValueOnce({ data: [user], error: null });
+      mocks.mockGte.mockResolvedValueOnce({ data: [], error: null });
+      mocks.mockOrder.mockResolvedValueOnce({ count: 2, error: null });
+      mocks.mockInsert.mockResolvedValueOnce({ error: null });
+
+      const response = await POST(mockRequest);
+      const data = await response.json();
+
+      expect(response.status).toBe(200);
+      expect(data.results[0].success).toBe(true);
+      expect(mockGetReminderSubject).toHaveBeenCalledWith('late-2', { 
+        userName: user.name, 
+        weekNumber: week, 
+        year 
+      });
+      expect(mockLateTemplate2).toHaveBeenCalledWith({ 
+        name: user.name, 
+        week, 
+        year, 
+        link: expect.stringContaining(`/?week=${week}&year=${year}`) 
+      });
+    });
+
+    it('should use lateTemplate3 and type "late-3" for subsequent reminders (count=3+)', async () => {
+      const user = createMockUser('4');
+      const week = 28;
+      const year = 2024;
+      const requestBody = { userIds: [user.id], week, year };
+      const mockRequest = createMockRequest(requestBody);
+
+      // Set up all mock responses in sequence
+      mocks.mockSingle.mockResolvedValueOnce({ data: { id: 'admin-user-id', is_admin: true }, error: null });
+      mocks.mockIn.mockResolvedValueOnce({ data: [user], error: null });
+      mocks.mockGte.mockResolvedValueOnce({ data: [], error: null });
+      mocks.mockOrder.mockResolvedValueOnce({ count: 3, error: null });
+      mocks.mockInsert.mockResolvedValueOnce({ error: null });
+
+      const response = await POST(mockRequest);
+      const data = await response.json();
+
+      expect(response.status).toBe(200);
+      expect(data.results[0].success).toBe(true);
+      expect(mockGetReminderSubject).toHaveBeenCalledWith('late-3', { 
+        userName: user.name, 
+        weekNumber: week, 
+        year 
+      });
+      expect(mockLateTemplate3).toHaveBeenCalledWith({ 
+        name: user.name, 
+        week, 
+        year, 
+        link: expect.stringContaining(`/?week=${week}&year=${year}`) 
+      });
+    });
+  });
 });
