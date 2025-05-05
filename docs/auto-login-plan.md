@@ -2,7 +2,7 @@
 
 ## Overview
 
-This plan enables users to receive an email reminder with a secure, expiring auto-login link. The link allows the user to log in automatically, even if they previously signed up with Google or were imported. The solution uses stateless JWT tokens
+This plan enables users to receive an email reminder with a secure, expiring auto-login link. The link allows the user to log in automatically, even if they previously signed up with Google or were imported. The solution uses stateless JWT tokens.
 
 ## Implementation Details
 
@@ -11,13 +11,14 @@ This plan enables users to receive an email reminder with a secure, expiring aut
 - When a user clicks the auto-login link, generate a new, strong, random password for them
 - Update their password in Supabase using the Admin API
 - Never expose the password to the user
+- Store password update timestamp for security auditing
 
 ### 2. JWT-Based Auto-Login Link
 
 - When sending a reminder email, generate a JWT token containing:
-  - The user's ID (or email)
-  - An expiration timestamp (e.g., 1 hour or 3 days)
-  - (Optional) A random nonce for extra security
+  - The user's ID (stable, immutable identifier)
+  - An expiration timestamp (e.g., 3 days)
+  - A random nonce for security
 - Sign the JWT with a strong server-side secret
 - Include the JWT as a query parameter in the auto-login link
 
@@ -27,10 +28,10 @@ This plan enables users to receive an email reminder with a secure, expiring aut
 
 #### Steps:
 1. For each user to remind:
-   - Generate a JWT token with user ID/email and expiration
+   - Generate a JWT token with user ID and expiration
    - Construct the auto-login link:  
      `https://your-app.com/api/auth/auto-login?token=<JWT>`
-   - Use this link in the email template
+   - Use this link in the email template with expiration notice
 2. Send the email as usual
 3. Log the reminder in your `reminder_logs` table
 
@@ -39,85 +40,161 @@ This plan enables users to receive an email reminder with a secure, expiring aut
 **File:** `src/app/api/auth/auto-login/route.ts` (to be created)
 
 #### Steps:
-1. Receive the JWT token from the query parameter
-2. Verify the JWT signature and expiration
-3. Extract the user ID/email from the token
-4. Generate a new, strong, random password
-5. Use the Supabase Admin API to update the user's password to the new value
-6. Use the Supabase client to sign in the user with the new password
-7. Set the session cookie or return the access token to the frontend
-8. Redirect the user to the app (now authenticated)
+1. Rate limiting check (e.g., max 5 attempts per IP per hour)
+2. Receive the JWT token from the query parameter
+3. Verify the JWT signature and expiration
+4. Extract the user ID from the token
+5. Generate a new, strong, random password
+6. Use the Supabase Admin API to update the user's password
+7. Use the Supabase client to sign in the user
+8. Set the session cookie or return the access token
+9. Redirect the user to the app
+10. Log the successful login
 
-## Security Considerations
+#### Error Handling:
+```typescript
+interface ErrorResponse {
+  error: 'TOKEN_EXPIRED' | 'INVALID_TOKEN' | 'USER_NOT_FOUND' | 'LOGIN_FAILED' | 'RATE_LIMITED';
+  message: string;
+  code: number;
+}
+```
+
+### 5. Security Considerations
 
 - Use a strong secret for signing JWTs
-- Set a short expiration for the JWT (e.g., 1 hour)
+- Set expiration for the JWT (3 days)
 - Never expose the password in the URL or email
-- Optionally, include a nonce in the JWT to prevent replay attacks
+- Include nonce in the JWT to prevent replay attacks
+- Implement rate limiting
+- Track and log all login attempts
+- Monitor for suspicious patterns
+- Implement IP-based security checks
 
-## Code Examples
+### 6. Environment Variables
 
-### JWT Payload Example
-```json
-{
-  "user_id": "abc-123",
-  "exp": 1712345678
+```env
+JWT_SECRET=your-secure-secret
+TOKEN_EXPIRY=259200  # 3 days in seconds
+RATE_LIMIT_WINDOW=3600  # 1 hour in seconds
+RATE_LIMIT_MAX=5  # max attempts per window
+```
+
+### 7. TypeScript Interfaces
+
+```typescript
+interface AutoLoginToken {
+  user_id: string;
+  exp: number;
+  nonce: string;
+}
+
+interface LoginAttempt {
+  user_id: string;
+  ip: string;
+  timestamp: Date;
+  success: boolean;
+  error?: string;
 }
 ```
 
-### Password Generation (Node.js)
-```javascript
+### 8. Code Examples
+
+#### JWT Generation
+```typescript
+const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
 
-function generatePassword() {
-  return crypto.randomBytes(32).toString('hex'); // 64 chars, very strong
-}
-```
-
-### JWT Generation (Node.js)
-```javascript
-const jwt = require('jsonwebtoken');
-
-function generateAutoLoginToken(userId) {
+function generateAutoLoginToken(userId: string) {
+  const nonce = crypto.randomBytes(16).toString('hex');
   return jwt.sign(
     { 
-      user_id: userId, 
-      exp: Math.floor(Date.now() / 1000) + 60 * 60 // 1 hour expiry
+      user_id: userId,
+      exp: Math.floor(Date.now() / 1000) + 259200, // 3 days
+      nonce
     },
     process.env.JWT_SECRET
   );
 }
 ```
 
-### JWT Verification (Node.js)
-```javascript
-const jwt = require('jsonwebtoken');
+#### Password Generation
+```typescript
+function generatePassword(): string {
+  return crypto.randomBytes(32).toString('hex');
+}
+```
 
-function verifyAutoLoginToken(token) {
+#### Token Verification
+```typescript
+function verifyAutoLoginToken(token: string): AutoLoginToken | null {
   try {
-    return jwt.verify(token, process.env.JWT_SECRET);
+    return jwt.verify(token, process.env.JWT_SECRET) as AutoLoginToken;
   } catch (err) {
     return null;
   }
 }
 ```
 
-## Implementation Flow
+### 9. Monitoring and Logging
 
-| Step | Action | Description |
-|------|--------|-------------|
-| 1. Generate JWT | When sending email | Create JWT with user info and expiration |
-| 2. Send link | Email delivery | Include `/api/auth/auto-login?token=JWT` in email |
-| 3. User clicks link | Auto-login process | API verifies JWT, generates new password, updates user, signs in |
-| 4. Session | Authentication | Set session cookie or return access token, redirect to app |
+#### Log Events:
+- Token generation
+- Login attempts (success/failure)
+- Password updates
+- Rate limit hits
+- Suspicious activity
 
-## Next Steps
+#### Metrics to Track:
+- Login success rate
+- Token usage patterns
+- Rate limit hits
+- Error distribution
+- Response times
 
-1. Implement JWT generation in your email reminder API
-2. Create the auto-login API endpoint
-3. Test the full flow end-to-end:
+### 10. Testing Strategy
+
+#### Unit Tests:
+- Token generation/verification
+- Password generation
+- Rate limiting
+- Error handling
+
+#### Integration Tests:
+- Full auto-login flow
+- Email delivery
+- Session management
+- Error scenarios
+
+#### Security Tests:
+- Token validation
+- Rate limiting
+- Password security
+- Session handling
+
+### 11. Implementation Flow
+
+| Step | Action | Description | Security Measure |
+|------|--------|-------------|------------------|
+| 1. Generate JWT | Email sending | Create secure JWT | Nonce, expiration |
+| 2. Send link | Email delivery | Include secure link | Rate limiting |
+| 3. User clicks | Auto-login | Verify and process | Usage tracking |
+| 4. Session | Authentication | Set secure session | Token validation |
+
+### 12. Next Steps
+
+1. Set up environment variables
+2. Implement JWT generation in email reminder API
+3. Create auto-login API endpoint with security measures
+4. Set up monitoring and logging
+5. Implement rate limiting
+6. Create error handling pages
+7. Test the full flow:
    - Email delivery
    - Link generation
    - Auto-login process
    - Session handling
    - Security measures
+   - Error scenarios
+8. Deploy monitoring
+9. Document API endpoints
