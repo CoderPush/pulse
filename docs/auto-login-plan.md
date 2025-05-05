@@ -1,293 +1,343 @@
-# Auto-Login via Email Reminder Implementation Plan
+# Auto-Login Implementation Plan
 
 ## Overview
 
-This plan enables users to receive an email reminder with a secure, expiring auto-login link. The link allows the user to log in automatically, even if they previously signed up with Google or were imported. The solution uses stateless JWT tokens.
+This plan provides two distinct implementations for auto-login functionality:
 
-## Implementation Details
+1. **Simple Auto-Login for E2E Testing**: A streamlined version focused on making end-to-end testing easier
+2. **Complete Reminder Flow**: A full-featured implementation with email reminders and enhanced security
 
-### 1. Generate Unique, Secure Passwords
+## Version 1: Simple Auto-Login for E2E Testing
 
-- When a user clicks the auto-login link, generate a new, strong, random password for them
-- Update their password in Supabase using the Admin API
-- Never expose the password to the user
-- Store password update timestamp for security auditing
+### Overview
+A simplified version designed to make E2E testing easier, particularly for testing authenticated user flows. This version includes basic password management while maintaining minimal security features.
 
-### 2. JWT-Based Auto-Login Link
+### Implementation Details
 
-- When sending a reminder email, generate a JWT token containing:
-  - The user's ID (stable, immutable identifier)
-  - An expiration timestamp (configurable via TOKEN_EXPIRY env var)
-    - Default: 3 days for regular reminders
-    - 1 hour for high-security operations
-    - Adjust based on use case:
-      - Admin reminders: 3 days
-      - Password reset: 1 hour
-      - High-security operations: 1 hour
-  - A unique token identifier (jti claim)
-    - Standard JWT claim for unique identification
-    - Helps prevent token reuse
-    - Improves interoperability with JWT tools
-- Sign the JWT with a strong server-side secret
-- Include the JWT as a query parameter in the auto-login link
-
-### 3. API: Send Email Reminder
-
-**File:** `src/app/api/admin/submissions/remind/route.ts`
-
-#### Steps:
-1. For each user to remind:
-   - Generate a JWT token with user ID and expiration
-   - Construct the auto-login link:  
-     `https://your-app.com/api/auth/auto-login?token=<JWT>`
-   - Use this link in the email template with expiration notice
-2. Send the email as usual
-3. Log the reminder in your `reminder_logs` table
-
-### 4. API: Auto-Login Endpoint
-
-**File:** `src/app/api/auth/auto-login/route.ts` (to be created)
-
-#### Steps:
-1. Rate limiting check (e.g., max 5 attempts per IP per hour)
-2. Receive the JWT token from the query parameter
-3. Verify the JWT signature and expiration
-4. Extract the user ID from the token
-5. Generate a new, strong, random password
-6. Use the Supabase Admin API to update the user's password
-7. Use the Supabase client to sign in the user
-8. Set the session cookie or return the access token
-9. Redirect the user to the app
-10. Log the successful login
-
-#### HTTP Response Codes:
-```typescript
-// Success
-200: Successful auto-login
-302: Redirect to app after successful login
-
-// Client Errors
-400: Bad Request (missing token)
-401: Unauthorized (invalid/expired token)
-429: Too Many Requests (rate limit exceeded)
-
-// Server Errors
-500: Internal Server Error
-```
-
-#### Error Logging:
-```typescript
-interface LoginLog {
-  timestamp: Date;
-  ip: string;
-  user_id?: string;
-  success: boolean;
-  error_type?: 'RATE_LIMITED' | 'INVALID_TOKEN' | 'EXPIRED_TOKEN' | 'USER_NOT_FOUND' | 'LOGIN_FAILED';
-  error_message?: string;
-}
-
-// Log to console in development
-if (process.env.NODE_ENV === 'development') {
-  console.log('Auto-login attempt:', {
-    timestamp: new Date(),
-    ip: request.headers.get('x-forwarded-for'),
-    success: false,
-    error: 'RATE_LIMITED'
-  });
-}
-
-// Log to file in production
-if (process.env.NODE_ENV === 'production') {
-  // Use your logging service (e.g., Winston, Pino)
-  logger.info('Auto-login attempt', {
-    timestamp: new Date(),
-    ip: request.headers.get('x-forwarded-for'),
-    success: false,
-    error: 'RATE_LIMITED'
-  });
-}
-```
-
-#### Error Handling:
-```typescript
-interface ErrorResponse {
-  error: 'TOKEN_EXPIRED' | 'TOKEN_INVALID' | 'TOKEN_MALFORMED' | 'USER_NOT_FOUND' | 'LOGIN_FAILED' | 'RATE_LIMITED';
-  message: string;
-  code: number;
-}
-```
-
-### 5. Security Considerations
-
-- Use a strong secret for signing JWTs
-- Set expiration for the JWT (3 days)
-- Never expose the password in the URL or email
-- Include nonce in the JWT to prevent replay attacks
-- Implement rate limiting
-- Track and log all login attempts
-- Monitor for suspicious patterns
-- Implement IP-based security checks
-
-### 6. Environment Variables
-
-```env
-JWT_SECRET=your-secure-secret
-TOKEN_EXPIRY=259200  # Default: 3 days in seconds
-TOKEN_EXPIRY_HIGH_SECURITY=3600  # 1 hour in seconds
-RATE_LIMIT_WINDOW=3600  # 1 hour in seconds
-RATE_LIMIT_MAX=5  # max attempts per window
-```
-
-### 7. TypeScript Interfaces
+#### 1. Simple JWT Token Generation
 
 ```typescript
-interface AutoLoginToken {
-  user_id: string;
+interface SimpleAutoLoginToken {
+  userId: string;
   exp: number;
-  jti: string;  // Standard JWT ID claim
 }
 
-interface LoginAttempt {
-  user_id: string;
-  ip: string;
-  timestamp: Date;
-  success: boolean;
-  error?: string;
-}
-```
-
-### 8. Code Examples
-
-#### JWT Generation
-```typescript
-const jwt = require('jsonwebtoken');
-const crypto = require('crypto');
-
-function generateAutoLoginToken(userId: string, isHighSecurity: boolean = false) {
-  if (!process.env.JWT_SECRET) {
-    throw new Error('JWT_SECRET environment variable is not defined');
-  }
-
-  // Generate a unique token ID using crypto
-  const jti = crypto.randomBytes(16).toString('hex');
-  const expiry = isHighSecurity 
-    ? Number(process.env.TOKEN_EXPIRY_HIGH_SECURITY)
-    : Number(process.env.TOKEN_EXPIRY);
-
+function generateSimpleAutoLoginToken(userId: string): string {
   return jwt.sign(
     { 
-      user_id: userId,
-      exp: Math.floor(Date.now() / 1000) + expiry,
-      jti  // Using standard JWT ID claim
+      userId,
+      exp: Math.floor(Date.now() / 1000) + 3600 // 1 hour expiry
     },
     process.env.JWT_SECRET
   );
 }
 ```
-#### Password Generation
+
+#### 2. Password Management
+
 ```typescript
-function generatePassword(): string {
-  return crypto.randomBytes(32).toString('hex');
+// src/lib/auth/password.ts
+function generateSimplePassword(): string {
+  // Generate a simple but secure password for testing
+  return crypto.randomBytes(16).toString('hex');
 }
-```
 
-#### Token Verification
-```typescript
-type TokenVerificationResult = {
-  success: true;
-  payload: AutoLoginToken;
-} | {
-  success: false;
-  error: 'TOKEN_EXPIRED' | 'TOKEN_INVALID' | 'TOKEN_MALFORMED';
-  message: string;
-};
-
-function verifyAutoLoginToken(token: string): TokenVerificationResult {
-  try {
-    const payload = jwt.verify(token, process.env.JWT_SECRET) as AutoLoginToken;
-    return { success: true, payload };
-  } catch (err) {
-    if (err instanceof jwt.TokenExpiredError) {
-      return {
-        success: false,
-        error: 'TOKEN_EXPIRED',
-        message: 'Token has expired'
-      };
-    }
-    
-    if (err instanceof jwt.JsonWebTokenError) {
-      return {
-        success: false,
-        error: 'TOKEN_INVALID',
-        message: 'Invalid token'
-      };
-    }
-    
-    return {
-      success: false,
-      error: 'TOKEN_MALFORMED',
-      message: 'Token is malformed'
-    };
+async function updateUserPassword(userId: string, newPassword: string) {
+  const { error } = await supabase.auth.admin.updateUserById(
+    userId,
+    { password: newPassword }
+  );
+  
+  if (error) {
+    throw new Error(`Failed to update password: ${error.message}`);
   }
 }
-
-// Usage in auto-login endpoint:
-const verificationResult = verifyAutoLoginToken(token);
-if (!verificationResult.success) {
-  return NextResponse.json({
-    error: verificationResult.error,
-    message: verificationResult.message,
-    code: verificationResult.error === 'TOKEN_EXPIRED' ? 401 : 400
-  });
-}
-
-const { payload } = verificationResult;
-// Continue with auto-login using payload.user_id...
 ```
 
-### 10. Testing Strategy
+#### 3. Auto-Login API Endpoint
 
-#### Unit Tests:
-- Token generation/verification
-- Password generation
+**File:** `src/app/api/auth/auto-login/route.ts`
+
+```typescript
+export async function GET(request: Request) {
+  const token = new URL(request.url).searchParams.get('token');
+  
+  if (!token) {
+    return new Response('Missing token', { status: 400 });
+  }
+
+  try {
+    const payload = jwt.verify(token, process.env.JWT_SECRET) as SimpleAutoLoginToken;
+    const { userId } = payload;
+    
+    // Generate and update password
+    const newPassword = generateSimplePassword();
+    await updateUserPassword(userId, newPassword);
+    
+    // Sign in user with Supabase
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email: userId,
+      password: newPassword
+    });
+
+    if (error) throw error;
+
+    // Set session cookie and redirect
+    const response = NextResponse.redirect(new URL('/', request.url));
+    response.cookies.set('session', data.session.access_token);
+    
+    return response;
+  } catch (error) {
+    return new Response('Invalid token', { status: 401 });
+  }
+}
+```
+
+#### 4. Playwright Test Helper
+
+**File:** `tests/helpers/auth.ts`
+
+```typescript
+export async function autoLogin(page: Page, userId: string) {
+  const token = generateSimpleAutoLoginToken(userId);
+  await page.goto(`/api/auth/auto-login?token=${token}`);
+  await page.waitForURL('/');
+}
+
+// Helper to create a test user if needed
+export async function createTestUser(email: string) {
+  const { data, error } = await supabase.auth.admin.createUser({
+    email,
+    email_confirm: true
+  });
+  
+  if (error) throw error;
+  return data.user;
+}
+```
+
+#### 5. Test Examples
+
+**File:** `tests/auth/auto-login.spec.ts`
+
+```typescript
+import { test, expect } from '@playwright/test';
+import { autoLogin, createTestUser } from '../helpers/auth';
+
+test.describe('Auto Login', () => {
+  test.beforeEach(async () => {
+    // Create test user if needed
+    await createTestUser('test@example.com');
+  });
+
+  test('can auto login with valid token', async ({ page }) => {
+    await autoLogin(page, 'test@example.com');
+    await expect(page).toHaveURL('/');
+  });
+
+  test('redirects to home after successful login', async ({ page }) => {
+    await autoLogin(page, 'test@example.com');
+    await page.goto('/dashboard');
+    await expect(page).toHaveURL('/dashboard');
+  });
+
+  test('handles invalid token', async ({ page }) => {
+    await page.goto('/api/auth/auto-login?token=invalid');
+    await expect(page).toHaveURL('/login');
+  });
+});
+```
+
+#### 6. Environment Variables (Version 1)
+
+```env
+JWT_SECRET=your-secure-secret
+SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
+```
+
+## Version 2: Complete Reminder Flow
+
+### Overview
+A full-featured implementation that includes email reminders, enhanced security, and comprehensive monitoring.
+
+### Implementation Details
+
+#### 1. Enhanced JWT Token
+
+```typescript
+interface AutoLoginToken {
+  user_id: string;
+  exp: number;
+  jti: string;  // Unique token identifier
+  nonce: string; // Prevent replay attacks
+}
+```
+
+#### 2. API: Send Email Reminder
+
+**File:** `src/app/api/admin/submissions/remind/route.ts`
+
+```typescript
+async function sendReminderEmail(userId: string) {
+  const token = generateAutoLoginToken(userId);
+  const loginLink = `https://your-app.com/api/auth/auto-login?token=${token}`;
+  
+  await sendEmail({
+    to: userId,
+    subject: 'Your Weekly Pulse Reminder',
+    template: 'reminder',
+    data: { loginLink }
+  });
+  
+  await logReminderSent(userId);
+}
+```
+
+#### 3. Auto-Login Endpoint with Security
+
+**File:** `src/app/api/auth/auto-login/route.ts`
+
+```typescript
+export async function GET(request: Request) {
+  // Rate limiting check
+  if (await isRateLimited(request)) {
+    return new Response('Too many attempts', { status: 429 });
+  }
+
+  const token = new URL(request.url).searchParams.get('token');
+  if (!token) {
+    return new Response('Missing token', { status: 400 });
+  }
+
+  try {
+    const payload = verifyAutoLoginToken(token);
+    const { user_id } = payload;
+    
+    // Generate new password
+    const newPassword = generateSecurePassword();
+    
+    // Update user password
+    await updateUserPassword(user_id, newPassword);
+    
+    // Sign in user
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email: user_id,
+      password: newPassword
+    });
+
+    if (error) throw error;
+
+    // Log successful login
+    await logLoginAttempt({
+      userId: user_id,
+      ip: request.headers.get('x-forwarded-for'),
+      success: true
+    });
+
+    // Set session and redirect
+    const response = NextResponse.redirect(new URL('/', request.url));
+    response.cookies.set('session', data.session.access_token);
+    
+    return response;
+  } catch (error) {
+    await logLoginAttempt({
+      userId: payload?.user_id,
+      ip: request.headers.get('x-forwarded-for'),
+      success: false,
+      error: error.message
+    });
+    
+    return new Response('Invalid token', { status: 401 });
+  }
+}
+```
+
+#### 4. Security Features
+
+- Rate limiting (max 5 attempts per IP per hour)
+- IP tracking and logging
+- Token nonce for replay prevention
+- Dynamic password generation
+- Comprehensive audit logging
+
+#### 5. Environment Variables (Version 2)
+
+```env
+JWT_SECRET=your-secure-secret
+TOKEN_EXPIRY=259200  # 3 days in seconds
+TOKEN_EXPIRY_HIGH_SECURITY=3600  # 1 hour in seconds
+RATE_LIMIT_WINDOW=3600  # 1 hour in seconds
+RATE_LIMIT_MAX=5  # max attempts per window
+```
+
+#### 6. Test Examples
+
+**File:** `tests/auth/reminder-flow.spec.ts`
+
+```typescript
+import { test, expect } from '@playwright/test';
+
+test.describe('Reminder Flow', () => {
+  test('sends reminder email with valid token', async ({ page }) => {
+    // Test email sending
+    // Test token generation
+    // Test auto-login flow
+  });
+
+  test('respects rate limiting', async ({ page }) => {
+    // Test rate limiting
+  });
+
+  test('handles expired tokens', async ({ page }) => {
+    // Test token expiration
+  });
+});
+```
+
+## Implementation Priority
+
+1. **Version 1 (Simple Auto-Login)**
+   - Implement first for E2E testing
+   - Focus on test helper functions
+   - Use fixed test credentials
+   - Minimal security features
+
+2. **Version 2 (Complete Flow)**
+   - Implement after Version 1 is stable
+   - Add all security features
+   - Implement email integration
+   - Add monitoring and logging
+   - Integrate with reminder system
+
+## Security Considerations
+
+### Version 1 (Simple)
+- Basic JWT validation
+- Fixed test credentials
+- No rate limiting
+- Minimal logging
+
+### Version 2 (Complete)
+- Enhanced JWT with nonce
+- Dynamic password generation
 - Rate limiting
-- Error handling
+- IP tracking
+- Comprehensive logging
+- Email security
+- Token expiration
+- Audit trails
 
-#### Integration Tests:
-- Full auto-login flow
-- Email delivery
-- Session management
-- Error scenarios
+## Next Steps
 
-#### Security Tests:
-- Token validation
-- Rate limiting
-- Password security
-- Session handling
+1. Implement Version 1:
+   - Set up JWT generation
+   - Create auto-login endpoint
+   - Implement test helpers
+   - Write initial E2E tests
 
-### 11. Implementation Flow
-
-| Step | Action | Description | Security Measure |
-|------|--------|-------------|------------------|
-| 1. Generate JWT | Email sending | Create secure JWT | Nonce, expiration |
-| 2. Send link | Email delivery | Include secure link | Rate limiting |
-| 3. User clicks | Auto-login | Verify and process | Usage tracking |
-| 4. Session | Authentication | Set secure session | Token validation |
-
-### 12. Next Steps
-
-1. Set up environment variables
-2. Implement JWT generation in email reminder API
-3. Create auto-login API endpoint with security measures
-4. Set up monitoring and logging
-5. Implement rate limiting
-6. Create error handling pages
-7. Test the full flow:
-   - Email delivery
-   - Link generation
-   - Auto-login process
-   - Session handling
-   - Security measures
-   - Error scenarios
-8. Deploy monitoring
-9. Document API endpoints
+2. Implement Version 2:
+   - Add security features
+   - Implement email system
+   - Set up monitoring
+   - Add comprehensive logging
+   - Write security-focused tests
