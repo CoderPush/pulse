@@ -8,6 +8,16 @@ interface AutoLoginToken {
 }
 
 export async function GET(request: Request) {
+  // Only allow in development/test environments
+  if (process.env.NODE_ENV === 'production') {
+    return new Response('Not available in production', { status: 404 });
+  }
+
+  if (!process.env.TEST_USER_PASSWORD) {
+    console.error('TEST_USER_PASSWORD environment variable is not defined');
+    return Response.redirect(new URL('/auth/login', request.url));
+  }
+
   const token = new URL(request.url).searchParams.get('token');
   
   if (!token) {
@@ -41,7 +51,7 @@ export async function GET(request: Request) {
     const supabase = await createClient();
     const { error: signInError } = await supabase.auth.signInWithPassword({
       email: user.email,
-      password: process.env.TEST_USER_PASSWORD || 'Test123!'
+      password: process.env.TEST_USER_PASSWORD!
     });
 
     if (signInError) {

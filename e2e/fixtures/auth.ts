@@ -14,6 +14,10 @@ const testUsers = new Map<string, TestUser>();
  * Creates a test user if it doesn't exist, or returns the existing one
  */
 export async function createTestUser(email: string): Promise<TestUser> {
+  if (!process.env.TEST_USER_PASSWORD) {
+    throw new Error('TEST_USER_PASSWORD environment variable is not defined');
+  }
+
   // Check if user already exists in cache
   if (testUsers.has(email)) {
     return testUsers.get(email)!;
@@ -46,7 +50,7 @@ export async function createTestUser(email: string): Promise<TestUser> {
     const { data, error } = await adminClient.auth.admin.createUser({
       email,
       email_confirm: true,
-      password: process.env.TEST_USER_PASSWORD || 'Test123!',
+      password: process.env.TEST_USER_PASSWORD!,
       user_metadata: { is_test_user: true }
     });
 
