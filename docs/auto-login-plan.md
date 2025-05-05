@@ -59,6 +59,9 @@ async function updateUserPassword(userId: string, newPassword: string) {
 **File:** `src/app/api/auth/auto-login/route.ts`
 
 ```typescript
+import { createServerClient } from '@supabase/ssr'
+import { cookies } from 'next/headers'
+
 export async function GET(request: Request) {
   const token = new URL(request.url).searchParams.get('token');
   
@@ -74,6 +77,26 @@ export async function GET(request: Request) {
     const newPassword = generateSimplePassword();
     await updateUserPassword(userId, newPassword);
     
+    // Create Supabase server client
+    const cookieStore = cookies()
+    const supabase = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookies: {
+          get(name: string) {
+            return cookieStore.get(name)?.value
+          },
+          set(name: string, value: string, options: any) {
+            cookieStore.set({ name, value, ...options })
+          },
+          remove(name: string, options: any) {
+            cookieStore.set({ name, value: '', ...options })
+          },
+        },
+      }
+    )
+    
     // Sign in user with Supabase
     const { data, error } = await supabase.auth.signInWithPassword({
       email: userId,
@@ -82,11 +105,8 @@ export async function GET(request: Request) {
 
     if (error) throw error;
 
-    // Set session cookie and redirect
-    const response = NextResponse.redirect(new URL('/', request.url));
-    response.cookies.set('session', data.session.access_token);
-    
-    return response;
+    // Redirect to home page
+    return Response.redirect(new URL('/', request.url));
   } catch (error) {
     return new Response('Invalid token', { status: 401 });
   }
@@ -101,6 +121,7 @@ export async function GET(request: Request) {
 export async function autoLogin(page: Page, userId: string) {
   const token = generateSimpleAutoLoginToken(userId);
   await page.goto(`/api/auth/auto-login?token=${token}`);
+  // Wait for redirect to complete
   await page.waitForURL('/');
 }
 
@@ -133,6 +154,11 @@ test.describe('Auto Login', () => {
   test('can auto login with valid token', async ({ page }) => {
     await autoLogin(page, 'test@example.com');
     await expect(page).toHaveURL('/');
+    
+    // Verify session is set
+    const cookies = await page.context().cookies();
+    const sessionCookie = cookies.find(c => c.name === 'sb-access-token');
+    expect(sessionCookie).toBeTruthy();
   });
 
   test('redirects to home after successful login', async ({ page }) => {
@@ -153,6 +179,8 @@ test.describe('Auto Login', () => {
 ```env
 JWT_SECRET=your-secure-secret
 SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
+NEXT_PUBLIC_SUPABASE_URL=your-supabase-url
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your-supabase-anon-key
 ```
 
 ## Version 2: Complete Reminder Flow
@@ -166,10 +194,33 @@ A full-featured implementation that includes email reminders, enhanced security,
 
 ```typescript
 interface AutoLoginToken {
-  user_id: string;
+  userId: string;
   exp: number;
   jti: string;  // Unique token identifier
   nonce: string; // Prevent replay attacks
+}
+
+function generateAutoLoginToken(userId: string, isHighSecurity: boolean = false): string {
+  if (!process.env.JWT_SECRET) {
+    throw new Error('JWT_SECRET environment variable is not defined');
+  }
+
+  // Generate a unique token ID using crypto
+  const jti = crypto.randomBytes(16).toString('hex');
+  const nonce = crypto.randomBytes(16).toString('hex');
+  const expiry = isHighSecurity 
+    ? Number(process.env.TOKEN_EXPIRY_HIGH_SECURITY)
+    : Number(process.env.TOKEN_EXPIRY);
+
+  return jwt.sign(
+    { 
+      userId,
+      exp: Math.floor(Date.now() / 1000) + expiry,
+      jti,
+      nonce
+    },
+    process.env.JWT_SECRET
+  );
 }
 ```
 
@@ -211,17 +262,17 @@ export async function GET(request: Request) {
 
   try {
     const payload = verifyAutoLoginToken(token);
-    const { user_id } = payload;
+    const { userId } = payload;
     
     // Generate new password
     const newPassword = generateSecurePassword();
     
     // Update user password
-    await updateUserPassword(user_id, newPassword);
+    await updateUserPassword(userId, newPassword);
     
     // Sign in user
     const { data, error } = await supabase.auth.signInWithPassword({
-      email: user_id,
+      email: userId,
       password: newPassword
     });
 
@@ -229,7 +280,7 @@ export async function GET(request: Request) {
 
     // Log successful login
     await logLoginAttempt({
-      userId: user_id,
+      userId,
       ip: request.headers.get('x-forwarded-for'),
       success: true
     });
@@ -241,7 +292,7 @@ export async function GET(request: Request) {
     return response;
   } catch (error) {
     await logLoginAttempt({
-      userId: payload?.user_id,
+      userId: payload?.userId,
       ip: request.headers.get('x-forwarded-for'),
       success: false,
       error: error.message
@@ -252,7 +303,49 @@ export async function GET(request: Request) {
 }
 ```
 
-#### 4. Security Features
+#### 4. Token Verification
+
+```typescript
+type TokenVerificationResult = {
+  success: true;
+  payload: AutoLoginToken;
+} | {
+  success: false;
+  error: 'TOKEN_EXPIRED' | 'TOKEN_INVALID' | 'TOKEN_MALFORMED';
+  message: string;
+};
+
+function verifyAutoLoginToken(token: string): TokenVerificationResult {
+  try {
+    const payload = jwt.verify(token, process.env.JWT_SECRET) as AutoLoginToken;
+    return { success: true, payload };
+  } catch (err) {
+    if (err instanceof jwt.TokenExpiredError) {
+      return {
+        success: false,
+        error: 'TOKEN_EXPIRED',
+        message: 'Token has expired'
+      };
+    }
+    
+    if (err instanceof jwt.JsonWebTokenError) {
+      return {
+        success: false,
+        error: 'TOKEN_INVALID',
+        message: 'Invalid token'
+      };
+    }
+    
+    return {
+      success: false,
+      error: 'TOKEN_MALFORMED',
+      message: 'Token is malformed'
+    };
+  }
+}
+```
+
+#### 5. Security Features
 
 - Rate limiting (max 5 attempts per IP per hour)
 - IP tracking and logging
@@ -260,7 +353,7 @@ export async function GET(request: Request) {
 - Dynamic password generation
 - Comprehensive audit logging
 
-#### 5. Environment Variables (Version 2)
+#### 6. Environment Variables (Version 2)
 
 ```env
 JWT_SECRET=your-secure-secret
@@ -270,7 +363,7 @@ RATE_LIMIT_WINDOW=3600  # 1 hour in seconds
 RATE_LIMIT_MAX=5  # max attempts per window
 ```
 
-#### 6. Test Examples
+#### 7. Test Examples
 
 **File:** `tests/auth/reminder-flow.spec.ts`
 
