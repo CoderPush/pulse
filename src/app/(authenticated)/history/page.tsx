@@ -9,10 +9,10 @@ import {
 } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { WeekFilter } from '@/components/WeekFilter'
-import { getISOWeek } from 'date-fns'
+import { getMostRecentThursdayWeek } from '@/lib/utils/time'
 
 const getCurrentYear = () => new Date().getFullYear();
-const getCurrentWeek = () => getISOWeek(new Date());
+const getCurrentWeek = () => getMostRecentThursdayWeek();
 
 export default async function HistoryPage({ 
   searchParams 
