@@ -60,10 +60,58 @@ This plan enables users to receive an email reminder with a secure, expiring aut
 9. Redirect the user to the app
 10. Log the successful login
 
+#### HTTP Response Codes:
+```typescript
+// Success
+200: Successful auto-login
+302: Redirect to app after successful login
+
+// Client Errors
+400: Bad Request (missing token)
+401: Unauthorized (invalid/expired token)
+429: Too Many Requests (rate limit exceeded)
+
+// Server Errors
+500: Internal Server Error
+```
+
+#### Error Logging:
+```typescript
+interface LoginLog {
+  timestamp: Date;
+  ip: string;
+  user_id?: string;
+  success: boolean;
+  error_type?: 'RATE_LIMITED' | 'INVALID_TOKEN' | 'EXPIRED_TOKEN' | 'USER_NOT_FOUND' | 'LOGIN_FAILED';
+  error_message?: string;
+}
+
+// Log to console in development
+if (process.env.NODE_ENV === 'development') {
+  console.log('Auto-login attempt:', {
+    timestamp: new Date(),
+    ip: request.headers.get('x-forwarded-for'),
+    success: false,
+    error: 'RATE_LIMITED'
+  });
+}
+
+// Log to file in production
+if (process.env.NODE_ENV === 'production') {
+  // Use your logging service (e.g., Winston, Pino)
+  logger.info('Auto-login attempt', {
+    timestamp: new Date(),
+    ip: request.headers.get('x-forwarded-for'),
+    success: false,
+    error: 'RATE_LIMITED'
+  });
+}
+```
+
 #### Error Handling:
 ```typescript
 interface ErrorResponse {
-  error: 'TOKEN_EXPIRED' | 'INVALID_TOKEN' | 'USER_NOT_FOUND' | 'LOGIN_FAILED' | 'RATE_LIMITED';
+  error: 'TOKEN_EXPIRED' | 'TOKEN_INVALID' | 'TOKEN_MALFORMED' | 'USER_NOT_FOUND' | 'LOGIN_FAILED' | 'RATE_LIMITED';
   message: string;
   code: number;
 }
@@ -145,15 +193,57 @@ function generatePassword(): string {
 
 #### Token Verification
 ```typescript
-function verifyAutoLoginToken(token: string): AutoLoginToken | null {
+type TokenVerificationResult = {
+  success: true;
+  payload: AutoLoginToken;
+} | {
+  success: false;
+  error: 'TOKEN_EXPIRED' | 'TOKEN_INVALID' | 'TOKEN_MALFORMED';
+  message: string;
+};
+
+function verifyAutoLoginToken(token: string): TokenVerificationResult {
   try {
-    return jwt.verify(token, process.env.JWT_SECRET) as AutoLoginToken;
+    const payload = jwt.verify(token, process.env.JWT_SECRET) as AutoLoginToken;
+    return { success: true, payload };
   } catch (err) {
-    return null;
+    if (err instanceof jwt.TokenExpiredError) {
+      return {
+        success: false,
+        error: 'TOKEN_EXPIRED',
+        message: 'Token has expired'
+      };
+    }
+    
+    if (err instanceof jwt.JsonWebTokenError) {
+      return {
+        success: false,
+        error: 'TOKEN_INVALID',
+        message: 'Invalid token'
+      };
+    }
+    
+    return {
+      success: false,
+      error: 'TOKEN_MALFORMED',
+      message: 'Token is malformed'
+    };
   }
 }
-```
 
+// Usage in auto-login endpoint:
+const verificationResult = verifyAutoLoginToken(token);
+if (!verificationResult.success) {
+  return NextResponse.json({
+    error: verificationResult.error,
+    message: verificationResult.message,
+    code: verificationResult.error === 'TOKEN_EXPIRED' ? 401 : 400
+  });
+}
+
+const { payload } = verificationResult;
+// Continue with auto-login using payload.user_id...
+```
 
 ### 10. Testing Strategy
 
