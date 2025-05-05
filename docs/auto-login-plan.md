@@ -116,6 +116,10 @@ const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
 
 function generateAutoLoginToken(userId: string, isHighSecurity: boolean = false) {
+  if (!process.env.JWT_SECRET) {
+    throw new Error('JWT_SECRET environment variable is not defined');
+  }
+
   // Generate a unique token ID using crypto
   const jti = crypto.randomBytes(16).toString('hex');
   const expiry = isHighSecurity 
@@ -132,7 +136,6 @@ function generateAutoLoginToken(userId: string, isHighSecurity: boolean = false)
   );
 }
 ```
-
 #### Password Generation
 ```typescript
 function generatePassword(): string {
@@ -151,21 +154,6 @@ function verifyAutoLoginToken(token: string): AutoLoginToken | null {
 }
 ```
 
-### 9. Monitoring and Logging
-
-#### Log Events:
-- Token generation
-- Login attempts (success/failure)
-- Password updates
-- Rate limit hits
-- Suspicious activity
-
-#### Metrics to Track:
-- Login success rate
-- Token usage patterns
-- Rate limit hits
-- Error distribution
-- Response times
 
 ### 10. Testing Strategy
 
