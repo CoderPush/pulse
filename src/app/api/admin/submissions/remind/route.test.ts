@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach, Mock } from 'vitest';
 import { POST } from './route'; // Import the handler
 import { createClient } from '@/utils/supabase/server';
 import { sendEmail } from '@/lib/email';
-import * as emailTemplates from '@/utils/email-templates'; // Import all templates/functions
+import * as emailTemplates from '@/lib/email-templates'; // Import all templates/functions
 import { setupSupabaseMocks } from '@/test-utils/supabase-mocks'; // Import the new mock setup
 
 // --- Mock dependencies ---
@@ -10,7 +10,7 @@ vi.mock('@/utils/supabase/server');
 vi.mock('@/lib/email', () => ({
   sendEmail: vi.fn() // Only provide the mocked function
 }));
-vi.mock('@/utils/email-templates', async (importOriginal) => {
+vi.mock('@/lib/email-templates', async (importOriginal) => {
   const actual = await importOriginal<typeof emailTemplates>();
   return {
     ...actual, // Keep actual types/constants if needed

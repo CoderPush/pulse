@@ -21,50 +21,6 @@ export function getReminderSubject(type: ReminderType, data: TemplateData): stri
   }
 }
 
-export function getReminderTemplate(type: ReminderType, data: TemplateData): string {
-  const { userName, weekNumber, year } = data;
-  const weekText = `Week ${weekNumber}, ${year}`;
-  
-  const baseTemplate = `
-    <p>${userName ? `Hi ${userName}` : 'Hi there'},</p>
-  `;
-
-  switch (type) {
-    case 'on-time':
-      return `${baseTemplate}
-        <p>This is a friendly reminder to submit your pulse check for ${weekText}.</p>
-        <p>Your feedback helps us understand how you're doing and what we can do to support you better.</p>
-        <p>Please take a moment to complete your submission.</p>
-        <p>Best regards,<br>The Pulse Team</p>
-      `;
-    
-    case 'late-1':
-      return `${baseTemplate}
-        <p>We noticed that you haven't submitted your pulse check for ${weekText} yet.</p>
-        <p>Your input is valuable to us and helps create a better work environment for everyone.</p>
-        <p>Please submit your pulse check as soon as possible.</p>
-        <p>Best regards,<br>The Pulse Team</p>
-      `;
-    
-    case 'late-2':
-      return `${baseTemplate}
-        <p>This is a second reminder that your pulse check for ${weekText} is still pending.</p>
-        <p>Regular feedback helps us maintain open communication and address any concerns promptly.</p>
-        <p>Please take a few minutes to complete your submission.</p>
-        <p>Best regards,<br>The Pulse Team</p>
-      `;
-    
-    case 'late-3':
-      return `${baseTemplate}
-        <p>This is a final reminder about your missing pulse check for ${weekText}.</p>
-        <p>Your participation in the pulse check is essential for maintaining effective team communication.</p>
-        <p>Please submit your response as soon as possible.</p>
-        <p>If you're experiencing any issues with the submission process, please reach out to your manager or the HR team.</p>
-        <p>Best regards,<br>The Pulse Team</p>
-      `;
-  }
-}
-
 interface TemplateProps {
   name: string | null;
   week: number;
