@@ -16,7 +16,7 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { signOut } from '@/utils/actions'
 import { User } from '@supabase/supabase-js'
-import { getInitials } from '@/utils/user'
+import { getInitials } from '@/lib/auth/user'
 
 interface NavBarProps {
   user: User;

@@ -9,7 +9,7 @@ import {
 } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { WeekFilter } from '@/components/WeekFilter'
-import { getMostRecentThursdayWeek } from '@/lib/utils/time'
+import { getMostRecentThursdayWeek } from '@/lib/utils/date'
 
 const getCurrentYear = () => new Date().getFullYear();
 const getCurrentWeek = () => getMostRecentThursdayWeek();
