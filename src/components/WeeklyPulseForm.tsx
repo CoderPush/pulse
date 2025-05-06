@@ -18,9 +18,10 @@ interface WeeklyPulseFormProps {
   user: User;
   weekNumber?: number;
   hasSubmittedThisWeek?: boolean;
+  projects: Array<{ id: string; name: string }>;
 }
 
-export default function WeeklyPulseForm({ user, weekNumber = 17, hasSubmittedThisWeek = false }: WeeklyPulseFormProps) {
+export default function WeeklyPulseForm({ user, weekNumber = 17, hasSubmittedThisWeek = false, projects = [] }: WeeklyPulseFormProps) {
   const [currentScreen, setCurrentScreen] = useState(0);
   const [progress, setProgress] = useState(0);
   const [error, setError] = useState<string | null>(null);
@@ -110,13 +111,13 @@ export default function WeeklyPulseForm({ user, weekNumber = 17, hasSubmittedThi
       case 0:
         return <WelcomeScreen user={user} onNext={handleNext} weekNumber={weekNumber} />;
       case 1:
-        return <ProjectSelectionScreen {...screenProps} />;
+        return <ProjectSelectionScreen {...screenProps} projects={projects} />;
       case 2:
         return <HoursWorkedScreen {...screenProps} />;
       case 3:
         return <ManagerScreen {...screenProps} />;
       case 4:
-        return <AdditionalProjectsScreen {...screenProps} />;
+        return <AdditionalProjectsScreen {...screenProps} projects={projects} />;
       case 5:
         return <TextInputScreen
           {...screenProps}

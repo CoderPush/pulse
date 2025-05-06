@@ -204,7 +204,7 @@ export default function ProjectsList({ projects }: ProjectsListProps) {
             <DialogHeader>
               <DialogTitle>Edit Project</DialogTitle>
               <DialogDescription>
-                Make changes to the project name here. Click save when you're done.
+                Make changes to the project name here. Click save when you&apos;re done.
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-4 py-4">
