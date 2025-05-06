@@ -5,7 +5,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Activity, Clock, FileText, UserMinus } from 'lucide-react';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
-import { getWeekNumber } from '@/utils/date';
+import { getWeekNumber } from '@/lib/utils/date';
 
 export default function AdminDashboard() {
   const [missingCount, setMissingCount] = useState<number | null>(null);

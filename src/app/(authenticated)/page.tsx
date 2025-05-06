@@ -1,7 +1,7 @@
 import { createClient } from '@/utils/supabase/server'
 import WeeklyPulseForm from '@/components/WeeklyPulseForm'
 import { redirect } from 'next/navigation'
-import { getMostRecentThursdayWeek } from '@/lib/utils/time'
+import { getMostRecentThursdayWeek } from '@/lib/utils/date'
 
 interface HomeProps {
   searchParams: Promise<{

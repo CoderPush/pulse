@@ -2,7 +2,7 @@ import { createClient } from '@/utils/supabase/server'
 import { redirect } from 'next/navigation'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
-import { getInitials } from '@/utils/user'
+import { getInitials } from '@/lib/auth/user'
 
 export default async function ProfilePage() {
   const supabase = await createClient()

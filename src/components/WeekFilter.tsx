@@ -9,7 +9,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { getMostRecentThursdayWeek } from '@/lib/utils/time'
+import { getMostRecentThursdayWeek } from '@/lib/utils/date'
 
 interface WeekFilterProps {
   weeks: { value: string; label: string; week_number: number; year: number }[];

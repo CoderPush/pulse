@@ -6,7 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Checkbox } from '@/components/ui/checkbox';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { getWeekNumber } from '@/utils/date';
+import { getWeekNumber } from '@/lib/utils/date';
 import { useToast } from '@/components/ui/use-toast';
 
 interface MissingUser {
