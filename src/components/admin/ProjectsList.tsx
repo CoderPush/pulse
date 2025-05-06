@@ -48,19 +48,30 @@ export default function ProjectsList({ projects }: ProjectsListProps) {
   const [addError, setAddError] = useState<string | null>(null);
   const [toggleError, setToggleError] = useState<string | null>(null);
   
+  // Loading states
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isStatusChanging, setIsStatusChanging] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  
   // Edit dialog state
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [editingProject, setEditingProject] = useState<Project | null>(null);
   const [editProjectName, setEditProjectName] = useState('');
   const [editError, setEditError] = useState<string | null>(null);
 
+  // Status change confirmation dialog state
+  const [isStatusDialogOpen, setIsStatusDialogOpen] = useState(false);
+  const [statusChangeProject, setStatusChangeProject] = useState<Project | null>(null);
+
   const handleAddProject = async (e: React.FormEvent) => {
     e.preventDefault();
     setAddError(null);
+    setIsSubmitting(true);
     const formData = new FormData();
     formData.append('projectName', newProjectName);
 
     const result = await addProject(formData);
+    setIsSubmitting(false);
     if (result.error) {
       setAddError(result.error);
     } else {
@@ -69,11 +80,25 @@ export default function ProjectsList({ projects }: ProjectsListProps) {
     }
   };
 
-  const handleToggleStatus = async (projectId: string, currentStatus: boolean) => {
+  const handleStatusChangeClick = (project: Project) => {
+    setStatusChangeProject(project);
+    setIsStatusDialogOpen(true);
+  };
+
+  const handleStatusChangeConfirm = async () => {
+    if (!statusChangeProject) {
+      return;
+    }
+
     setToggleError(null);
-    const result = await toggleProjectStatus(projectId, currentStatus);
+    setIsStatusChanging(true);
+    const result = await toggleProjectStatus(statusChangeProject.id, statusChangeProject.is_active);
+    setIsStatusChanging(false);
     if (result.error) {
       setToggleError(result.error);
+    } else {
+      setIsStatusDialogOpen(false);
+      setStatusChangeProject(null);
     }
   };
 
@@ -84,10 +109,14 @@ export default function ProjectsList({ projects }: ProjectsListProps) {
   };
 
   const handleEditSubmit = async () => {
-    if (!editingProject) return;
+    if (!editingProject) {
+      return;
+    }
     
     setEditError(null);
+    setIsEditing(true);
     const result = await updateProjectName(editingProject.id, editProjectName);
+    setIsEditing(false);
     
     if (result.error) {
       setEditError(result.error);
@@ -109,6 +138,7 @@ export default function ProjectsList({ projects }: ProjectsListProps) {
           <Button
             onClick={() => setIsAddingProject(!isAddingProject)}
             variant={isAddingProject ? "outline" : "default"}
+            disabled={isSubmitting || isStatusChanging || isEditing}
           >
             {isAddingProject ? (
               "Cancel"
@@ -144,11 +174,21 @@ export default function ProjectsList({ projects }: ProjectsListProps) {
                   onChange={(e) => setNewProjectName(e.target.value)}
                   placeholder="Enter project name"
                   required
+                  disabled={isSubmitting}
                 />
               </div>
-              <Button type="submit">
-                <PlusCircle className="mr-2 h-4 w-4" />
-                Save Project
+              <Button type="submit" disabled={isSubmitting}>
+                {isSubmitting ? (
+                  <>
+                    <span className="mr-2">Saving...</span>
+                    <span className="animate-spin">⌛</span>
+                  </>
+                ) : (
+                  <>
+                    <PlusCircle className="mr-2 h-4 w-4" />
+                    Save Project
+                  </>
+                )}
               </Button>
             </div>
           </form>
@@ -177,7 +217,8 @@ export default function ProjectsList({ projects }: ProjectsListProps) {
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => handleToggleStatus(project.id, project.is_active)}
+                        onClick={() => handleStatusChangeClick(project)}
+                        disabled={isSubmitting || isStatusChanging || isEditing}
                       >
                         <Power className="h-4 w-4 mr-2" />
                         {project.is_active ? "Deactivate" : "Activate"}
@@ -186,6 +227,7 @@ export default function ProjectsList({ projects }: ProjectsListProps) {
                         variant="outline" 
                         size="sm"
                         onClick={() => handleEditClick(project)}
+                        disabled={isSubmitting || isStatusChanging || isEditing}
                       >
                         <Pencil className="h-4 w-4 mr-2" />
                         Edit
@@ -220,15 +262,69 @@ export default function ProjectsList({ projects }: ProjectsListProps) {
                   value={editProjectName}
                   onChange={(e) => setEditProjectName(e.target.value)}
                   placeholder="Enter project name"
+                  disabled={isEditing}
                 />
               </div>
             </div>
             <DialogFooter>
-              <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>
+              <Button 
+                variant="outline" 
+                onClick={() => setIsEditDialogOpen(false)}
+                disabled={isEditing}
+              >
                 Cancel
               </Button>
-              <Button onClick={handleEditSubmit}>
-                Save Changes
+              <Button 
+                onClick={handleEditSubmit}
+                disabled={isEditing}
+              >
+                {isEditing ? (
+                  <>
+                    <span className="mr-2">Saving...</span>
+                    <span className="animate-spin">⌛</span>
+                  </>
+                ) : (
+                  "Save Changes"
+                )}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Status Change Confirmation Dialog */}
+        <Dialog open={isStatusDialogOpen} onOpenChange={setIsStatusDialogOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>
+                {statusChangeProject?.is_active ? "Deactivate Project" : "Activate Project"}
+              </DialogTitle>
+              <DialogDescription>
+                {statusChangeProject?.is_active
+                  ? "Are you sure you want to deactivate this project? This will hide it from the project selection list."
+                  : "Are you sure you want to activate this project? This will make it available in the project selection list."}
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter>
+              <Button 
+                variant="outline" 
+                onClick={() => setIsStatusDialogOpen(false)}
+                disabled={isStatusChanging}
+              >
+                Cancel
+              </Button>
+              <Button 
+                variant={statusChangeProject?.is_active ? "destructive" : "default"}
+                onClick={handleStatusChangeConfirm}
+                disabled={isStatusChanging}
+              >
+                {isStatusChanging ? (
+                  <>
+                    <span className="mr-2">Updating...</span>
+                    <span className="animate-spin">⌛</span>
+                  </>
+                ) : (
+                  statusChangeProject?.is_active ? "Deactivate" : "Activate"
+                )}
               </Button>
             </DialogFooter>
           </DialogContent>
