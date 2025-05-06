@@ -3,6 +3,7 @@ import { POST } from './route'; // Import the handler
 import { createClient } from '@/utils/supabase/server';
 import { sendEmail } from '@/lib/email';
 import * as emailTemplates from '@/utils/email-templates'; // Import all templates/functions
+import { setupSupabaseMocks } from '@/test-utils/supabase-mocks'; // Import the new mock setup
 
 // --- Mock dependencies ---
 vi.mock('@/utils/supabase/server');
@@ -44,57 +45,6 @@ const createMockUser = (id: string): MockUser => ({
 
 const createMockRequest = (body: ReminderRequest): Request => {
   return { json: async () => body } as Request;
-};
-
-const setupSupabaseMocks = () => {
-  const mockEq = vi.fn();
-  const mockIn = vi.fn();
-  const mockGte = vi.fn();
-  const mockOrder = vi.fn();
-  const mockSingle = vi.fn();
-  const mockInsert = vi.fn();
-  const mockSelect = vi.fn();
-  const mockSelectWithOptions = vi.fn();
-  const mockFrom = vi.fn();
-  const mockGetUser = vi.fn();
-
-  const mockSupabaseClient = {
-    auth: { getUser: mockGetUser },
-    from: mockFrom,
-  };
-
-  mockFrom.mockImplementation(() => ({
-    select: (selectArg: string, options?: { count: 'exact' }) => {
-      if (options?.count === 'exact') {
-        mockSelectWithOptions.mockReturnValue({ eq: mockEq });
-        return mockSelectWithOptions(selectArg, options);
-      }
-      mockSelect.mockReturnValue({ eq: mockEq, in: mockIn });
-      return mockSelect(selectArg);
-    },
-    insert: mockInsert,
-  }));
-
-  mockEq.mockReturnValue({ eq: mockEq, single: mockSingle, order: mockOrder });
-  mockIn.mockReturnValue({ gte: mockGte });
-  mockGte.mockResolvedValue({ data: [], error: null });
-  mockSingle.mockResolvedValue({ data: null, error: null });
-  mockOrder.mockResolvedValue({ data: null, error: null, count: 0 });
-  mockInsert.mockResolvedValue({ data: null, error: null });
-
-  return {
-    mockEq,
-    mockIn,
-    mockGte,
-    mockOrder,
-    mockSingle,
-    mockInsert,
-    mockSelect,
-    mockSelectWithOptions,
-    mockFrom,
-    mockGetUser,
-    mockSupabaseClient,
-  };
 };
 
 // --- Test Suite ---
