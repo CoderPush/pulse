@@ -33,10 +33,32 @@ This document outlines the testing strategy for the Pulse application, using Vit
 
 ```
 ├── src/
-│   └── __tests__/              # Vitest tests
-│       ├── unit/              # Unit tests
-│       ├── integration/       # Integration tests
-│       └── __mocks__/        # Mock files
+│   ├── components/
+│   │   ├── ui/
+│   │   │   ├── button/
+│   │   │   │   ├── Button.tsx
+│   │   │   │   └── Button.test.tsx  <-- Test colocated with component
+│   │   ├── WeekFilter/
+│   │   │   ├── WeekFilter.tsx
+│   │   │   └── WeekFilter.test.tsx <-- Test colocated with component
+│   ├── lib/
+│   │   ├── utils/
+│   │   │   ├── time.ts
+│   │   │   ├── time.test.ts     <-- Test colocated with utility
+│   │   │   ├── date.ts
+│   │   │   └── date.test.ts     <-- Test colocated with utility
+│   ├── app/
+│   │   ├── (authenticated)/
+│   │   │   ├── history/
+│   │   │   │   ├── page.tsx
+│   │   │   │   └── page.test.tsx    <-- Test colocated (if needed for client logic)
+│   ├── hooks/
+│   │   ├── useMyHook.ts
+│   │   └── useMyHook.test.ts    <-- Test colocated with hook
+│   ├── test/                   # Optional: For global setup/mocks
+│   │   ├── setup.ts           
+│   │   └── __mocks__/         
+│   └── ... (other source files and their tests)
 ├── e2e/                       # Playwright tests
 │   ├── auth.setup.ts         # Auth setup for E2E
 │   ├── fixtures/             # Test fixtures
@@ -48,18 +70,18 @@ This document outlines the testing strategy for the Pulse application, using Vit
 ## Test Categories
 
 ### 1. Unit Tests (Vitest)
-- **Location**: `src/__tests__/unit/`
+- **Location**: Colocated with source files (e.g., `Button.test.tsx` next to `Button.tsx`). Tests focus on individual components or functions in isolation, mocking dependencies.
 - **Coverage Areas**:
-  - React Components
+  - React Components (Rendering, Props, Basic Interaction)
   - Utility Functions
   - Hooks
   - State Management
   - Helper Functions
 
 ### 2. Integration Tests (Vitest)
-- **Location**: `src/__tests__/integration/`
+- **Location**: Colocated with the primary source file orchestrating the interaction (e.g., a page component's test file `page.test.tsx`). Tests focus on how multiple units work together, potentially with mocked external services (like Supabase).
 - **Coverage Areas**:
-  - Component Interactions
+  - Component Interactions within a feature or page
   - API Route Handlers
   - Data Flow
   - State Management Integration

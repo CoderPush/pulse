@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { getMostRecentThursdayWeek } from '../time';
+import { getMostRecentThursdayWeek } from './time';
 
 // Mock the getWeekNumber function to return predictable results
 vi.mock('@/utils/date', () => ({

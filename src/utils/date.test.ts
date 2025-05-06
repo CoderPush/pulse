@@ -1,5 +1,4 @@
-import { getWeekNumber } from '../date';
-import { formatWeekNumber } from '../date';
+import { getWeekNumber, formatWeekNumber } from './date';
 import { describe, it, expect } from 'vitest';
 
 describe('getWeekNumber', () => {
