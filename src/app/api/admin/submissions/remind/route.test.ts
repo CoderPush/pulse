@@ -399,4 +399,176 @@ describe('/api/admin/submissions/remind POST Handler', () => {
       });
     });
   });
+
+  describe('Database Error Cases', () => {
+    it('should handle database error when checking admin status', async () => {
+      const user = createMockUser('1');
+      const week = 25;
+      const year = 2024;
+      const requestBody = { userIds: [user.id], week, year };
+      const mockRequest = createMockRequest(requestBody);
+
+      // Mock database error for admin check
+      mocks.mockSingle.mockResolvedValueOnce({ 
+        data: null, 
+        error: { message: 'Database connection error' } 
+      });
+
+      const response = await POST(mockRequest);
+      expect(response.status).toBe(401);
+      expect(await response.text()).toBe('Unauthorized');
+    });
+
+    it('should handle database error when fetching users', async () => {
+      const user = createMockUser('1');
+      const week = 25;
+      const year = 2024;
+      const requestBody = { userIds: [user.id], week, year };
+      const mockRequest = createMockRequest(requestBody);
+
+      // Set up admin check success
+      mocks.mockSingle.mockResolvedValueOnce({ 
+        data: { id: 'admin-user-id', is_admin: true }, 
+        error: null 
+      });
+      // Mock database error for user fetch
+      mocks.mockIn.mockResolvedValueOnce({ 
+        data: null, 
+        error: { message: 'Failed to fetch users' } 
+      });
+
+      const response = await POST(mockRequest);
+      expect(response.status).toBe(404);
+      expect(await response.text()).toBe('No users found');
+    });
+
+    it('should handle database error when checking reminder history', async () => {
+      const user = createMockUser('1');
+      const week = 25;
+      const year = 2024;
+      const requestBody = { userIds: [user.id], week, year };
+      const mockRequest = createMockRequest(requestBody);
+
+      // Set up admin check success
+      mocks.mockSingle.mockResolvedValueOnce({ 
+        data: { id: 'admin-user-id', is_admin: true }, 
+        error: null 
+      });
+      // Set up user fetch success
+      mocks.mockIn.mockResolvedValueOnce({ 
+        data: [user], 
+        error: null 
+      });
+      // Mock database error for reminder history check
+      mocks.mockGte.mockResolvedValueOnce({ 
+        data: [], 
+        error: { message: 'Failed to check reminder history' } 
+      });
+      // Set up reminder count success
+      mocks.mockOrder.mockResolvedValueOnce({ 
+        count: 0, 
+        error: null 
+      });
+      // Set up email sending success
+      mockSendEmail.mockResolvedValueOnce({ 
+        success: true 
+      });
+      // Set up reminder insertion success
+      mocks.mockInsert.mockResolvedValueOnce({ 
+        error: null 
+      });
+
+      const response = await POST(mockRequest);
+      const data = await response.json();
+      expect(response.status).toBe(200);
+      expect(data.results[0]).toEqual({
+        userId: user.id,
+        success: true
+      });
+    });
+
+    it('should handle database error when inserting reminder record', async () => {
+      const user = createMockUser('1');
+      const week = 25;
+      const year = 2024;
+      const requestBody = { userIds: [user.id], week, year };
+      const mockRequest = createMockRequest(requestBody);
+
+      // Set up all previous operations to succeed
+      mocks.mockSingle.mockResolvedValueOnce({ 
+        data: { id: 'admin-user-id', is_admin: true }, 
+        error: null 
+      });
+      mocks.mockIn.mockResolvedValueOnce({ 
+        data: [user], 
+        error: null 
+      });
+      mocks.mockGte.mockResolvedValueOnce({ 
+        data: [], 
+        error: null 
+      });
+      mocks.mockOrder.mockResolvedValueOnce({ 
+        count: 0, 
+        error: null 
+      });
+      // Set up email sending success
+      mockSendEmail.mockResolvedValueOnce({ 
+        success: true 
+      });
+      // Mock database error for reminder insertion
+      mocks.mockInsert.mockRejectedValueOnce(new Error('Failed to insert reminder record'));
+
+      const response = await POST(mockRequest);
+      const data = await response.json();
+      expect(response.status).toBe(200);
+      expect(data.results[0]).toEqual({
+        userId: user.id,
+        success: false,
+        error: 'Failed to insert reminder record'
+      });
+    });
+
+    it('should handle database error when counting reminders', async () => {
+      const user = createMockUser('1');
+      const week = 25;
+      const year = 2024;
+      const requestBody = { userIds: [user.id], week, year };
+      const mockRequest = createMockRequest(requestBody);
+
+      // Set up all previous operations to succeed
+      mocks.mockSingle.mockResolvedValueOnce({ 
+        data: { id: 'admin-user-id', is_admin: true }, 
+        error: null 
+      });
+      mocks.mockIn.mockResolvedValueOnce({ 
+        data: [user], 
+        error: null 
+      });
+      mocks.mockGte.mockResolvedValueOnce({ 
+        data: [], 
+        error: null 
+      });
+      // Mock database error for reminder count
+      mocks.mockOrder.mockResolvedValueOnce({ 
+        count: 0, 
+        error: { message: 'Failed to count reminders' } 
+      });
+      // Set up email sending success
+      mockSendEmail.mockResolvedValueOnce({ 
+        success: true 
+      });
+      // Set up reminder insertion success
+      mocks.mockInsert.mockResolvedValueOnce({ 
+        error: null 
+      });
+
+      const response = await POST(mockRequest);
+      const data = await response.json();
+      expect(response.status).toBe(200);
+      expect(data.results[0]).toEqual({
+        userId: user.id,
+        success: true
+      });
+    });
+  });
 });
