@@ -5,6 +5,7 @@ import { getWeekDates, getSubmissionWindow } from '@/lib/utils/date';
 import { motion } from 'framer-motion';
 import { Calendar, Clock, Sparkles, ArrowRight, Star, Sun, Moon } from 'lucide-react';
 import { format } from 'date-fns';
+import { useMemo } from 'react';
 
 interface WelcomeScreenProps {
   user: User;
@@ -15,6 +16,25 @@ interface WelcomeScreenProps {
 export default function WelcomeScreen({ user, onNext, weekNumber }: WelcomeScreenProps) {
   const { formattedRange } = getWeekDates(weekNumber);
   const { submissionStart, submissionEnd, lateSubmissionEnd } = getSubmissionWindow(weekNumber);
+
+  // Generate fixed initial positions
+  const sparklePositions = useMemo(() => [
+    { x: -400, y: -300, opacity: 0.6 },
+    { x: 400, y: -200, opacity: 0.7 },
+    { x: -300, y: 300, opacity: 0.5 },
+    { x: 300, y: 200, opacity: 0.8 },
+    { x: -200, y: -400, opacity: 0.65 },
+    { x: 200, y: -300, opacity: 0.75 },
+    { x: -100, y: 400, opacity: 0.55 },
+    { x: 100, y: 300, opacity: 0.85 }
+  ], []);
+
+  const floatingIconPositions = useMemo(() => [
+    { x: -200, y: -100, opacity: 0.3 },
+    { x: 200, y: 100, opacity: 0.4 },
+    { x: -300, y: 200, opacity: 0.35 },
+    { x: 300, y: -200, opacity: 0.45 }
+  ], []);
 
   // Format dates with day names
   const formatDateWithDay = (date: Date) => {
@@ -32,58 +52,61 @@ export default function WelcomeScreen({ user, onNext, weekNumber }: WelcomeScree
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 0.4 }}
-        transition={{ delay: 0.5 }}
+        transition={{ delay: 0.2 }} // Reduced delay for faster appearance
         className="absolute inset-0 pointer-events-none z-0"
       >
         {/* Sparkles */}
-        {[...Array(12)].map((_, i) => (
+        {sparklePositions.map((pos, i) => (
           <motion.div
             key={`sparkle-${i}`}
             initial={{ 
-              x: Math.random() * 800 - 400,
-              y: Math.random() * 800 - 400,
+              x: pos.x,
+              y: pos.y,
               rotate: 0,
-              opacity: 0.4 + Math.random() * 0.4
+              opacity: pos.opacity
             }}
             animate={{ 
+              x: [pos.x, pos.x + 80, pos.x - 80, pos.x],
+              y: [pos.y, pos.y + 80, pos.y - 80, pos.y],
               rotate: 360,
-              opacity: [0.4, 0.8, 0.4],
-              scale: [1, 1.3, 1]
+              opacity: [pos.opacity, pos.opacity + 0.4, pos.opacity],
+              scale: [1, 1.5, 1]
             }}
             transition={{ 
-              duration: 6 + Math.random() * 4,
+              duration: 10 + (i % 4),
               repeat: Infinity,
               repeatType: 'reverse',
-              ease: "linear"
+              ease: "easeInOut"
             }}
-            className="absolute text-5xl text-yellow-400 select-none drop-shadow-[0_0_8px_rgba(250,204,21,0.5)]"
+            className="absolute text-6xl text-yellow-300 select-none drop-shadow-[0_0_15px_rgba(253,224,71,0.8)]"
           >
             {i % 3 === 0 ? '✨' : i % 3 === 1 ? '⭐' : '🌟'}
           </motion.div>
         ))}
         
         {/* Floating icons */}
-        {[...Array(6)].map((_, i) => (
+        {floatingIconPositions.map((pos, i) => (
           <motion.div
             key={`icon-${i}`}
             initial={{ 
-              x: Math.random() * 600 - 300,
-              y: Math.random() * 600 - 300,
+              x: pos.x,
+              y: pos.y,
               rotate: 0,
-              opacity: 0.2
+              opacity: pos.opacity
             }}
             animate={{ 
-              y: [0, -20, 0],
-              rotate: [0, 10, 0],
-              opacity: [0.2, 0.4, 0.2]
+              x: [pos.x, pos.x + 50, pos.x - 50, pos.x],
+              y: [pos.y, pos.y - 60, pos.y, pos.y - 30],
+              rotate: [0, 15, -15, 0],
+              opacity: [pos.opacity, pos.opacity + 0.2, pos.opacity]
             }}
             transition={{ 
-              duration: 4 + Math.random() * 2,
+              duration: 8 + (i % 3),
               repeat: Infinity,
               repeatType: 'reverse',
               ease: "easeInOut"
             }}
-            className="absolute text-3xl text-blue-300 select-none"
+            className="absolute text-4xl text-blue-300 select-none"
           >
             {i % 2 === 0 ? '☀️' : '🌙'}
           </motion.div>
@@ -165,10 +188,10 @@ export default function WelcomeScreen({ user, onNext, weekNumber }: WelcomeScree
         </motion.div>
 
         <motion.button
-          whileHover={{ scale: 1.02, rotate: 1 }}
+          whileHover={{ scale: 1.02 }}
           whileTap={{ scale: 0.98 }}
           onClick={onNext}
-          className="w-full bg-gradient-to-r from-blue-500 to-blue-600 text-white py-4 px-6 rounded-xl hover:from-blue-600 hover:to-blue-700 transition-all flex items-center justify-center gap-3 group shadow-lg"
+          className="w-full bg-gradient-to-r from-blue-500 to-blue-600 text-white py-4 px-6 rounded-xl hover:from-blue-600 hover:to-blue-700 transition-all flex items-center justify-center gap-3 group shadow-lg font-bold"
         >
           <motion.span
             animate={{ x: [0, 5, 0] }}
