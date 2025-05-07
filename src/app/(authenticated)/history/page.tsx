@@ -10,7 +10,7 @@ import {
 import { Badge } from "@/components/ui/badge"
 import { WeekFilter } from '@/components/WeekFilter'
 import { getMostRecentThursdayWeek } from '@/lib/utils/date'
-import { Calendar, AlertCircle, CalendarX, Flame } from 'lucide-react'
+import { Calendar, AlertCircle, CalendarX } from 'lucide-react'
 import StreakCard from './StreakCard'
 
 const getCurrentYear = () => new Date().getFullYear();
