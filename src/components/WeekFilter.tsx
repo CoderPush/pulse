@@ -42,7 +42,11 @@ export function WeekFilter({ weeks }: WeekFilterProps) {
         </SelectTrigger>
         <SelectContent>
           {weeks.map(option => (
-            <SelectItem key={option.value} value={option.value}>
+            <SelectItem
+              key={option.value}
+              value={option.value}
+              className="hover:bg-blue-50 hover:text-blue-700 focus:bg-blue-100 focus:text-blue-700 data-[state=checked]:bg-blue-100 data-[state=checked]:text-blue-700"
+            >
               {option.label}
             </SelectItem>
           ))}
