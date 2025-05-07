@@ -1,9 +1,8 @@
 import { useState } from 'react';
 import { ArrowRight, ArrowLeft, Plus, Trash2 } from 'lucide-react';
 import { ScreenProps, AdditionalProject } from '@/types/weekly-pulse';
-import { PROJECTS } from '@/constants/projects';
 
-export default function AdditionalProjectsScreen({ onNext, onBack, formData, setFormData }: ScreenProps) {
+export default function AdditionalProjectsScreen({ onNext, onBack, formData, setFormData, projects = [] }: ScreenProps) {
   const [showOtherInput, setShowOtherInput] = useState(false);
   const [otherProject, setOtherProject] = useState('');
   const [hoursInput, setHoursInput] = useState('');
@@ -89,21 +88,21 @@ export default function AdditionalProjectsScreen({ onNext, onBack, formData, set
       <div className="mb-6">
         <h3 className="text-lg font-semibold text-gray-700 mb-4">Select projects</h3>
         <div className="grid grid-cols-2 gap-3">
-          {PROJECTS.map((project, i) => (
-            <div key={i} className="flex flex-col gap-2">
+          {projects.map((project) => (
+            <div key={project.id} className="flex flex-col gap-2">
               <button
-                onClick={() => handleProjectSelect(project)}
+                onClick={() => handleProjectSelect(project.name)}
                 className={`p-3 rounded-lg text-left transition-colors ${
-                  formData.additionalProjects.some(p => p.project === project)
+                  formData.additionalProjects.some(p => p.project === project.name)
                     ? 'bg-blue-100 text-blue-700'
-                    : selectedProject === project
+                    : selectedProject === project.name
                     ? 'bg-blue-200 text-blue-800 border-2 border-blue-300'
                     : 'bg-gray-50 hover:bg-gray-100'
                 }`}
               >
-                {project}
+                {project.name}
               </button>
-              {selectedProject === project && (
+              {selectedProject === project.name && (
                 <div className="flex gap-2 bg-blue-50 p-3 rounded-lg">
                   <input
                     type="number"

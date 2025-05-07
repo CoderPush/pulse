@@ -1,9 +1,8 @@
 import { useState, useEffect } from 'react';
 import { ArrowRight, Plus } from 'lucide-react';
 import { ScreenProps } from '@/types/weekly-pulse';
-import { PROJECTS } from '@/constants/projects';
 
-export default function ProjectSelectionScreen({ onNext, formData, setFormData }: ScreenProps) {
+export default function ProjectSelectionScreen({ onNext, formData, setFormData, projects = [] }: ScreenProps) {
   const [showOtherInput, setShowOtherInput] = useState(false);
   const [otherProject, setOtherProject] = useState('');
   const [shouldNavigate, setShouldNavigate] = useState(false);
@@ -17,11 +16,11 @@ export default function ProjectSelectionScreen({ onNext, formData, setFormData }
 
   // Check if the current project is not in the predefined list
   useEffect(() => {
-    if (formData.primaryProject.name && !PROJECTS.includes(formData.primaryProject.name)) {
+    if (formData.primaryProject.name && !projects.some(p => p.name === formData.primaryProject.name)) {
       setShowOtherInput(true);
       setOtherProject(formData.primaryProject.name);
     }
-  }, [formData.primaryProject.name]);
+  }, [formData.primaryProject.name, projects]);
 
   const selectProject = (projectName: string) => {
     setFormData({
@@ -56,17 +55,17 @@ export default function ProjectSelectionScreen({ onNext, formData, setFormData }
         <div className="mb-6">
           <h3 className="text-lg font-semibold text-gray-700 mb-4">Select a project</h3>
           <div className="grid grid-cols-2 gap-3">
-            {PROJECTS.map((project, i) => (
+            {projects.map((project) => (
               <button
-                key={i}
-                onClick={() => selectProject(project)}
+                key={project.id}
+                onClick={() => selectProject(project.name)}
                 className={`p-3 rounded-lg text-left transition-colors ${
-                  formData.primaryProject.name === project
+                  formData.primaryProject.name === project.name
                     ? 'bg-blue-100 text-blue-700'
                     : 'bg-gray-50 hover:bg-gray-100'
                 }`}
               >
-                {project}
+                {project.name}
               </button>
             ))}
             <button

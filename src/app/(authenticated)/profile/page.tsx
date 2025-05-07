@@ -15,13 +15,17 @@ export default async function ProfilePage() {
   }
 
   // Fetch latest submission
-  const { data: latestSubmission } = await supabase
+  const { data: latestSubmission, error } = await supabase
     .from('submissions')
     .select('*')
     .eq('user_id', user.id)
     .order('submitted_at', { ascending: false })
     .limit(1)
     .maybeSingle()
+
+  if (error) {
+    console.error('Error fetching latest submission:', error)
+  }
 
   const userInitials = getInitials(user.email);
 
@@ -40,6 +44,12 @@ export default async function ProfilePage() {
           </div>
         </div>
       </div>
+
+      {error && (
+        <div className="md:col-span-2 text-red-600 text-sm mb-4">
+          Error loading your latest submission. Please try again later.
+        </div>
+      )}
 
       <div className="grid gap-6 md:grid-cols-2">
         {/* Personal Information */}
@@ -123,7 +133,7 @@ export default async function ProfilePage() {
                     <span className="font-medium">Hours:</span>
                     <span>{latestSubmission.primary_project_hours}h</span>
                   </div>
-                  {latestSubmission.additional_projects && latestSubmission.additional_projects.length > 0 && (
+                  {latestSubmission.additional_projects.length > 0 && (
                     <div>
                       <div className="flex items-center gap-2 mt-2 mb-1">
                         <FileText className="w-4 h-4 text-blue-500" />

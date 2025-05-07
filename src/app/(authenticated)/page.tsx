@@ -29,12 +29,20 @@ export default async function HomePage({ searchParams }: HomeProps) {
     .eq('week_number', weekNumber)
     .single();
 
+  // Fetch active projects
+  const { data: projects } = await supabase
+    .from('projects')
+    .select('id, name')
+    .eq('is_active', true)
+    .order('name');
+
   return (
     <div className="w-full px-4 -mt-16">
       <WeeklyPulseForm 
         user={user} 
         weekNumber={weekNumber} 
-        hasSubmittedThisWeek={!!existingSubmission} 
+        hasSubmittedThisWeek={!!existingSubmission}
+        projects={projects || []}
       />
     </div>
   )
