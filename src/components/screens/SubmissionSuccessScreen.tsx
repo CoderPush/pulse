@@ -142,7 +142,7 @@ export default function SubmissionSuccessScreen({ user, currentWeek }: Submissio
             }}
             className="inline-block"
           >
-            You're on fire! 🔥
+            You&apos;re on fire! 🔥
           </motion.span>
         </motion.h2>
         
@@ -158,7 +158,7 @@ export default function SubmissionSuccessScreen({ user, currentWeek }: Submissio
             transition={{ delay: 0.5 }}
             className="inline-block mr-1"
           >
-            Week {currentWeek} conquered!  
+            Week {currentWeek} conquered! 
           </motion.span>
           <motion.span
             initial={{ opacity: 0 }}
