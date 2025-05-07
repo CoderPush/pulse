@@ -10,10 +10,34 @@ import {
 import { Badge } from "@/components/ui/badge"
 import { WeekFilter } from '@/components/WeekFilter'
 import { getMostRecentThursdayWeek } from '@/lib/utils/date'
-import { Calendar, AlertCircle, CalendarX } from 'lucide-react'
+import { Calendar, AlertCircle, CalendarX, Flame } from 'lucide-react'
+import StreakCard from './StreakCard'
 
 const getCurrentYear = () => new Date().getFullYear();
 const getCurrentWeek = () => getMostRecentThursdayWeek();
+
+function calculateStreak(
+  submissions: { week_number: number }[],
+  allWeeks: { week_number: number }[],
+  currentWeek: number
+) {
+  const submittedWeeks = new Set(submissions.map(s => s.week_number));
+  // Only consider weeks up to and including currentWeek
+  const sortedWeeks = allWeeks
+    .filter(w => w.week_number <= currentWeek)
+    .sort((a, b) => b.week_number - a.week_number); // descending from currentWeek
+
+  let streak = 0;
+  for (let i = 0; i < sortedWeeks.length; i++) {
+    const weekNum = sortedWeeks[i].week_number;
+    if (submittedWeeks.has(weekNum)) {
+      streak++;
+    } else {
+      break;
+    }
+  }
+  return streak;
+}
 
 export default async function HistoryPage({ 
   searchParams 
@@ -86,8 +110,18 @@ export default async function HistoryPage({
   const week = weekOptions.find(w => w.year === selectedYear && w.week_number === selectedWeek);
   const submission = submissionMap.get(selectedWeek);
 
+  // Calculate streak
+  const streak = calculateStreak(submissions || [], allWeeks || [], currentWeek);
+
   return (
     <div className="max-w-4xl mx-auto space-y-6">
+      {/* Weeks Streak Section */}
+      <StreakCard
+        streak={streak}
+        allWeeks={(allWeeks || []).filter(w => w.week_number >= 17)}
+        submissions={submissions || []}
+        currentWeek={currentWeek}
+      />
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold mb-2">Weekly Pulse History</h1>
