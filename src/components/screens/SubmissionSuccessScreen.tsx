@@ -4,6 +4,7 @@ import { CheckCircle2, FileText, Trophy, Calendar, Sparkles } from 'lucide-react
 import { User } from '@supabase/supabase-js';
 import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useRouter } from 'next/navigation';
 
 interface SubmissionSuccessScreenProps {
   user: User;
@@ -16,6 +17,7 @@ interface SubmissionStatus {
 }
 
 export default function SubmissionSuccessScreen({ user, currentWeek }: SubmissionSuccessScreenProps) {
+  const router = useRouter();
   const [submissionStatus, setSubmissionStatus] = useState<SubmissionStatus[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [showConfetti] = useState(true);
@@ -290,7 +292,7 @@ export default function SubmissionSuccessScreen({ user, currentWeek }: Submissio
         <motion.button
           whileHover={{ scale: 1.02, rotate: 1 }}
           whileTap={{ scale: 0.98 }}
-          onClick={() => window.location.href = '/history'}
+          onClick={() => router.push('/history')}
           className="w-full bg-gradient-to-r from-blue-500 to-blue-600 text-white py-3 px-4 rounded-lg hover:from-blue-600 hover:to-blue-700 transition-all flex items-center justify-center gap-2 group shadow-lg"
         >
           <motion.div

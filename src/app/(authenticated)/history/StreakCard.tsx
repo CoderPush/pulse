@@ -12,7 +12,8 @@ export default function StreakCard({
   submissions: { week_number: number; submitted_at: string }[];
   currentWeek: number;
 }) {
-  const submittedWeeks = new Set(submissions.map(s => s.week_number));
+  const key = (y: number, w: number) => `${y}-${w}`;
+  const submittedWeeks = new Set(submissions.map(s => key(new Date(s.submitted_at).getUTCFullYear(), s.week_number)));
   return (
     <div className="mb-6">
       <div className="bg-yellow-50 dark:bg-yellow-900/30 border border-yellow-200 dark:border-yellow-700 shadow flex flex-col items-center py-6 rounded-xl">
@@ -23,7 +24,7 @@ export default function StreakCard({
         <div className="text-yellow-700 dark:text-yellow-300 font-semibold mb-2">Week Streak</div>
         <div className="flex gap-1 mb-2 overflow-x-auto max-w-full">
           {allWeeks.map((w) => {
-            const isSubmitted = submittedWeeks.has(w.week_number);
+            const isSubmitted = submittedWeeks.has(key(w.year, w.week_number));
             const isCurrent = w.week_number === currentWeek;
             const isFuture = w.week_number > currentWeek;
 
@@ -45,9 +46,13 @@ export default function StreakCard({
             }
 
             return (
-              <Tooltip key={w.week_number}>
+              <Tooltip key={`${w.year}-${w.week_number}`}>
                 <TooltipTrigger asChild>
-                  <span className={`w-5 h-5 rounded-full ${dotClass} transition-all`} />
+                  <button
+                    type="button"
+                    className={`w-5 h-5 rounded-full ${dotClass} transition-all`}
+                    aria-label={`Week ${w.week_number}: ${tooltip}`}
+                  />
                 </TooltipTrigger>
                 <TooltipContent>
                   <div>
