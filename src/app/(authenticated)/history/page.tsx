@@ -10,6 +10,7 @@ import {
 import { Badge } from "@/components/ui/badge"
 import { WeekFilter } from '@/components/WeekFilter'
 import { getMostRecentThursdayWeek } from '@/lib/utils/date'
+import { Calendar, Clock, AlertCircle } from 'lucide-react'
 
 const getCurrentYear = () => new Date().getFullYear();
 const getCurrentWeek = () => getMostRecentThursdayWeek();
@@ -45,22 +46,27 @@ export default async function HistoryPage({
   if (weeksErr || subErr) {
     console.error({ weeksErr, subErr });
     return (
-      <div className="container mx-auto py-8 px-4">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold text-red-600 dark:text-red-400 mb-4">Error Loading Data</h1>
-          <p className="text-muted-foreground">There was an error loading your history. Please try again later.</p>
-        </div>
+      <div className="max-w-4xl mx-auto">
+        <Card className="border-destructive">
+          <CardContent className="pt-6">
+            <div className="flex items-center gap-2 text-destructive mb-2">
+              <AlertCircle className="w-5 h-5" />
+              <h2 className="text-xl font-semibold">Error Loading Data</h2>
+            </div>
+            <p className="text-muted-foreground">There was an error loading your history. Please try again later.</p>
+          </CardContent>
+        </Card>
       </div>
     );
   }
 
-  // 3. Build a map for quick lookup
+  // Build a map for quick lookup
   const submissionMap = new Map();
   (submissions || []).forEach(sub => {
     submissionMap.set(sub.week_number, sub);
   });
 
-  // 4. Prepare week options for the filter
+  // Prepare week options for the filter
   const weekOptions = (allWeeks || [])
     .filter(w => w.week_number <= currentWeek || w.year < currentYear)
     .map(w => ({
@@ -70,101 +76,133 @@ export default async function HistoryPage({
       year: w.year,
     }));
 
-  // 5. Determine selected week
+  // Determine selected week
   const defaultWeekValue = weekOptions.find(w => w.week_number === currentWeek && w.year === currentYear)?.value || 
     (weekOptions.length > 0 ? weekOptions[weekOptions.length - 1].value : '');
   const selectedWeekParam = params.week || defaultWeekValue;
   const [selectedYear, selectedWeek] = selectedWeekParam.split('-').map(Number);
 
-  // 6. Find the week and submission
+  // Find the week and submission
   const week = weekOptions.find(w => w.year === selectedYear && w.week_number === selectedWeek);
   const submission = submissionMap.get(selectedWeek);
 
   return (
-    <div className="container mx-auto py-8 px-4 space-y-8">
+    <div className="max-w-4xl mx-auto space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold">Weekly Pulse History</h1>
-          <p className="text-muted-foreground">View your past submissions. Select a week to filter.</p>
+          <h1 className="text-3xl font-bold mb-2">Weekly Pulse History</h1>
+          <p className="text-muted-foreground">View your past submissions and track your progress</p>
         </div>
         <Suspense fallback={<div>Loading filter...</div>}>
           <WeekFilter weeks={weekOptions} />
         </Suspense>
       </div>
+
       {week ? (
-        <Card className="w-full shadow-xl border-primary/10 border-2">
-          <CardHeader className="border-b pb-2">
-            <CardTitle className="text-xl">{week.label}</CardTitle>
+        <Card className="w-full shadow-lg border-primary/10">
+          <CardHeader className="border-b pb-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Calendar className="w-5 h-5 text-primary" />
+                <CardTitle className="text-xl">{week.label}</CardTitle>
+              </div>
+              {submission && (
+                <div className="flex items-center gap-2">
+                  <Badge variant={submission.status === 'submitted' ? 'secondary' : 'outline'}>
+                    {submission.status}
+                  </Badge>
+                  {submission.is_late && <Badge variant="destructive">Late</Badge>}
+                </div>
+              )}
+            </div>
           </CardHeader>
-          <CardContent>
+          <CardContent className="pt-6">
             {submission ? (
-              <div>
-                <div className="p-6 rounded-xl shadow-sm transition-all">
-                  <div className="flex flex-col gap-2 mb-2">
-                    <div className="flex items-center gap-4">
-                      <span className="text-xl font-bold text-foreground tracking-tight">{submission.primary_project_name}</span>
-                      <span className="text-lg font-semibold text-primary bg-primary/10 px-3 py-1 rounded-full">{submission.primary_project_hours}h</span>
-                      <Badge variant={submission.status === 'submitted' ? 'secondary' : 'outline'}>
-                        {submission.status}
-                      </Badge>
-                      {submission.is_late && <Badge variant="destructive">Late</Badge>}
-                    </div>
-                    <div className="flex flex-wrap gap-4 text-sm text-muted-foreground border-b border-dashed border-muted pb-2">
-                      <span>Submitted: <span className="text-foreground font-medium">{new Date(submission.submitted_at).toLocaleString()}</span></span>
-                      <span>Manager: <span className="text-foreground font-medium">{submission.manager}</span></span>
-                      {submission.form_completion_time && (
-                        <span>Time to complete: <span className="text-foreground font-medium">{submission.form_completion_time} min</span></span>
-                      )}
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4">
+              <div className="space-y-6">
+                {/* Primary Project */}
+                <div className="bg-muted/50 rounded-lg p-4">
+                  <div className="flex items-center justify-between mb-4">
                     <div>
-                      <h4 className="font-semibold text-sm mb-1 text-primary">Additional Projects</h4>
-                      {submission.additional_projects && submission.additional_projects.length > 0 ? (
-                        <ul className="list-disc list-inside space-y-1 ml-2">
-                          {submission.additional_projects.map((proj: { name: string; hours: number }, idx: number) => (
-                            <li key={idx} className="text-sm">
-                              <span className="font-medium">{proj.name}</span> — {proj.hours}h
-                            </li>
-                          ))}
-                        </ul>
-                      ) : (
-                        <span className="text-xs italic text-muted-foreground">None</span>
-                      )}
+                      <h3 className="text-xl font-semibold">{submission.primary_project_name}</h3>
+                      <p className="text-muted-foreground">Primary Project</p>
                     </div>
-                    <div className="space-y-4">
-                      {submission.feedback && (
-                        <div>
-                          <h4 className="font-semibold text-sm mb-1 text-primary">Feedback</h4>
-                          <div className="bg-muted rounded p-2 text-sm text-foreground whitespace-pre-line border border-muted/60">{submission.feedback}</div>
+                    <Badge variant="outline" className="text-lg px-4 py-1">
+                      {submission.primary_project_hours}h
+                    </Badge>
+                  </div>
+                  <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                    <div className="flex items-center gap-1">
+                      <Clock className="w-4 h-4" />
+                      <span>Submitted: {new Date(submission.submitted_at).toLocaleString()}</span>
+                    </div>
+                    <span>•</span>
+                    <span>Manager: {submission.manager}</span>
+                    {submission.form_completion_time && (
+                      <>
+                        <span>•</span>
+                        <span>Time to complete: {submission.form_completion_time} min</span>
+                      </>
+                    )}
+                  </div>
+                </div>
+
+                {/* Additional Projects */}
+                {submission.additional_projects && submission.additional_projects.length > 0 && (
+                  <div>
+                    <h4 className="font-semibold text-sm mb-3 text-primary">Additional Projects</h4>
+                    <div className="grid gap-3">
+                      {submission.additional_projects.map((proj: { name: string; hours: number }, idx: number) => (
+                        <div key={idx} className="flex items-center justify-between bg-muted/30 rounded-lg p-3">
+                          <span className="font-medium">{proj.name}</span>
+                          <Badge variant="outline">{proj.hours}h</Badge>
                         </div>
-                      )}
-                      {submission.changes_next_week && (
-                        <div>
-                          <h4 className="font-semibold text-sm mb-1 text-primary">Changes Next Week</h4>
-                          <div className="bg-muted rounded p-2 text-sm text-foreground whitespace-pre-line border border-muted/60">{submission.changes_next_week}</div>
-                        </div>
-                      )}
-                      {submission.milestones && (
-                        <div>
-                          <h4 className="font-semibold text-sm mb-1 text-primary">Milestones</h4>
-                          <div className="bg-muted rounded p-2 text-sm text-foreground whitespace-pre-line border border-muted/60">{submission.milestones}</div>
-                        </div>
-                      )}
-                      {submission.other_feedback && (
-                        <div>
-                          <h4 className="font-semibold text-sm mb-1 text-primary">Other Feedback</h4>
-                          <div className="bg-muted rounded p-2 text-sm text-foreground whitespace-pre-line border border-muted/60">{submission.other_feedback}</div>
-                        </div>
-                      )}
-                      {submission.hours_reporting_impact && (
-                        <div>
-                          <h4 className="font-semibold text-sm mb-1 text-primary">Hours Reporting Impact</h4>
-                          <div className="bg-muted rounded p-2 text-sm text-foreground whitespace-pre-line border border-muted/60">{submission.hours_reporting_impact}</div>
-                        </div>
-                      )}
+                      ))}
                     </div>
                   </div>
+                )}
+
+                {/* Feedback and Notes */}
+                <div className="grid gap-4 md:grid-cols-2">
+                  {submission.feedback && (
+                    <div>
+                      <h4 className="font-semibold text-sm mb-2 text-primary">Feedback</h4>
+                      <div className="bg-muted/30 rounded-lg p-3 text-sm whitespace-pre-line">
+                        {submission.feedback}
+                      </div>
+                    </div>
+                  )}
+                  {submission.changes_next_week && (
+                    <div>
+                      <h4 className="font-semibold text-sm mb-2 text-primary">Changes Next Week</h4>
+                      <div className="bg-muted/30 rounded-lg p-3 text-sm whitespace-pre-line">
+                        {submission.changes_next_week}
+                      </div>
+                    </div>
+                  )}
+                  {submission.milestones && (
+                    <div>
+                      <h4 className="font-semibold text-sm mb-2 text-primary">Milestones</h4>
+                      <div className="bg-muted/30 rounded-lg p-3 text-sm whitespace-pre-line">
+                        {submission.milestones}
+                      </div>
+                    </div>
+                  )}
+                  {submission.other_feedback && (
+                    <div>
+                      <h4 className="font-semibold text-sm mb-2 text-primary">Other Feedback</h4>
+                      <div className="bg-muted/30 rounded-lg p-3 text-sm whitespace-pre-line">
+                        {submission.other_feedback}
+                      </div>
+                    </div>
+                  )}
+                  {submission.hours_reporting_impact && (
+                    <div>
+                      <h4 className="font-semibold text-sm mb-2 text-primary">Hours Reporting Impact</h4>
+                      <div className="bg-muted/30 rounded-lg p-3 text-sm whitespace-pre-line">
+                        {submission.hours_reporting_impact}
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
             ) : (
