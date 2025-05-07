@@ -1,7 +1,6 @@
 import Link from 'next/link'
 import { User, History } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { MobileSidebar } from './MobileSidebar'
 
 export type SidebarItem = {
   title: string
@@ -33,7 +32,8 @@ export function SidebarContent({ pathname }: { pathname: string }) {
             "flex items-center gap-3 rounded-lg px-3 py-2 text-gray-500 transition-all hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-50",
             "hover:bg-gray-100 dark:hover:bg-gray-700",
             "group",
-            pathname === item.href && "bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-50"
+            pathname === item.href &&
+              "bg-blue-100 text-blue-700 font-semibold dark:bg-blue-900 dark:text-blue-300"
           )}
         >
           {item.icon}
@@ -46,16 +46,10 @@ export function SidebarContent({ pathname }: { pathname: string }) {
 
 export function Sidebar({ pathname }: { pathname: string }) {
   return (
-    <>
-      {/* Mobile Sidebar */}
-      <MobileSidebar pathname={pathname} />
-
-      {/* Desktop Sidebar */}
-      <div className="hidden md:block w-64 border-r bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
-        <div className="p-4">
-          <SidebarContent pathname={pathname} />
-        </div>
+    <div className="hidden md:block w-64 border-r bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
+      <div className="p-4">
+        <SidebarContent pathname={pathname} />
       </div>
-    </>
+    </div>
   )
 } 

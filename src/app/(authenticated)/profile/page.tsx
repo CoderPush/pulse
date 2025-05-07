@@ -3,7 +3,6 @@ import { redirect } from 'next/navigation'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { getInitials } from '@/lib/auth/user'
-import { Button } from "@/components/ui/button"
 import { Settings, Bell, Clock } from "lucide-react"
 
 export default async function ProfilePage() {
@@ -20,14 +19,15 @@ export default async function ProfilePage() {
     <div className="max-w-4xl mx-auto">
       {/* Profile Header */}
       <div className="mb-8">
-        <div className="flex items-center gap-6">
-          <Avatar className="w-24 h-24">
+        <div className="flex flex-col items-center gap-4 sm:flex-row sm:items-center sm:gap-6">
+          <Avatar className="w-20 h-20 sm:w-24 sm:h-24">
             <AvatarFallback className="text-2xl bg-primary/10">
               {userInitials}
             </AvatarFallback>
           </Avatar>
-          <div>
-            <h1 className="text-3xl font-bold mb-2">{user.email}</h1>
+          <div className="w-full text-center sm:text-left">
+            <h1 className="text-xl sm:text-3xl font-bold mb-2 truncate break-words max-w-full">{user.email}</h1>
+            <p className="text-muted-foreground text-sm sm:text-base break-words">Member since {new Date(user.created_at).toLocaleDateString()}</p>
           </div>
         </div>
       </div>
@@ -45,7 +45,7 @@ export default async function ProfilePage() {
           <CardContent className="space-y-4">
             <div className="space-y-2">
               <label className="text-sm font-medium">Email</label>
-              <p className="text-sm text-muted-foreground">{user.email}</p>
+              <p className="text-sm text-muted-foreground break-words">{user.email}</p>
             </div>
             <div className="space-y-2">
               <label className="text-sm font-medium">Name</label>
@@ -55,9 +55,6 @@ export default async function ProfilePage() {
               <label className="text-sm font-medium">Role</label>
               <p className="text-sm text-muted-foreground italic">Not set</p>
             </div>
-            <Button variant="outline" className="w-full mt-4">
-              Edit Profile
-            </Button>
           </CardContent>
         </Card>
 
@@ -79,9 +76,6 @@ export default async function ProfilePage() {
               <label className="text-sm font-medium">Time Zone</label>
               <p className="text-sm text-muted-foreground italic">Not set</p>
             </div>
-            <Button variant="outline" className="w-full mt-4">
-              Update Preferences
-            </Button>
           </CardContent>
         </Card>
 

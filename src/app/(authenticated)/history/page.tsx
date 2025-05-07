@@ -10,7 +10,7 @@ import {
 import { Badge } from "@/components/ui/badge"
 import { WeekFilter } from '@/components/WeekFilter'
 import { getMostRecentThursdayWeek } from '@/lib/utils/date'
-import { Calendar, Clock, AlertCircle } from 'lucide-react'
+import { Calendar, Clock, AlertCircle, CalendarX } from 'lucide-react'
 
 const getCurrentYear = () => new Date().getFullYear();
 const getCurrentWeek = () => getMostRecentThursdayWeek();
@@ -130,18 +130,17 @@ export default async function HistoryPage({
                       {submission.primary_project_hours}h
                     </Badge>
                   </div>
-                  <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                    <div className="flex items-center gap-1">
-                      <Clock className="w-4 h-4" />
-                      <span>Submitted: {new Date(submission.submitted_at).toLocaleString()}</span>
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-4 text-sm text-muted-foreground">
+                    <div>
+                      <span className="font-medium">Submitted:</span> {new Date(submission.submitted_at).toLocaleString()}
                     </div>
-                    <span>•</span>
-                    <span>Manager: {submission.manager}</span>
+                    <div>
+                      <span className="font-medium">Manager:</span> {submission.manager}
+                    </div>
                     {submission.form_completion_time && (
-                      <>
-                        <span>•</span>
-                        <span>Time to complete: {submission.form_completion_time} min</span>
-                      </>
+                      <div>
+                        <span className="font-medium">Time to complete:</span> {submission.form_completion_time} min
+                      </div>
                     )}
                   </div>
                 </div>
@@ -206,11 +205,15 @@ export default async function HistoryPage({
                 </div>
               </div>
             ) : (
-              <div className="flex flex-col items-center justify-center py-12">
-                <span className="text-4xl mb-4">😕</span>
-                <h2 className="text-xl font-semibold mb-2">No Submission</h2>
-                <p className="text-muted-foreground">You have not submitted a weekly pulse for this week.</p>
-              </div>
+              <Card>
+                <CardContent className="flex flex-col items-center justify-center py-12 bg-muted/40 border-0 shadow-none">
+                  <CalendarX className="w-12 h-12 text-muted-foreground mb-4" />
+                  <h2 className="text-xl font-semibold mb-2">No Submission Yet</h2>
+                  <p className="text-muted-foreground mb-4 text-center max-w-xs">
+                    You haven't submitted your weekly pulse for this week.<br />
+                  </p>
+                </CardContent>
+              </Card>
             )}
           </CardContent>
         </Card>
