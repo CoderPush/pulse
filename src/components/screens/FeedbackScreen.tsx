@@ -39,7 +39,7 @@ export default function FeedbackScreen({ onNext, onBack, formData, setFormData }
         </button>
         <button 
           onClick={onNext}
-          className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-full font-medium flex items-center gap-2 flex-1 justify-center"
+          className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white px-6 py-3 rounded-full font-medium flex items-center gap-2 flex-1 justify-center transition-all duration-200 transform hover:-translate-y-0.5"
         >
           Next <ArrowRight size={18} />
         </button>

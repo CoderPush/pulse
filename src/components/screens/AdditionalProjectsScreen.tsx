@@ -62,8 +62,33 @@ export default function AdditionalProjectsScreen({ onNext, onBack, formData, set
 
   return (
     <div className="flex flex-col h-full px-6">
-      <h2 className="text-2xl font-bold mb-6">Any other projects?</h2>
-      <p className="text-gray-600 mb-6">Some of you work on multiple projects. Use this if applicable.</p>
+      <div className="flex items-center justify-between mb-6">
+        <div>
+          <h2 className="text-2xl font-bold mb-1">Any other projects?</h2>
+          <p className="text-muted-foreground">Add more projects if you work on multiple</p>
+        </div>
+        <button
+          onClick={onNext}
+          className="px-4 py-2 text-blue-600 hover:text-blue-700 font-medium transition-colors"
+        >
+          Skip
+        </button>
+      </div>
+
+      {/* Primary Project Display */}
+      <div className="mb-6 p-4 bg-gradient-to-r from-blue-50 via-indigo-50 to-blue-50 rounded-lg border border-blue-100/50 shadow-sm">
+        <div className="flex items-center justify-between">
+          <div className="space-y-1">
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-medium text-blue-600">Primary Project</span>
+            </div>
+            <div className="text-lg font-semibold text-blue-900">{formData.primaryProject.name}</div>
+          </div>
+          <div className="text-sm font-medium text-blue-600 bg-blue-100/50 px-4 py-2 rounded-full">
+            {formData.primaryProject.hours} hrs
+          </div>
+        </div>
+      </div>
       
       {/* Display existing additional projects */}
       {formData.additionalProjects.length > 0 && (
@@ -88,14 +113,17 @@ export default function AdditionalProjectsScreen({ onNext, onBack, formData, set
       <div className="mb-6">
         <h3 className="text-lg font-semibold text-gray-700 mb-4">Select projects</h3>
         <div className="grid grid-cols-2 gap-3">
-          {projects.map((project) => (
+          {projects
+            .filter(project => 
+              project.name !== formData.primaryProject.name && 
+              !formData.additionalProjects.some(p => p.project === project.name)
+            )
+            .map((project) => (
             <div key={project.id} className="flex flex-col gap-2">
               <button
                 onClick={() => handleProjectSelect(project.name)}
                 className={`p-3 rounded-lg text-left transition-colors ${
-                  formData.additionalProjects.some(p => p.project === project.name)
-                    ? 'bg-blue-100 text-blue-700'
-                    : selectedProject === project.name
+                  selectedProject === project.name
                     ? 'bg-blue-200 text-blue-800 border-2 border-blue-300'
                     : 'bg-gray-50 hover:bg-gray-100'
                 }`}
@@ -178,7 +206,7 @@ export default function AdditionalProjectsScreen({ onNext, onBack, formData, set
         </button>
         <button 
           onClick={onNext}
-          className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-full font-medium flex items-center gap-2 flex-1 justify-center"
+          className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white px-6 py-3 rounded-full font-medium flex items-center gap-2 flex-1 justify-center transition-all duration-200 transform hover:-translate-y-0.5"
         >
           Next <ArrowRight size={18} />
         </button>
