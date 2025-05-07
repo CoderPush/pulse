@@ -10,7 +10,7 @@ import {
 import { Badge } from "@/components/ui/badge"
 import { WeekFilter } from '@/components/WeekFilter'
 import { getMostRecentThursdayWeek } from '@/lib/utils/date'
-import { Calendar, Clock, AlertCircle, CalendarX } from 'lucide-react'
+import { Calendar, AlertCircle, CalendarX } from 'lucide-react'
 
 const getCurrentYear = () => new Date().getFullYear();
 const getCurrentWeek = () => getMostRecentThursdayWeek();
@@ -103,12 +103,12 @@ export default async function HistoryPage({
           <CardHeader className="border-b pb-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <Calendar className="w-5 h-5 text-primary" />
-                <CardTitle className="text-xl">{week.label}</CardTitle>
+                <Calendar className="w-5 h-5 text-blue-700 dark:text-blue-300" />
+                <CardTitle className="text-xl text-blue-700 dark:text-blue-300">{week.label}</CardTitle>
               </div>
               {submission && (
                 <div className="flex items-center gap-2">
-                  <Badge variant={submission.status === 'submitted' ? 'secondary' : 'outline'}>
+                  <Badge className="bg-blue-100 text-blue-700 border-blue-200 font-semibold dark:bg-blue-900 dark:text-blue-300 dark:border-blue-800">
                     {submission.status}
                   </Badge>
                   {submission.is_late && <Badge variant="destructive">Late</Badge>}
@@ -207,10 +207,10 @@ export default async function HistoryPage({
             ) : (
               <Card>
                 <CardContent className="flex flex-col items-center justify-center py-12 bg-muted/40 border-0 shadow-none">
-                  <CalendarX className="w-12 h-12 text-muted-foreground mb-4" />
+                  <CalendarX className="w-12 h-12 text-blue-600 dark:text-blue-400 mb-4" />
                   <h2 className="text-xl font-semibold mb-2">No Submission Yet</h2>
                   <p className="text-muted-foreground mb-4 text-center max-w-xs">
-                    You haven't submitted your weekly pulse for this week.<br />
+                    You haven&apos;t submitted your weekly pulse for this week.<br />
                   </p>
                 </CardContent>
               </Card>
