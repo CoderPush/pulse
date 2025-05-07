@@ -1,4 +1,4 @@
-import { ArrowLeft, Check } from 'lucide-react';
+import { ArrowLeft, Check, Clock } from 'lucide-react';
 import { ScreenProps } from '@/types/weekly-pulse';
 import { useState } from 'react';
 
@@ -57,57 +57,69 @@ export default function ReviewScreen({ onBack, formData, onNext }: ScreenProps) 
       
       <div className="bg-gray-50 rounded-lg p-6 mb-8 space-y-6">
         <div>
-          <div className="text-sm text-gray-500 mb-1">Primary Project</div>
-          <div className="font-medium">{formData.primaryProject.name} ({formData.primaryProject.hours} hours)</div>
+          <div className="text-sm text-gray-500 mb-2">Primary Project</div>
+          <div className="flex items-center justify-between">
+            <div className="font-medium text-lg">{formData.primaryProject.name}</div>
+            <div className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+              <Clock size={12} className="mr-1" />
+              {formData.primaryProject.hours} hours
+            </div>
+          </div>
         </div>
         
         {formData.additionalProjects.length > 0 && (
           <div>
-            <div className="text-sm text-gray-500 mb-1">Any other projects?</div>
+            <div className="text-sm text-gray-500 mb-2">Additional Projects</div>
             {formData.additionalProjects.map((proj, index) => (
-              <div key={index} className="font-medium">
-                {proj.project} ({proj.hours} hours)
+              <div key={index} className="mb-3 last:mb-0">
+                <div className="flex items-center justify-between">
+                  <div className="font-medium text-lg">{proj.project}</div>
+                  <div className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                    <Clock size={12} className="mr-1" />
+                    {proj.hours} hours
+                  </div>
+                </div>
               </div>
             ))}
           </div>
         )}
         
         <div>
-          <div className="text-sm text-gray-500 mb-1">Who&apos;s your manager right now?</div>
+          <div className="text-sm text-gray-500 mb-1">Manager</div>
           <div className="font-medium">{formData?.manager}</div>
         </div>
         
         {formData.feedback && (
           <div>
-            <div className="text-sm text-gray-500 mb-1">Any blockers, changes, or feedback this week?</div>
+            <div className="text-sm text-gray-500 mb-1">Blockers & Feedback</div>
             <div className="font-medium">{formData.feedback}</div>
           </div>
         )}
 
         {formData.changesNextWeek && (
           <div>
-            <div className="text-sm text-gray-500 mb-1">Any changes next week?</div>
+            <div className="text-sm text-gray-500 mb-1">Changes Next Week</div>
             <div className="font-medium">{formData.changesNextWeek}</div>
           </div>
         )}
 
         {formData.otherFeedback && (
           <div>
-            <div className="text-sm text-gray-500 mb-1">Anything else to share?</div>
+            <div className="text-sm text-gray-500 mb-1">Additional Comments</div>
             <div className="font-medium">{formData.otherFeedback}</div>
           </div>
         )}
 
         {formData.hoursReportingImpact && (
           <div>
-            <div className="text-sm text-gray-500 mb-1">How has reporting the hours each week affected you?</div>
+            <div className="text-sm text-gray-500 mb-1">Hours Reporting Impact</div>
             <div className="font-medium">{formData.hoursReportingImpact}</div>
           </div>
         )}
 
         {formData.formCompletionTime && (
           <div>
-            <div className="text-sm text-gray-500 mb-1">How long did it take you to fill this out?</div>
+            <div className="text-sm text-gray-500 mb-1">Form Completion Time</div>
             <div className="font-medium">{formData.formCompletionTime} minutes</div>
           </div>
         )}
@@ -123,10 +135,16 @@ export default function ReviewScreen({ onBack, formData, onNext }: ScreenProps) 
         </button>
         <button 
           onClick={handleSubmit}
-          className="bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-full font-medium flex items-center gap-2 flex-1 justify-center disabled:bg-green-400"
+          className="relative bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 rounded-full font-medium flex items-center gap-2 flex-1 justify-center disabled:bg-blue-400 overflow-hidden group transition-all duration-300 shadow-lg hover:shadow-xl"
           disabled={isSubmitting}
         >
-          {isSubmitting ? 'Submitting...' : 'Submit Now'} <Check size={18} />
+          <span className="relative z-10 flex items-center gap-2">
+            {isSubmitting ? 'Submitting...' : 'Submit Now'} 
+            <Check size={18} className="transform group-hover:scale-110 group-hover:rotate-12 transition-all duration-300" />
+          </span>
+          <span className="absolute inset-0 bg-gradient-to-r from-blue-500 via-blue-600 to-blue-700 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></span>
+          <span className="absolute inset-0 bg-white opacity-0 group-hover:opacity-10 transition-opacity duration-300"></span>
+          <span className="absolute -inset-1 bg-blue-400 opacity-0 group-hover:opacity-20 blur-xl transition-all duration-300"></span>
         </button>
       </div>
     </div>
