@@ -5,7 +5,6 @@ import { Card } from "@/components/ui/card";
 import { getPreviousWeekManager } from '@/app/actions';
 
 export default function ManagerScreen({ onNext, onBack, formData, setFormData, userId, currentWeekNumber, currentYear }: ScreenProps & { userId?: string; currentWeekNumber?: number; currentYear?: number }) {
-  const [shouldNavigate, setShouldNavigate] = useState(false);
   const [dontKnow, setDontKnow] = useState(false);
   const [fetchedPreviousManager, setFetchedPreviousManager] = useState<string | null>(null);
   const [isLoadingPreviousManager, setIsLoadingPreviousManager] = useState(true);
@@ -90,7 +89,7 @@ export default function ManagerScreen({ onNext, onBack, formData, setFormData, u
             </div>
             <input
               type="email"
-              placeholder="Enter manager's email..."
+              placeholder="Enter manager&apos;s email..."
               value={formData.manager}
               onChange={(e) => handleManagerChange(e.target.value)}
               className="w-full p-4 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white/50"
