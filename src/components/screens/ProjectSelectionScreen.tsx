@@ -101,6 +101,7 @@ export default function ProjectSelectionScreen({ onNext, formData, setFormData, 
   const handleOtherProjectSubmit = () => {
     if (otherProject.trim()) {
       selectProject(otherProject.trim());
+      onNext();
     }
   };
 
