@@ -24,21 +24,30 @@ export default async function HomePage({ searchParams }: HomeProps) {
   const weekNumber = params.week ? parseInt(params.week) : getMostRecentThursdayWeek();
   const currentYear = new Date().getFullYear();
 
-  // Check if user has already submitted for this week
-  const { data: existingSubmission } = await supabase
-    .from('submissions')
-    .select('id')
-    .eq('user_id', user.id)
-    .eq('year', currentYear)
-    .eq('week_number', weekNumber)
-    .single();
+  let existingSubmission, projects;
 
-  // Fetch active projects
-  const { data: projects } = await supabase
-    .from('projects')
-    .select('id, name')
-    .eq('is_active', true)
-    .order('name');
+  try {
+    // Check if user has already submitted for this week
+    const { data: submissionData } = await supabase
+      .from('submissions')
+      .select('id')
+      .eq('user_id', user.id)
+      .eq('year', currentYear)
+      .eq('week_number', weekNumber)
+      .single();
+    existingSubmission = submissionData;
+
+    // Fetch active projects
+    const { data: projectsData } = await supabase
+      .from('projects')
+      .select('id, name')
+      .eq('is_active', true)
+      .order('name');
+    projects = projectsData;
+  } catch (error) {
+    console.error('Error fetching data:', error);
+    // TODO: Implement proper error handling and user feedback
+  }
 
   return (
     <div className="w-full px-4 -mt-16">
