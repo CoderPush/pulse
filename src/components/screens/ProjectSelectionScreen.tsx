@@ -68,7 +68,7 @@ export default function ProjectSelectionScreen({ onNext, formData, setFormData, 
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.shiftKey && event.key === 'Enter') {
         event.preventDefault();
-        if (!(!formData.primaryProject.name && !otherProject.trim())) {
+        if (formData.primaryProject.name || otherProject.trim()) {
           onNext();
         }
       }
