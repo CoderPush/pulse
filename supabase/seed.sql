@@ -50,3 +50,27 @@ BEGIN
         END LOOP;
     END LOOP;
 END $$; 
+
+-- Insert demo projects for local development (Marvel Avengers)
+INSERT INTO public.projects (name, is_active)
+VALUES
+  ('Iron Man', TRUE),
+  ('Captain America', TRUE),
+  ('Thor', TRUE),
+  ('Black Widow', TRUE),
+  ('Hulk', TRUE),
+  ('Hawkeye', TRUE),
+  ('Vision', TRUE),
+  ('Scarlet Witch', TRUE),
+  ('Black Panther', TRUE),
+  ('Spider-Man', TRUE),
+  ('Doctor Strange', TRUE),
+  ('Ant-Man', TRUE),
+  ('Wasp', TRUE),
+  ('Falcon', TRUE),
+  ('War Machine', TRUE),
+  ('Star-Lord', TRUE),
+  ('Gamora', TRUE),
+  ('Drax', TRUE),
+  ('Rocket', TRUE),
+  ('Groot', TRUE); 

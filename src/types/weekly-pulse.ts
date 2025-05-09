@@ -53,4 +53,7 @@ export interface ScreenProps {
   setFormData: (data: WeeklyPulseFormData) => void;
   error?: string | null;
   projects?: Array<{ id: string; name: string }>;
+  userId?: string;
+  currentWeekNumber?: number;
+  currentYear?: number;
 } 

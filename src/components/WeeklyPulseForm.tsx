@@ -17,11 +17,18 @@ import SubmissionSuccessScreen from './screens/SubmissionSuccessScreen';
 interface WeeklyPulseFormProps {
   user: User;
   weekNumber?: number;
+  currentYear?: number;
   hasSubmittedThisWeek?: boolean;
   projects: Array<{ id: string; name: string }>;
 }
 
-export default function WeeklyPulseForm({ user, weekNumber = 17, hasSubmittedThisWeek = false, projects = [] }: WeeklyPulseFormProps) {
+export default function WeeklyPulseForm({
+  user,
+  weekNumber = 17,
+  currentYear,
+  hasSubmittedThisWeek = false,
+  projects = [],
+}: WeeklyPulseFormProps) {
   const [currentScreen, setCurrentScreen] = useState(0);
   const [progress, setProgress] = useState(0);
   const [error, setError] = useState<string | null>(null);
@@ -99,28 +106,44 @@ export default function WeeklyPulseForm({ user, weekNumber = 17, hasSubmittedThi
   };
   
   const renderScreen = () => {
-    const screenProps = {
+    const screenCommonProps = {
       onNext: handleNext,
       onBack: handleBack,
       formData,
       setFormData,
-      error // Pass error to screens
+      error,
+      projects,
+      userId: user.id,
+      currentWeekNumber: weekNumber,
+      currentYear: currentYear,
     };
 
     switch(currentScreen) {
       case 0:
         return <WelcomeScreen user={user} onNext={handleNext} weekNumber={weekNumber} />;
       case 1:
-        return <ProjectSelectionScreen {...screenProps} projects={projects} />;
+        return (
+          <ProjectSelectionScreen
+            onNext={screenCommonProps.onNext}
+            onBack={screenCommonProps.onBack}
+            formData={screenCommonProps.formData}
+            setFormData={screenCommonProps.setFormData}
+            error={screenCommonProps.error}
+            projects={screenCommonProps.projects}
+            userId={user.id}
+            currentWeekNumber={weekNumber}
+            currentYear={currentYear}
+          />
+        );
       case 2:
-        return <HoursWorkedScreen {...screenProps} />;
+        return <HoursWorkedScreen {...screenCommonProps} />;
       case 3:
-        return <ManagerScreen {...screenProps} />;
+        return <ManagerScreen {...screenCommonProps} />;
       case 4:
-        return <AdditionalProjectsScreen {...screenProps} projects={projects} />;
+        return <AdditionalProjectsScreen {...screenCommonProps} projects={projects} />;
       case 5:
         return <TextInputScreen
-          {...screenProps}
+          {...screenCommonProps}
           title="Any changes next week?"
           description="Mention further milestones/deadlines if applicable."
           placeholder="Describe any upcoming changes in your work..."
@@ -129,7 +152,7 @@ export default function WeeklyPulseForm({ user, weekNumber = 17, hasSubmittedThi
         />;
       case 6:
         return <TextInputScreen
-          {...screenProps}
+          {...screenCommonProps}
           title="Anything else to share?"
           description="Wanting more/fewer challenges? Using more/less AI?"
           placeholder="Share any additional thoughts..."
@@ -138,15 +161,15 @@ export default function WeeklyPulseForm({ user, weekNumber = 17, hasSubmittedThi
         />;
       case 7:
         return <TextInputScreen
-          {...screenProps}
+          {...screenCommonProps}
           title="How has reporting the hours each week affected you?"
           placeholder="Share your experience with weekly hour reporting..."
           fieldName="hoursReportingImpact"
         />;
       case 8:
-        return <TimeInputScreen {...screenProps} />;
+        return <TimeInputScreen {...screenCommonProps} />;
       case 9:
-        return <ReviewScreen {...screenProps} />;
+        return <ReviewScreen {...screenCommonProps} />;
       case 10:
         return <SuccessScreen />;
       default:
