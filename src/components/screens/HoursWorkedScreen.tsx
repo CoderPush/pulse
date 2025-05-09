@@ -3,6 +3,7 @@ import { ScreenProps } from '@/types/weekly-pulse';
 import { Slider } from "@/components/ui/slider";
 import { Card } from "@/components/ui/card";
 import { motion } from "framer-motion";
+import { useEffect } from 'react';
 
 export default function HoursWorkedScreen({ onNext, onBack, formData, setFormData }: ScreenProps) {
   const handleHoursChange = (hours: number[]) => {
@@ -14,6 +15,21 @@ export default function HoursWorkedScreen({ onNext, onBack, formData, setFormDat
       }
     });
   };
+
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.shiftKey && event.key === 'Enter') {
+        event.preventDefault();
+        if (formData.primaryProject.hours) {
+          onNext();
+        }
+      }
+    };
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [onNext, formData.primaryProject.hours]);
 
   return (
     <div className="flex flex-col h-full px-6">
@@ -112,9 +128,12 @@ export default function HoursWorkedScreen({ onNext, onBack, formData, setFormDat
         </button>
         <button 
           onClick={onNext}
-          className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white px-6 py-3 rounded-full font-medium flex items-center gap-2 flex-1 justify-center transition-all duration-200 transform hover:-translate-y-0.5"
+          className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white px-6 py-3.5 rounded-xl font-semibold flex items-center justify-center gap-2 w-full transition-all duration-200 transform hover:-translate-y-0.5 disabled:opacity-60 disabled:cursor-not-allowed shadow-md hover:shadow-lg"
+          disabled={!formData.primaryProject.hours}
+          aria-label="Next step, or press Shift + Enter"
         >
-          Next <ArrowRight size={18} />
+          Next <ArrowRight size={20} />
+          <span className="hidden sm:inline text-xs opacity-80 ml-2 border border-white/30 px-1.5 py-0.5 rounded-md">Shift + Enter</span>
         </button>
       </motion.div>
     </div>
