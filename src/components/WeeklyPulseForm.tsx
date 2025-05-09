@@ -13,6 +13,7 @@ import TimeInputScreen from './screens/TimeInputScreen';
 import ReviewScreen from './screens/ReviewScreen';
 import SuccessScreen from './screens/SuccessScreen';
 import SubmissionSuccessScreen from './screens/SubmissionSuccessScreen';
+import { getISOWeek } from 'date-fns/getISOWeek';
 
 interface WeeklyPulseFormProps {
   user: User;
@@ -24,7 +25,7 @@ interface WeeklyPulseFormProps {
 
 export default function WeeklyPulseForm({
   user,
-  weekNumber = 17,
+  weekNumber = getISOWeek(new Date()),
   currentYear,
   hasSubmittedThisWeek = false,
   projects = [],
