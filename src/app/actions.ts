@@ -56,4 +56,46 @@ export async function getPreviousWeekPrimaryProject(
     console.error('Unexpected error in getPreviousWeekPrimaryProject:', err);
     return null;
   }
+}
+
+export async function getPreviousWeekManager(
+  userId: string,
+  currentWeekNumber: number,
+  currentYear: number
+): Promise<string | null> {
+  if (!userId || !currentWeekNumber || !currentYear) {
+    console.warn('getPreviousWeekManager: Missing required parameters');
+    return null;
+  }
+
+  let previousWeekNumber = currentWeekNumber - 1;
+  let previousYear = currentYear;
+
+  if (previousWeekNumber === 0) {
+    previousWeekNumber = 52;
+    previousYear = currentYear - 1;
+  }
+
+  try {
+    const supabase = await createClient();
+    const { data, error } = await supabase
+      .from('submissions')
+      .select('manager')
+      .eq('user_id', userId)
+      .eq('week_number', previousWeekNumber)
+      .eq('year', previousYear)
+      .order('submitted_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (error) {
+      console.error('Error fetching previous week manager:', error.message);
+      return null;
+    }
+
+    return data ? data.manager : null;
+  } catch (err) {
+    console.error('Unexpected error in getPreviousWeekManager:', err);
+    return null;
+  }
 } 

@@ -1,18 +1,57 @@
 import { useState, useEffect } from 'react';
-import { ArrowRight, ArrowLeft, UserCircle, HelpCircle } from 'lucide-react';
+import { ArrowRight, ArrowLeft, UserCircle, HelpCircle, Check, Star } from 'lucide-react';
 import { ScreenProps } from '@/types/weekly-pulse';
 import { Card } from "@/components/ui/card";
+import { getPreviousWeekManager } from '@/app/actions';
 
-export default function ManagerScreen({ onNext, onBack, formData, setFormData }: ScreenProps) {
+export default function ManagerScreen({ onNext, onBack, formData, setFormData, userId, currentWeekNumber, currentYear }: ScreenProps & { userId?: string; currentWeekNumber?: number; currentYear?: number }) {
   const [shouldNavigate, setShouldNavigate] = useState(false);
   const [dontKnow, setDontKnow] = useState(false);
+  const [fetchedPreviousManager, setFetchedPreviousManager] = useState<string | null>(null);
+  const [isLoadingPreviousManager, setIsLoadingPreviousManager] = useState(true);
 
   useEffect(() => {
-    if (shouldNavigate) {
-      onNext();
-      setShouldNavigate(false);
+    if (userId && currentWeekNumber && currentYear) {
+      setIsLoadingPreviousManager(true);
+      getPreviousWeekManager(userId, currentWeekNumber, currentYear)
+        .then(manager => {
+          setFetchedPreviousManager(manager);
+        })
+        .catch(error => {
+          console.error("Failed to fetch previous week's manager:", error);
+          setFetchedPreviousManager(null);
+        })
+        .finally(() => {
+          setIsLoadingPreviousManager(false);
+        });
+    } else {
+      setIsLoadingPreviousManager(false);
     }
-  }, [shouldNavigate, onNext]);
+  }, [userId, currentWeekNumber, currentYear]);
+
+  useEffect(() => {
+    if (!isLoadingPreviousManager && !formData.manager && fetchedPreviousManager) {
+      setFormData({
+        ...formData,
+        manager: fetchedPreviousManager
+      });
+    }
+  }, [isLoadingPreviousManager, fetchedPreviousManager, formData.manager, setFormData, formData]);
+
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.shiftKey && event.key === 'Enter') {
+        event.preventDefault();
+        if (formData.manager && formData.manager !== '' && !isLoadingPreviousManager) {
+          onNext();
+        }
+      }
+    };
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [onNext, formData.manager, isLoadingPreviousManager]);
 
   const handleManagerChange = (manager: string) => {
     setFormData({
@@ -51,12 +90,25 @@ export default function ManagerScreen({ onNext, onBack, formData, setFormData }:
             </div>
             <input
               type="email"
-              placeholder="Enter manager&apos;s email..."
+              placeholder="Enter manager's email..."
               value={formData.manager}
               onChange={(e) => handleManagerChange(e.target.value)}
               className="w-full p-4 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white/50"
               disabled={dontKnow}
             />
+            {isLoadingPreviousManager && (
+              <div className="text-xs text-gray-400 mt-2">Loading suggestion...</div>
+            )}
+            {!isLoadingPreviousManager && fetchedPreviousManager && formData.manager === fetchedPreviousManager && (
+              <span className="ml-2 text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full flex items-center mt-2">
+                <Check size={12} className="mr-1" /> Last week's choice
+              </span>
+            )}
+            {!isLoadingPreviousManager && fetchedPreviousManager && formData.manager !== fetchedPreviousManager && formData.manager && (
+              <span className="ml-2 text-xs bg-yellow-400 text-yellow-800 px-2 py-0.5 rounded-full flex items-center mt-2">
+                <Star size={12} className="mr-1" /> Overridden suggestion
+              </span>
+            )}
           </div>
         </Card>
 
@@ -88,9 +140,12 @@ export default function ManagerScreen({ onNext, onBack, formData, setFormData }:
         </button>
         <button 
           onClick={onNext}
-          className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white px-6 py-3 rounded-full font-medium flex items-center gap-2 flex-1 justify-center transition-all duration-200 transform hover:-translate-y-0.5"
+          className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white px-6 py-3.5 rounded-xl font-semibold flex items-center justify-center gap-2 w-full transition-all duration-200 transform hover:-translate-y-0.5 disabled:opacity-60 disabled:cursor-not-allowed shadow-md hover:shadow-lg"
+          disabled={!formData.manager || isLoadingPreviousManager}
+          aria-label="Next step, or press Shift + Enter"
         >
-          Next <ArrowRight size={18} />
+          Next <ArrowRight size={20} />
+          <span className="hidden sm:inline text-xs opacity-80 ml-2 border border-white/30 px-1.5 py-0.5 rounded-md">Shift + Enter</span>
         </button>
       </div>
     </div>
