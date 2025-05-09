@@ -100,7 +100,7 @@ export default function ManagerScreen({ onNext, onBack, formData, setFormData, u
             )}
             {!isLoadingPreviousManager && fetchedPreviousManager && formData.manager === fetchedPreviousManager && (
               <span className="ml-2 text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full flex items-center mt-2">
-                <Check size={12} className="mr-1" /> Last week's choice
+                <Check size={12} className="mr-1" /> Last week&apos;s choice
               </span>
             )}
             {!isLoadingPreviousManager && fetchedPreviousManager && formData.manager !== fetchedPreviousManager && formData.manager && (
