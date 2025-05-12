@@ -14,7 +14,8 @@ export async function GET(req: NextRequest) {
   try {
     const token = await generateAutoLoginToken(email);
     return NextResponse.json({ token });
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message || 'Failed to generate token' }, { status: 500 });
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'Failed to generate token';
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 } 
