@@ -15,6 +15,7 @@ import {
   Settings,
   Users,
   ListTodo,
+  FolderKanban,
 } from 'lucide-react';
 
 const sidebarItems = [
@@ -37,6 +38,11 @@ const sidebarItems = [
     title: 'Users',
     href: '/admin/users',
     icon: Users,
+  },
+  {
+    title: 'Projects',
+    href: '/admin/projects',
+    icon: FolderKanban,
   },
   {
     title: 'Analytics',

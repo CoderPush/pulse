@@ -6,8 +6,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Checkbox } from '@/components/ui/checkbox';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { getWeekNumber } from '@/utils/date';
+import { getWeekNumber } from '@/lib/utils/date';
 import { useToast } from '@/components/ui/use-toast';
+import { Input } from '@/components/ui/input';
 
 interface MissingUser {
   id: string;
@@ -49,6 +50,7 @@ export default function MissingSubmissionsPage() {
   const [loading, setLoading] = useState(true);
   const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [emailSearch, setEmailSearch] = useState('');
   const [sendingStatus, setSendingStatus] = useState<SendingStatus>({
     inProgress: false,
     current: 0,
@@ -56,9 +58,13 @@ export default function MissingSubmissionsPage() {
     processingUsers: new Set()
   });
 
-  // Sort users with selected ones at the top
+  // Sort users with selected ones at the top and filter by email search
   const sortedUsers = useMemo(() => {
-    return [...missingUsers].sort((a, b) => {
+    const filteredUsers = missingUsers.filter(user => 
+      user.email.toLowerCase().includes(emailSearch.toLowerCase())
+    );
+    
+    return [...filteredUsers].sort((a, b) => {
       // First sort by selected status
       if (selectedUsers.includes(a.id) && !selectedUsers.includes(b.id)) return -1;
       if (!selectedUsers.includes(a.id) && selectedUsers.includes(b.id)) return 1;
@@ -75,7 +81,7 @@ export default function MissingSubmissionsPage() {
       // Finally sort by email alphabetically
       return a.email.localeCompare(b.email);
     });
-  }, [missingUsers, selectedUsers]);
+  }, [missingUsers, selectedUsers, emailSearch]);
 
   const fetchMissingSubmissions = useCallback(async () => {
     setLoading(true);
@@ -287,6 +293,12 @@ export default function MissingSubmissionsPage() {
         <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle>Missing Users</CardTitle>
           <div className="flex items-center gap-4">
+            <Input
+              placeholder="Search by email..."
+              value={emailSearch}
+              onChange={(e) => setEmailSearch(e.target.value)}
+              className="w-[250px]"
+            />
             <Button
               variant="default"
               onClick={handleBulkRemind}

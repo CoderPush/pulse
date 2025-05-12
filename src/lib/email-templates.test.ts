@@ -5,8 +5,7 @@ import {
   lateTemplate3,
   onTimeTemplate,
   getReminderSubject,
-  getReminderTemplate
-} from './email-templates';
+} from '../lib/email-templates';
 
 describe('Email Templates Utils (src/utils/email-templates.ts)', () => {
   describe('Template functions', () => {
@@ -64,37 +63,6 @@ describe('Email Templates Utils (src/utils/email-templates.ts)', () => {
       expect(subjects[1]).toBe('Pulse Check Overdue - Week 26, 2024');
       expect(subjects[2]).toBe('Second Reminder: Pulse Check Still Missing - Week 26, 2024');
       expect(subjects[3]).toBe('Final Notice: Missing Pulse Check - Week 26, 2024');
-    });
-  });
-
-  describe('getReminderTemplate', () => {
-    it('should render the reminder template with provided data', () => {
-      const data = { userName: 'Bob', weekNumber: 26, year: 2024 };
-      const output = getReminderTemplate('late-1', data);
-      expect(output).toContain('Bob');
-      expect(output).toContain('Week 26, 2024');
-    });
-
-    it('should handle null user name', () => {
-      const data = { userName: null, weekNumber: 26, year: 2024 };
-      const output = getReminderTemplate('late-1', data);
-      expect(output).toContain('Hi there');
-      expect(output).toContain('Week 26, 2024');
-    });
-
-    it('should generate different templates for different reminder types', () => {
-      const data = { userName: 'Charlie', weekNumber: 27, year: 2024 };
-      const types = ['on-time', 'late-1', 'late-2', 'late-3'] as const;
-      
-      const templates = types.map(type => getReminderTemplate(type, data));
-      
-      // Each template should be unique
-      expect(new Set(templates).size).toBe(types.length);
-      
-      // Each template should contain the week info
-      templates.forEach(template => {
-        expect(template).toContain('Week 27, 2024');
-      });
     });
   });
 }); 

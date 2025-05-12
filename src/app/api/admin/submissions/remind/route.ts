@@ -1,5 +1,5 @@
 import { createClient } from '@/utils/supabase/server';
-import { onTimeTemplate, lateTemplate1, lateTemplate2, lateTemplate3, getReminderSubject, ReminderType } from '@/utils/email-templates';
+import { onTimeTemplate, lateTemplate1, lateTemplate2, lateTemplate3, getReminderSubject, ReminderType } from '@/lib/email-templates';
 import { NextResponse } from 'next/server';
 import { sendEmail } from '@/lib/email';
 
