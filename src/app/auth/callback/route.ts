@@ -17,7 +17,8 @@ export async function GET(request: NextRequest) {
       const email = user?.email
 
       // Check if the email is from your company domain
-      if (!email || !email.endsWith('@coderpush.com')) {
+      const companyDomain = process.env.COMPANY_EMAIL_DOMAIN || '@coderpush.com';
+      if (!email || !email.endsWith(companyDomain)) {
         // Sign out the user
         await supabase.auth.signOut()
         // Redirect to an error page or login with a message

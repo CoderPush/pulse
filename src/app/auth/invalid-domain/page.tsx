@@ -4,6 +4,8 @@ import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { ShieldAlert } from "lucide-react";
 
+const companyDomain = process.env.COMPANY_EMAIL_DOMAIN || '@coderpush.com';
+
 export default function InvalidDomainPage() {
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-blue-50 via-violet-100 to-teal-100 p-0">
@@ -18,7 +20,7 @@ export default function InvalidDomainPage() {
               <ShieldAlert className="w-5 h-5 text-violet-500" /> Access Denied
             </AlertTitle>
             <div className="mt-2 text-blue-800 text-center">
-              You must sign in with your <span className="font-semibold text-indigo-600">@coderpush.com</span> email address.<br />
+              You must sign in with your <span className="font-semibold text-indigo-600">{companyDomain}</span> email address.<br />
             </div>
           </Alert>
           <Button asChild className="w-full bg-blue-600 hover:bg-blue-700 text-white text-lg font-semibold py-3 rounded-lg shadow-md transition">
