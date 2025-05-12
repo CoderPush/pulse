@@ -12,6 +12,18 @@ export async function GET(request: NextRequest) {
     const supabase = await createClient()
     const { error } = await supabase.auth.exchangeCodeForSession(code)
     if (!error) {
+      // Fetch the user
+      const { data: { user } } = await supabase.auth.getUser()
+      const email = user?.email
+
+      // Check if the email is from your company domain
+      if (!email || !email.endsWith('@coderpush.com')) {
+        // Sign out the user
+        await supabase.auth.signOut()
+        // Redirect to an error page or login with a message
+        return NextResponse.redirect(`${origin}/auth/invalid-domain`)
+      }
+
       const forwardedHost = request.headers.get('x-forwarded-host') // original origin before load balancer
       const isLocalEnv = process.env.NODE_ENV === 'development'
       if (isLocalEnv) {
