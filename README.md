@@ -25,15 +25,14 @@ The application provides a streamlined multi-step form interface for team member
 .
 ├── src/                      # Source code directory
 │   ├── app/                 # Next.js app router pages and API routes
-│   ├── components/          # React components including form screens and UI elements
-│   ├── db/                  # Database schema and connection setup
+│   ├── components/          # React components (unit tests co-located)
 │   ├── lib/                 # Utility functions for email and general helpers
+│   ├── test/                # Unit test setup files
 │   ├── types/              # TypeScript type definitions
 │   └── utils/              # Utility functions for dates, Supabase, and actions
+├── e2e/                     # End-to-end tests (Playwright)
 ├── supabase/                # Database migrations and configuration
 │   └── migrations/         # SQL migration files
-├── scripts/                 # Utility scripts for database operations
-│   └── generate-weeks.ts   # Script to generate weekly submission windows
 ├── docs/                    # Project documentation
 └── public/                 # Static assets
 ```
@@ -114,11 +113,11 @@ const formData = {
 
 ### Troubleshooting
 #### Common Issues
-1. Database Connection Issues
-   - Error: "DATABASE_URL is not defined"
-   - Solution: Ensure `.env` file contains valid DATABASE_URL
+1. Supabase Connection Issues
    - Check if Supabase is running locally (`pnpm supabase status`)
+   - Ensure `.env` file contains valid `SUPABASE_URL` and `SUPABASE_ANON_KEY`.
    - Try restarting Supabase (`pnpm supabase stop && pnpm supabase start`)
+   - Verify Supabase project status in the Supabase dashboard if using remote.
 
 2. Authentication Failures
    - Error: "Failed to sign in with Google"
@@ -127,13 +126,7 @@ const formData = {
    - Ensure environment variables are properly set
    - Clear browser cache and try again
 
-3. Missing Submissions
-   - Issue: Users can't see submission form
-   - Solution: Check if weeks are generated
-   - Run `pnpm db:generate-weeks`
-   - Verify user permissions in Supabase
-
-4. Development Environment
+3. Development Environment
    - Issue: Hot reload not working
    - Solution: Check for file watching limits
    - Restart development server
@@ -195,3 +188,49 @@ vercel --prod
 ```bash
 vercel
 ```
+
+## Testing
+
+This project uses Vitest for unit testing and Playwright for end-to-end (E2E) testing.
+
+### Unit Tests (Vitest)
+
+- **Run all unit tests:**
+  ```bash
+  pnpm test:run
+  ```
+- **Run unit tests in watch mode:**
+  ```bash
+  pnpm test
+  ```
+- **Run unit tests with UI:**
+  ```bash
+  pnpm test:ui
+  ```
+- **Generate coverage report:**
+  ```bash
+  pnpm test:coverage
+  ```
+
+### End-to-End Tests (Playwright)
+
+- **Run all E2E tests:**
+  ```bash
+  pnpm test:e2e
+  ```
+- **Run E2E tests with UI mode:**
+  ```bash
+  pnpm test:e2e:ui
+  ```
+- **Run E2E tests in debug mode:**
+  ```bash
+  pnpm test:e2e:debug
+  ```
+- **Run E2E tests specifically for Chromium:**
+  ```bash
+  pnpm test:e2e:chromium
+  ```
+- **Generate code for E2E tests:**
+  ```bash
+  pnpm test:e2e:codegen
+  ```
