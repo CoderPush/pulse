@@ -1,6 +1,6 @@
 # Automatic Reminder System with Vercel Cron Jobs
 
-This document describes how to implement an automatic reminder system for weekly pulse submissions using Vercel Cron Jobs and Supabase.
+This document describes how to implement an automatic reminder system for weekly pulse submissions using Vercel Cron Jobs
 
 ## Overview
 - Automatically send reminders to users who have not submitted their weekly pulse.
@@ -22,7 +22,7 @@ This document describes how to implement an automatic reminder system for weekly
 ### 2. Vercel Cron Configuration
 Add the following to your `vercel.json`:
 
-```json
+```json5
 {
   "crons": [
     {
@@ -52,8 +52,8 @@ CRON_SECRET=your-secure-random-string
 ```
 
 #### c. Security
-- The cron route is protected by a secret token
-- Only Vercel can trigger the cron jobs
+- Cron jobs are triggered by Vercel per schedule.
+	- The endpoint is secured with `CRON_SECRET` to prevent unauthorized execution.
 
 #### d. Testing
 - Test the cron route locally using `curl` or similar tools
