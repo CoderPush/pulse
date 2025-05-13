@@ -34,7 +34,7 @@ describe('/api/cron/reminders GET Handler', () => {
   const mockCreateClient = createClient as Mock;
   const mockGetMostRecentThursdayWeek = getMostRecentThursdayWeek as Mock;
   const OLD_ENV = process.env;
-  let GET: any;
+  let GET: (req: Request) => Promise<Response>;
 
   beforeAll(async () => {
     process.env.CRON_SECRET = 'test-secret';

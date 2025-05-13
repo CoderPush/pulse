@@ -14,12 +14,13 @@ export const setupSupabaseMocks = () => {
 
   // Helper to allow .eq().eq().single().order() chaining
   const makeEqChain = () => {
-    const chain: any = {};
-    chain.eq = vi.fn(() => chain);
-    chain.single = mockSingle;
-    chain.order = mockOrder;
-    chain.in = mockIn;
-    chain.gte = mockGte;
+    const chain = {
+      eq: vi.fn(() => chain),
+      single: mockSingle,
+      order: mockOrder,
+      in: mockIn,
+      gte: mockGte,
+    };
     return chain;
   };
 
