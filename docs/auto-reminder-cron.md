@@ -5,8 +5,9 @@ This document describes how to implement an automatic reminder system for weekly
 ## Overview
 - Automatically send reminders to users who have not submitted their weekly pulse.
 - Reminders are sent at:
-  - **Friday 5 PM** (form opens)
-  - **Monday 2 PM** (remind users who have not submitted)
+  - **Friday 5 PM UTC+7** (form opens)
+  - **Monday 2 PM UTC+7** (remind users who have not submitted)
+  - **Tuesday 5 PM UTC+7** (late reminder)
 - Uses Vercel Cron Jobs to trigger reminders.
 - Leverages existing reminder logic and templates.
 
@@ -27,11 +28,15 @@ Add the following to your `vercel.json`:
   "crons": [
     {
       "path": "/api/cron/reminders",
-      "schedule": "0 17 * * 5"  // Friday at 5 PM
+      "schedule": "0 10 * * 5"  // Friday at 5 PM UTC+7 (10:00 UTC)
     },
     {
       "path": "/api/cron/reminders",
-      "schedule": "0 14 * * 1"  // Monday at 2 PM
+      "schedule": "0 7 * * 1"   // Monday at 2 PM UTC+7 (07:00 UTC)
+    },
+    {
+      "path": "/api/cron/reminders",
+      "schedule": "0 10 * * 2"  // Tuesday at 5 PM UTC+7 (10:00 UTC)
     }
   ]
 }
