@@ -43,8 +43,13 @@ const createMockUser = (id: string): MockUser => ({
   name: `User ${id}`,
 });
 
-const createMockRequest = (body: ReminderRequest): Request => {
-  return { json: async () => body } as Request;
+const createMockRequest = (body: ReminderRequest, headers: Record<string, string> = {}): Request => {
+  return {
+    json: async () => body,
+    headers: {
+      get: (key: string) => headers[key],
+    },
+  } as unknown as Request;
 };
 
 // --- Test Suite ---
