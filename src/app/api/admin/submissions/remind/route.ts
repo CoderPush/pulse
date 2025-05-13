@@ -5,20 +5,31 @@ import { sendEmail } from '@/lib/email';
 
 export async function POST(request: Request) {
   const supabase = await createClient();
-  
-  const { data: { user: authUser }, error: authError } = await supabase.auth.getUser();
-  if (authError || !authUser) {
-    return new NextResponse('Unauthorized', { status: 401 });
-  }
 
-  const { data: dbUser } = await supabase
-    .from('users')
-    .select('id, is_admin')
-    .eq('id', authUser.id)
-    .single();
+  // Allow bypass for cron job if secret matches
+  const authHeader = request.headers.get('authorization');
+  const isCron = authHeader === `Bearer ${process.env.CRON_SECRET}`;
 
-  if (!dbUser?.is_admin) {
-    return new NextResponse('Unauthorized', { status: 401 });
+  let dbUser;
+  if (!isCron) {
+    const { data: { user: authUser }, error: authError } = await supabase.auth.getUser();
+    if (authError || !authUser) {
+      return new NextResponse('Unauthorized', { status: 401 });
+    }
+
+    const { data: foundUser } = await supabase
+      .from('users')
+      .select('id, is_admin')
+      .eq('id', authUser.id)
+      .single();
+
+    if (!foundUser?.is_admin) {
+      return new NextResponse('Unauthorized', { status: 401 });
+    }
+    dbUser = foundUser;
+  } else {
+    // For cron, use a fake admin user id (or null)
+    dbUser = { id: 'cron-job', is_admin: true };
   }
 
   const { userIds, week, year } = await request.json();
