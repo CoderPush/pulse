@@ -10,7 +10,7 @@ import {
 import { Badge } from "@/components/ui/badge"
 import { WeekFilter } from '@/components/WeekFilter'
 import { getMostRecentThursdayWeek } from '@/lib/utils/date'
-import { Calendar, AlertCircle, CalendarX } from 'lucide-react'
+import { Calendar, AlertCircle, CalendarX, Star, Book, User, Clock } from 'lucide-react'
 import StreakCard from './StreakCard'
 
 const getCurrentYear = () => new Date().getFullYear();
@@ -153,46 +153,59 @@ export default async function HistoryPage({
           <CardContent className="pt-6">
             {submission ? (
               <div className="space-y-6">
-                {/* Primary Project */}
-                <div className="bg-muted/50 rounded-lg p-4">
-                  <div className="flex items-center justify-between mb-4">
-                    <div>
-                      <h3 className="text-xl font-semibold">{submission.primary_project_name}</h3>
-                      <p className="text-muted-foreground">Primary Project</p>
-                    </div>
-                    <Badge variant="outline" className="text-lg px-4 py-1">
-                      {submission.primary_project_hours}h
-                    </Badge>
-                  </div>
-                  <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-4 text-sm text-muted-foreground">
-                    <div>
-                      <span className="font-medium">Submitted:</span> {new Date(submission.submitted_at).toLocaleString()}
-                    </div>
-                    <div>
-                      <span className="font-medium">Manager:</span> {submission.manager}
-                    </div>
-                    {submission.form_completion_time && (
-                      <div>
-                        <span className="font-medium">Time to complete:</span> {submission.form_completion_time} min
-                      </div>
-                    )}
+                {/* Primary Project Card with Accent Bar and Right-Aligned Badge */}
+                <div className="relative flex items-center bg-gradient-to-br from-sky-100 to-blue-100 rounded-2xl shadow-xl border-l-8 border-sky-400 p-6 mb-4 overflow-visible">
+                  <Star className="w-7 h-7 text-sky-400 mr-4" />
+                  <div className="flex-1 flex items-center justify-between">
+                    <h3 className="font-bold text-lg text-blue-900 mb-0">{submission.primary_project_name}</h3>
+                    <span className="bg-yellow-300 text-blue-900 rounded-full px-4 py-2 font-bold shadow ml-2">{submission.primary_project_hours}h</span>
                   </div>
                 </div>
 
                 {/* Additional Projects */}
                 {submission.additional_projects && submission.additional_projects.length > 0 && (
-                  <div>
-                    <h4 className="font-semibold text-sm mb-3 text-primary">Additional Projects</h4>
-                    <div className="grid gap-3">
+                  <div className="space-y-4">
+                    <h4 className="text-lg font-bold mb-2 flex items-center gap-2 text-amber-700 dark:text-amber-200">
+                      <Book className="w-5 h-5 text-amber-400 dark:text-amber-200" />
+                      Additional Projects
+                    </h4>
+                    <div className="grid gap-4">
                       {submission.additional_projects.map((proj: { name: string; hours: number }, idx: number) => (
-                        <div key={idx} className="flex items-center justify-between bg-muted/30 rounded-lg p-3">
-                          <span className="font-medium">{proj.name}</span>
-                          <Badge variant="outline">{proj.hours}h</Badge>
+                        <div
+                          key={idx}
+                          className="relative flex items-center bg-gradient-to-br from-amber-100 to-yellow-100 rounded-2xl shadow-xl border-l-8 border-amber-400 p-6 overflow-visible"
+                        >
+                          <Book className="w-6 h-6 text-amber-400 mr-4" />
+                          <div className="flex-1 flex items-center justify-between">
+                            <span className="font-bold text-amber-800 text-base mb-0">{proj.name}</span>
+                            <span className="bg-sky-200 text-amber-900 rounded-full px-4 py-2 font-bold shadow ml-2">{proj.hours}h</span>
+                          </div>
                         </div>
                       ))}
                     </div>
                   </div>
                 )}
+
+                {/* Submission Meta Info - Simple Layout */}
+                <div className="grid gap-2 mt-8">
+                  <div className="flex items-center gap-2 text-blue-700 dark:text-blue-200 text-sm">
+                    <Calendar className="w-4 h-4" />
+                    <span className="font-semibold">Submitted:</span>
+                    <span>{new Date(submission.submitted_at).toLocaleString(undefined, { timeZoneName: 'short' })}</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-blue-700 dark:text-blue-200 text-sm">
+                    <User className="w-4 h-4" />
+                    <span className="font-semibold">Manager:</span>
+                    <span>{submission.manager}</span>
+                  </div>
+                  {submission.form_completion_time && (
+                    <div className="flex items-center gap-2 text-blue-700 dark:text-blue-200 text-sm">
+                      <Clock className="w-4 h-4" />
+                      <span className="font-semibold">Time to complete:</span>
+                      <span>{submission.form_completion_time} min</span>
+                    </div>
+                  )}
+                </div>
 
                 {/* Feedback and Notes */}
                 <div className="grid gap-4 md:grid-cols-2">
