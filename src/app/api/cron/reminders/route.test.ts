@@ -66,12 +66,26 @@ describe('/api/cron/reminders GET Handler', () => {
     mocks.mockEq.mockResolvedValueOnce({ data: [{ user_id: '1' }], error: null });
     global.fetch = vi.fn().mockResolvedValue({
       headers: { get: () => 'application/json' },
-      json: async () => ({ results: [{ userId: '2', success: true }] })
+      json: async () => ({ results: [{ userId: '2', success: true }] }),
+      status: 200
     });
     const req = createMockRequest({ authorization: 'Bearer test-secret' });
     const res = await GET(req);
     const json = await res.json();
-    expect(json).toEqual({ results: [{ userId: '2', success: true }] });
+    expect(json).toEqual({
+      results: [
+        {
+          userId: '1',
+          response: { results: [{ userId: '2', success: true }] },
+          status: 200
+        },
+        {
+          userId: '2',
+          response: { results: [{ userId: '2', success: true }] },
+          status: 200
+        }
+      ]
+    });
     expect(global.fetch).toHaveBeenCalledWith(
       'http://localhost:3000/api/admin/submissions/remind',
       expect.objectContaining({ method: 'POST' })
@@ -100,7 +114,20 @@ describe('/api/cron/reminders GET Handler', () => {
     const req = createMockRequest({ authorization: 'Bearer test-secret' });
     const res = await GET(req);
     const json = await res.json();
-    expect(json).toEqual({ error: 'Downstream error', status: 500 });
+    expect(json).toEqual({
+      results: [
+        {
+          userId: '1',
+          response: { error: 'Downstream error', status: 500 },
+          status: 500
+        },
+        {
+          userId: '2',
+          response: { error: 'Downstream error', status: 500 },
+          status: 500
+        }
+      ]
+    });
     expect(res.status).toBe(500);
   });
 }); 

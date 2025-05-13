@@ -39,28 +39,36 @@ export async function GET(request: Request) {
     return NextResponse.json({ message: 'No users need reminders' });
   }
 
-  // 4. Call the existing reminder API
-  const remindRes = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/admin/submissions/remind`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${process.env.CRON_SECRET}`
-    },
-    body: JSON.stringify({
-      userIds: usersToRemind.map(u => u.id),
-      week,
-      year
-    })
-  });
+  // 4. Call the existing reminder API for each user with a delay to avoid rate limits
+  const results = [];
+  let hasSuccess = false;
+  for (const user of usersToRemind) {
+    const remindRes = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/admin/submissions/remind`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${process.env.CRON_SECRET}`
+      },
+      body: JSON.stringify({
+        userIds: [user.id],
+        week,
+        year
+      })
+    });
 
-  // Handle non-JSON error responses
-  let remindJson;
-  const contentType = remindRes.headers.get('content-type') || '';
-  if (contentType.includes('application/json')) {
-    remindJson = await remindRes.json();
-  } else {
-    const text = await remindRes.text();
-    return NextResponse.json({ error: text, status: remindRes.status }, { status: remindRes.status });
+    let remindJson;
+    const contentType = remindRes.headers.get('content-type') || '';
+    if (contentType.includes('application/json')) {
+      remindJson = await remindRes.json();
+    } else {
+      const text = await remindRes.text();
+      remindJson = { error: text, status: remindRes.status };
+    }
+    if (remindRes.status === 200) {
+      hasSuccess = true;
+    }
+    results.push({ userId: user.id, response: remindJson, status: remindRes.status });
+    await new Promise(resolve => setTimeout(resolve, 500)); // 500ms delay
   }
-  return NextResponse.json(remindJson);
+  return NextResponse.json({ results }, { status: hasSuccess ? 200 : 500 });
 } 
