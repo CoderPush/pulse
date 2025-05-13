@@ -6,7 +6,7 @@ export async function GET(request: Request) {
   // Authenticate using CRON_SECRET
   const authHeader = request.headers.get('authorization');
   if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
-    return new NextResponse('Unauthorized', { status: 401 });
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
   const supabase = await createClient();

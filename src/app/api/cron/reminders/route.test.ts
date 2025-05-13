@@ -55,10 +55,10 @@ describe('/api/cron/reminders GET Handler', () => {
     const reqWrongAuth = createMockRequest({ authorization: 'Bearer wrong' });
     let res = await GET(reqNoAuth);
     expect(res.status).toBe(401);
-    expect(await res.text()).toBe('Unauthorized');
+    expect(await res.json()).toEqual({ error: 'Unauthorized' });
     res = await GET(reqWrongAuth);
     expect(res.status).toBe(401);
-    expect(await res.text()).toBe('Unauthorized');
+    expect(await res.json()).toEqual({ error: 'Unauthorized' });
   });
 
   it('should call downstream API and return its result if users need reminders', async () => {
@@ -129,5 +129,33 @@ describe('/api/cron/reminders GET Handler', () => {
       ]
     });
     expect(res.status).toBe(500);
+  });
+
+  it('should identify all users as needing reminders when there are no submissions', async () => {
+    // Mock two users
+    mocks.mockSelect.mockResolvedValueOnce({ data: [createMockUser('1'), createMockUser('2')], error: null });
+    // Mock empty submissions array
+    mocks.mockEq.mockResolvedValueOnce({ data: [], error: null });
+    
+    // Mock successful reminder API response
+    global.fetch = vi.fn().mockResolvedValue({
+      headers: { get: () => 'application/json' },
+      json: async () => ({ results: [{ userId: '1', success: true }] }),
+      status: 200
+    });
+
+    const req = createMockRequest({ authorization: 'Bearer test-secret' });
+    const res = await GET(req);
+    const json = await res.json();
+
+    // Verify both users were sent reminders
+    expect(json.results).toHaveLength(2);
+    expect(json.results[0].userId).toBe('1');
+    expect(json.results[1].userId).toBe('2');
+    
+    // Verify the reminder API was called twice (once for each user)
+    expect(global.fetch).toHaveBeenCalledTimes(2);
+    // Verify the response status is 200
+    expect(res.status).toBe(200);
   });
 }); 
