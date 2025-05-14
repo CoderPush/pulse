@@ -29,7 +29,11 @@ export default function ManagerScreen({ onNext, onBack, formData, setFormData, u
   }, [userId, currentWeekNumber, currentYear]);
 
   useEffect(() => {
-    if (!isLoadingPreviousManager && !formData.manager && fetchedPreviousManager) {
+    if (
+      !isLoadingPreviousManager &&
+      (formData.manager === undefined || formData.manager === null) &&
+      fetchedPreviousManager
+    ) {
       setFormData({
         ...formData,
         manager: fetchedPreviousManager
