@@ -1,7 +1,11 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/utils/supabase/server';
 
-export async function PUT(request: Request, { params }: { params: { id: string } }) {
+export async function PUT(
+  request: Request,
+  { params }: { params: Promise<{ id: string }> }
+): Promise<Response> {
+  const { id } = await params;
   try {
     const supabase = await createClient();
     // Auth: Only allow admins
@@ -14,7 +18,6 @@ export async function PUT(request: Request, { params }: { params: { id: string }
       .single();
     if (!adminCheck?.is_admin) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
 
-    const id = params.id;
     const updates = await request.json();
     // Fetch the latest version for this question's parent_id
     const { data: current } = await supabase
