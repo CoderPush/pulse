@@ -56,4 +56,18 @@ export interface ScreenProps {
   userId?: string;
   currentWeekNumber?: number;
   currentYear?: number;
+}
+
+export interface Question {
+  id: string;
+  parent_id?: string;
+  version: number;
+  title: string;
+  description: string;
+  type: string;
+  required: boolean;
+  category: string;
+  created_at?: string;
+  updated_at?: string;
+  display_order?: number;
 } 

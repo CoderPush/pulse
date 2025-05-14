@@ -1,11 +1,11 @@
 import { ArrowRight, ArrowLeft, TrendingUp, Briefcase } from 'lucide-react';
-import { ScreenProps } from '@/types/weekly-pulse';
+import { ScreenProps, Question } from '@/types/weekly-pulse';
 import { Slider } from "@/components/ui/slider";
 import { Card } from "@/components/ui/card";
 import { motion } from "framer-motion";
 import { useEffect } from 'react';
 
-export default function HoursWorkedScreen({ onNext, onBack, formData, setFormData }: ScreenProps) {
+export default function HoursWorkedScreen({ onNext, onBack, formData, setFormData, question }: ScreenProps & { question?: Question }) {
   const handleHoursChange = (hours: number[]) => {
     setFormData({
       ...formData,
@@ -39,7 +39,12 @@ export default function HoursWorkedScreen({ onNext, onBack, formData, setFormDat
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
         >
-           <h2 className="text-2xl font-bold mb-3">How many hours did you work this week? <span className="text-red-500 ml-1">*</span></h2>
+           <h2 className="text-2xl font-bold mb-3">
+             {question?.title || "How many hours did you work this week?"} {question?.required && <span className="text-red-500 ml-1">*</span>}
+           </h2>
+           {question?.description && (
+             <p className="text-gray-600 mb-6">{question.description}</p>
+           )}
         </motion.div>
         
         <div className="flex flex-col gap-8 mb-6">

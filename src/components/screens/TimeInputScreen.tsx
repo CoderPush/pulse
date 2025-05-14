@@ -1,12 +1,13 @@
 import { ArrowRight, ArrowLeft } from 'lucide-react';
-import { ScreenProps } from '@/types/weekly-pulse';
+import { ScreenProps, Question } from '@/types/weekly-pulse';
 
 export default function TimeInputScreen({
   onNext,
   onBack,
   formData,
-  setFormData
-}: ScreenProps) {
+  setFormData,
+  question
+}: ScreenProps & { question?: Question }) {
   const handleTimeChange = (minutes: number) => {
     setFormData({
       ...formData,
@@ -26,8 +27,13 @@ export default function TimeInputScreen({
   return (
     <div className="flex flex-col h-full px-6">
       <div className="flex-1">
-        <h2 className="text-2xl font-bold mb-4">How long did it take you to fill this out?</h2>
-        <p className="text-gray-600 mb-6">Quick estimate. Round it. Don&lsquo;t overthink it.</p>
+        <h2 className="text-2xl font-bold mb-4">
+          {question?.title || "How long did it take you to fill this out?"}
+          {question?.required && <span className="text-red-500 ml-1">*</span>}
+        </h2>
+        {question?.description && (
+          <p className="text-gray-600 mb-6">{question.description}</p>
+        )}
         
         <div className="relative mb-6">
           <input

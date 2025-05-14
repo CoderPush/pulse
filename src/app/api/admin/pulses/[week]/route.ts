@@ -1,86 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/utils/supabase/server';
 
-// These are the default questions that we'll version over time
-const DEFAULT_QUESTIONS = [
-  {
-    id: 'primary-project',
-    title: 'What project did you spend most time on?',
-    description: 'Select your primary project for this week',
-    type: 'text',
-    required: true,
-    version: 1,
-    category: 'project'
-  },
-  {
-    id: 'primary-hours',
-    title: 'How many hours did you work on it?',
-    description: 'Enter the number of hours spent on your primary project',
-    type: 'number',
-    required: true,
-    version: 1,
-    category: 'hours'
-  },
-  {
-    id: 'manager',
-    title: "Who's your manager right now?",
-    description: 'Select your current manager',
-    type: 'text',
-    required: true,
-    version: 1,
-    category: 'manager'
-  },
-  {
-    id: 'additional-projects',
-    title: 'Did you work on any other projects?',
-    description: 'Add any additional projects and hours',
-    type: 'text',
-    required: false,
-    version: 1,
-    category: 'project'
-  },
-  {
-    id: 'changes-next-week',
-    title: 'Any changes next week?',
-    description: 'Mention further milestones/deadlines if applicable',
-    type: 'textarea',
-    required: false,
-    version: 1,
-    category: 'feedback'
-  },
-  {
-    id: 'other-feedback',
-    title: 'Anything else to share?',
-    description: 'Wanting more/fewer challenges? Using more/less AI?',
-    type: 'textarea',
-    required: false,
-    version: 1,
-    category: 'feedback'
-  },
-  {
-    id: 'hours-impact',
-    title: 'How has reporting the hours each week affected you?',
-    description: 'Share your experience with weekly hour reporting',
-    type: 'textarea',
-    required: true,
-    version: 1,
-    category: 'impact'
-  }
-];
-
-// Week 18 specific questions (example of versioning)
-const WEEK_18_QUESTIONS = DEFAULT_QUESTIONS.map(q => {
-  if (q.id === 'hours-impact') {
-    return {
-      ...q,
-      title: 'How do you feel about the current hour reporting process?',
-      description: 'Has it helped with time management? Any suggestions for improvement?',
-      version: 2
-    };
-  }
-  return q;
-});
-
 export async function GET(
   request: Request,
   context: { params: Promise<{ week: string }> }
@@ -132,8 +52,21 @@ export async function GET(
       .select('*', { count: 'exact', head: true })
       .eq('is_admin', false);
 
-    // Determine which question set to use based on week number
-    const questions = weekNumber === 18 ? WEEK_18_QUESTIONS : DEFAULT_QUESTIONS;
+    // Fetch all questions
+    const { data: allQuestions, error: questionsError } = await supabase
+      .from('questions')
+      .select('*');
+    if (questionsError) throw questionsError;
+
+    // Group by parent_id and select the highest version for each
+    const latestQuestionsMap = new Map();
+    for (const q of allQuestions) {
+      const existing = latestQuestionsMap.get(q.parent_id);
+      if (!existing || q.version > existing.version) {
+        latestQuestionsMap.set(q.parent_id, q);
+      }
+    }
+    const questions = Array.from(latestQuestionsMap.values());
 
     return NextResponse.json({
       ...weekData,

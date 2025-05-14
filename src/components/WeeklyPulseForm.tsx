@@ -1,7 +1,7 @@
 'use client';
 
-import { useState } from 'react';
-import { WeeklyPulseFormData } from '@/types/weekly-pulse';
+import { useState, useEffect } from 'react';
+import { WeeklyPulseFormData, Question } from '@/types/weekly-pulse';
 import { User } from '@supabase/supabase-js';
 import WelcomeScreen from './screens/WelcomeScreen';
 import ProjectSelectionScreen from './screens/ProjectSelectionScreen';
@@ -47,8 +47,27 @@ export default function WeeklyPulseForm({
     hoursReportingImpact: '',
     formCompletionTime: 0
   });
+  const [questions, setQuestions] = useState<Question[] | null>(null);
+  const [loadingQuestions, setLoadingQuestions] = useState(true);
   
-  const totalScreens = 11;
+  const totalScreens = 1 + (questions?.length || 0) + 2;
+  
+  useEffect(() => {
+    async function fetchQuestions() {
+      setLoadingQuestions(true);
+      try {
+        const res = await fetch('/api/questions');
+        const data = await res.json();
+        console.log(data);
+        setQuestions(data.questions || []);
+      } catch {
+        setQuestions([]);
+      } finally {
+        setLoadingQuestions(false);
+      }
+    }
+    fetchQuestions();
+  }, []);
   
   const handleNext = () => {
     setError(null); // Clear any previous errors
@@ -79,29 +98,31 @@ export default function WeeklyPulseForm({
   };
 
   const validateCurrentScreen = (): string | null => {
-    switch(currentScreen) {
-      case 1: // Project Selection
-        if (!formData.primaryProject.name.trim()) {
-          return "Please enter a project name";
-        }
-        break;
-      case 2: // Hours Worked
-        if (formData.primaryProject.hours <= 0) {
-          return "Please enter valid hours worked";
-        }
-        break;
-      case 3: // Manager
-        if (!formData.manager.trim()) {
-          return "Please enter your manager's name";
-        }
-        break;
-      case 7: // Hours Reporting Impact
-        if (!formData.hoursReportingImpact.trim()) {
-          return "Please share your experience with hour reporting";
-        }
-        break;
-      default:
-        return null;
+    function isWeeklyPulseFormDataKey(key: string): key is keyof WeeklyPulseFormData {
+      return key in formData;
+    }
+    // Welcome screen and review/success screens don't need validation
+    if (currentScreen === 0 || currentScreen === totalScreens - 2 || currentScreen === totalScreens - 1) return null;
+    // Dynamic question screens
+    const questionIndex = currentScreen - 1;
+    const question = questions?.[questionIndex];
+    if (!question) return null;
+    // Map question field to formData
+    const field = question.category || question.title || question.id;
+    let value: unknown;
+    if (field === 'primaryProjectHours') {
+      value = formData.primaryProject.hours;
+    } else if (field === 'primaryProject') {
+      value = formData.primaryProject.name;
+    } else if (isWeeklyPulseFormDataKey(field)) {
+      value = formData[field as keyof WeeklyPulseFormData];
+    } else {
+      value = undefined;
+    }
+    if (question.required && (
+      value === undefined || value === null || (typeof value === 'string' && !value.trim())
+    )) {
+      return 'This field is required.';
     }
     return null;
   };
@@ -117,66 +138,61 @@ export default function WeeklyPulseForm({
       userId: user.id,
       currentWeekNumber: weekNumber,
       currentYear: currentYear,
+      questions,
     };
-
-    switch(currentScreen) {
-      case 0:
-        return <WelcomeScreen user={user} onNext={handleNext} weekNumber={weekNumber} />;
-      case 1:
+    if (currentScreen === 0) {
+      return <WelcomeScreen user={user} onNext={handleNext} weekNumber={weekNumber} />;
+    }
+    // Dynamic question screens
+    if (questions && currentScreen > 0 && currentScreen <= questions.length) {
+      const question = questions[currentScreen - 1];
+      if (question.category === 'primaryProject') {
+        return <ProjectSelectionScreen {...screenCommonProps} question={question} />;
+      }
+      if (question.category === 'primaryProjectHours') {
+        return <HoursWorkedScreen {...screenCommonProps} question={question} />;
+      }
+      if (question.category === 'manager') {
+        return <ManagerScreen {...screenCommonProps} question={question} />;
+      }
+      if (question.category === 'additionalProjects') {
+        return <AdditionalProjectsScreen {...screenCommonProps} projects={projects} question={question} />;
+      }
+      if (question.category === 'formCompletionTime') {
+        return <TimeInputScreen {...screenCommonProps} question={question} />;
+      }
+      if (question.category && (question.category in formData)) {
         return (
-          <ProjectSelectionScreen
-            onNext={screenCommonProps.onNext}
-            onBack={screenCommonProps.onBack}
-            formData={screenCommonProps.formData}
-            setFormData={screenCommonProps.setFormData}
-            error={screenCommonProps.error}
-            projects={screenCommonProps.projects}
-            userId={user.id}
-            currentWeekNumber={weekNumber}
-            currentYear={currentYear}
+          <TextInputScreen
+            {...screenCommonProps}
+            title={question.title}
+            description={question.description}
+            placeholder={question.description || question.title}
+            fieldName={question.category as keyof WeeklyPulseFormData}
+            optional={!question.required}
+            maxLength={500}
           />
         );
-      case 2:
-        return <HoursWorkedScreen {...screenCommonProps} />;
-      case 3:
-        return <ManagerScreen {...screenCommonProps} />;
-      case 4:
-        return <AdditionalProjectsScreen {...screenCommonProps} projects={projects} />;
-      case 5:
-        return <TextInputScreen
-          {...screenCommonProps}
-          title="Any changes next week?"
-          description="Mention further milestones/deadlines if applicable."
-          placeholder="Describe any upcoming changes in your work..."
-          fieldName="changesNextWeek"
-          optional={true}
-        />;
-      case 6:
-        return <TextInputScreen
-          {...screenCommonProps}
-          title="Anything else to share?"
-          description="Wanting more/fewer challenges? Using more/less AI?"
-          placeholder="Share any additional thoughts..."
-          fieldName="otherFeedback"
-          optional={true}
-        />;
-      case 7:
-        return <TextInputScreen
-          {...screenCommonProps}
-          title="How has reporting the hours each week affected you?"
-          placeholder="Share your experience with weekly hour reporting..."
-          fieldName="hoursReportingImpact"
-        />;
-      case 8:
-        return <TimeInputScreen {...screenCommonProps} />;
-      case 9:
-        return <ReviewScreen {...screenCommonProps} />;
-      case 10:
-        return <SuccessScreen />;
-      default:
-        return null;
+      }
+      // Optionally, render null or a fallback if the category is not a valid field
+      return null;
     }
+    if (currentScreen === totalScreens - 2) {
+      return <ReviewScreen {...screenCommonProps} questions={questions || []} />;
+    }
+    if (currentScreen === totalScreens - 1) {
+      return <SuccessScreen />;
+    }
+    return null;
   };
+  
+  if (loadingQuestions) {
+    return (
+      <div className="flex justify-center items-center w-full h-full min-h-screen py-8">
+        <div className="text-lg text-gray-600">Loading questions...</div>
+      </div>
+    );
+  }
   
   if (hasSubmittedThisWeek) {
     return (

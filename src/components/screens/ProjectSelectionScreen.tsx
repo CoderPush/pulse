@@ -1,12 +1,12 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { ArrowRight, Plus, Check, Search, Star } from 'lucide-react';
-import { ScreenProps } from '@/types/weekly-pulse';
+import { ScreenProps, Question } from '@/types/weekly-pulse';
 import { motion, AnimatePresence } from "framer-motion";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { getPreviousWeekPrimaryProject } from '@/app/actions';
 
-export default function ProjectSelectionScreen({ onNext, formData, setFormData, projects = [], userId, currentWeekNumber, currentYear }: ScreenProps & { userId?: string; currentWeekNumber?: number; currentYear?: number }) {
+export default function ProjectSelectionScreen({ onNext, formData, setFormData, projects = [], userId, currentWeekNumber, currentYear, question }: ScreenProps & { userId?: string; currentWeekNumber?: number; currentYear?: number; question?: Question }) {
   const [showOtherInput, setShowOtherInput] = useState(false);
   const [otherProject, setOtherProject] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
@@ -148,10 +148,12 @@ export default function ProjectSelectionScreen({ onNext, formData, setFormData, 
         className="mb-6"
       >
         <h2 className="text-2xl sm:text-3xl font-bold text-gray-800">
-          What project did you spend most of your time on? 
-          <span className="text-red-500 ml-1">*</span>
+          {question?.title || "What project did you spend most of your time on?"}
+          {question?.required && <span className="text-red-500 ml-1">*</span>}
         </h2>
-        <p className="text-sm text-gray-500 mt-1">Step 1 of 9</p>
+        {question?.description && (
+          <p className="text-sm text-gray-500 mt-1">{question.description}</p>
+        )}
       </motion.div>
 
       <motion.div 

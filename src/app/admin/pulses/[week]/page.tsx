@@ -1,22 +1,13 @@
 'use client';
 
-import { use, useState, useEffect, useCallback } from 'react';
+import { use, useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, FileText } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import PulseResponses from '@/components/admin/PulseResponses';
-
-interface Question {
-  id: string;
-  title: string;
-  description: string;
-  type: string;
-  required: boolean;
-  version: number;
-  category: 'project' | 'hours' | 'manager' | 'feedback' | 'impact';
-}
+import { Question } from '@/types/weekly-pulse';
 
 interface WeekData {
   year: number;
@@ -38,6 +29,11 @@ export default function PulsePreviewPage({ params }: { params: Promise<{ week: s
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [tab, setTab] = useState<'preview' | 'responses'>('preview');
+  const [editingQuestion, setEditingQuestion] = useState<Question | null>(null);
+  const [editForm, setEditForm] = useState<Partial<Question> | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const modalRef = useRef<HTMLDialogElement>(null);
 
   useEffect(() => {
     const fetchWeekData = async () => {
@@ -109,6 +105,52 @@ export default function PulsePreviewPage({ params }: { params: Promise<{ week: s
         );
     }
   }, []);
+
+  const openEditModal = (question: Question) => {
+    setEditingQuestion(question);
+    setEditForm({ ...question });
+    setSaveError(null);
+    setTimeout(() => modalRef.current?.showModal(), 0);
+  };
+  const closeEditModal = () => {
+    setEditingQuestion(null);
+    setEditForm(null);
+    setSaveError(null);
+    modalRef.current?.close();
+  };
+  const handleEditChange = <K extends keyof Question>(field: K, value: Question[K]) => {
+    setEditForm((prev) => prev ? { ...prev, [field]: value } : null);
+  };
+  const handleEditSave = async () => {
+    if (!editingQuestion) return;
+    setSaving(true);
+    setSaveError(null);
+    try {
+      const res = await fetch(`/api/questions/${editingQuestion.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(editForm),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to save');
+      // Update the question in weekData
+      setWeekData((prev) =>
+        prev
+          ? {
+              ...prev,
+              questions: prev.questions.map((q) =>
+                q.id === editingQuestion.id ? data.question : q
+              ),
+            }
+          : prev
+      );
+      closeEditModal();
+    } catch (err: unknown) {
+      setSaveError(err instanceof Error ? err.message : 'Failed to save');
+    } finally {
+      setSaving(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -182,15 +224,25 @@ export default function PulsePreviewPage({ params }: { params: Promise<{ week: s
               <TabsTrigger value="responses">View Responses</TabsTrigger>
             </TabsList>
             <TabsContent value="preview">
-              <Tabs defaultValue="project" className="space-y-4">
+              <Tabs defaultValue="primaryProject" className="space-y-4">
                 <TabsList>
-                  <TabsTrigger value="project">Project</TabsTrigger>
-                  <TabsTrigger value="hours">Hours</TabsTrigger>
+                  <TabsTrigger value="primaryProject">Project</TabsTrigger>
+                  <TabsTrigger value="primaryProjectHours">Hours</TabsTrigger>
                   <TabsTrigger value="manager">Manager</TabsTrigger>
-                  <TabsTrigger value="feedback">Feedback</TabsTrigger>
-                  <TabsTrigger value="impact">Impact</TabsTrigger>
+                  <TabsTrigger value="additionalProjects">Additional Projects</TabsTrigger>
+                  <TabsTrigger value="changesNextWeek">Changes Next Week</TabsTrigger>
+                  <TabsTrigger value="otherFeedback">Other Feedback</TabsTrigger>
+                  <TabsTrigger value="hoursReportingImpact">Hours Reporting Impact</TabsTrigger>
                 </TabsList>
-                {(['project', 'hours', 'manager', 'feedback', 'impact'] as Question['category'][]).map((category) => (
+                {([
+                  'primaryProject',
+                  'primaryProjectHours',
+                  'manager',
+                  'additionalProjects',
+                  'changesNextWeek',
+                  'otherFeedback',
+                  'hoursReportingImpact',
+                ] as Question['category'][]).map((category) => (
                   <TabsContent key={category} value={category}>
                     <div className="grid gap-6">
                       {weekData.questions
@@ -202,7 +254,15 @@ export default function PulsePreviewPage({ params }: { params: Promise<{ week: s
                                 <h3 className="text-lg font-semibold">{question.title}</h3>
                                 <p className="text-sm text-gray-500">{question.description}</p>
                               </div>
-                              <Badge>{question.type}</Badge>
+                              <div className="flex flex-col items-end gap-2">
+                                <Badge>{question.type}</Badge>
+                                <button
+                                  className="text-xs text-blue-600 underline"
+                                  onClick={() => openEditModal(question)}
+                                >
+                                  Edit
+                                </button>
+                              </div>
                             </div>
                             {renderQuestionPreview(question)}
                             <div className="flex items-center gap-2 text-sm text-gray-500">
@@ -223,6 +283,77 @@ export default function PulsePreviewPage({ params }: { params: Promise<{ week: s
           </Tabs>
         </div>
       </div>
+
+      {/* Edit Modal */}
+      <dialog ref={modalRef} className="rounded-lg p-0 w-full max-w-md">
+        {editingQuestion && editForm && (
+          <form
+            method="dialog"
+            className="flex flex-col gap-4 p-6"
+            onSubmit={e => { e.preventDefault(); handleEditSave(); }}
+          >
+            <h2 className="text-lg font-bold mb-2">Edit Question</h2>
+            <label>
+              Title
+              <input
+                className="w-full border rounded p-2"
+                value={editForm.title}
+                onChange={e => handleEditChange('title', e.target.value)}
+              />
+            </label>
+            <label>
+              Description
+              <textarea
+                className="w-full border rounded p-2"
+                value={editForm.description}
+                onChange={e => handleEditChange('description', e.target.value)}
+              />
+            </label>
+            <label>
+              Type
+              <select
+                className="w-full border rounded p-2"
+                value={editForm.type}
+                onChange={e => handleEditChange('type', e.target.value)}
+              >
+                <option value="text">Text</option>
+                <option value="number">Number</option>
+                <option value="textarea">Textarea</option>
+              </select>
+            </label>
+            <label>
+              Category
+              <input
+                className="w-full border rounded p-2"
+                value={editForm.category}
+                onChange={e => handleEditChange('category', e.target.value)}
+              />
+            </label>
+            <label>
+              Required
+              <input
+                type="checkbox"
+                checked={editForm.required}
+                onChange={e => handleEditChange('required', e.target.checked)}
+              />
+            </label>
+            <label>
+              Display Order
+              <input
+                type="number"
+                className="w-full border rounded p-2"
+                value={editForm.display_order ?? ''}
+                onChange={e => handleEditChange('display_order', Number(e.target.value))}
+              />
+            </label>
+            {saveError && <div className="text-red-600 text-sm">{saveError}</div>}
+            <div className="flex gap-2 mt-2">
+              <button type="button" className="px-4 py-2 rounded bg-gray-200" onClick={closeEditModal} disabled={saving}>Cancel</button>
+              <button type="submit" className="px-4 py-2 rounded bg-blue-600 text-white" disabled={saving}>{saving ? 'Saving...' : 'Save'}</button>
+            </div>
+          </form>
+        )}
+      </dialog>
     </div>
   );
 } 

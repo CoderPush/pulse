@@ -29,7 +29,7 @@ export default function TextInputScreen({
     });
   };
 
-  const currentValue = formData[fieldName] as string;
+  const currentValue = (formData[fieldName] ?? '') as string;
   const remainingChars = maxLength - currentValue.length;
 
   return (
