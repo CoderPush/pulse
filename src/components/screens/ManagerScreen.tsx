@@ -8,6 +8,7 @@ export default function ManagerScreen({ onNext, onBack, formData, setFormData, u
   const [dontKnow, setDontKnow] = useState(false);
   const [fetchedPreviousManager, setFetchedPreviousManager] = useState<string | null>(null);
   const [isLoadingPreviousManager, setIsLoadingPreviousManager] = useState(true);
+  const [hasInteracted, setHasInteracted] = useState(false);
 
   useEffect(() => {
     if (userId && currentWeekNumber && currentYear) {
@@ -31,7 +32,7 @@ export default function ManagerScreen({ onNext, onBack, formData, setFormData, u
   useEffect(() => {
     if (
       !isLoadingPreviousManager &&
-      (formData.manager === undefined || formData.manager === null) &&
+      !hasInteracted &&
       fetchedPreviousManager
     ) {
       setFormData({
@@ -39,7 +40,7 @@ export default function ManagerScreen({ onNext, onBack, formData, setFormData, u
         manager: fetchedPreviousManager
       });
     }
-  }, [isLoadingPreviousManager, fetchedPreviousManager, formData.manager, setFormData, formData]);
+  }, [isLoadingPreviousManager, fetchedPreviousManager, hasInteracted, setFormData, formData]);
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -57,6 +58,7 @@ export default function ManagerScreen({ onNext, onBack, formData, setFormData, u
   }, [onNext, formData.manager, isLoadingPreviousManager]);
 
   const handleManagerChange = (manager: string) => {
+    setHasInteracted(true);
     setFormData({
       ...formData,
       manager
