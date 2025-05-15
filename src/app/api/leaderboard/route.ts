@@ -42,7 +42,7 @@ function maskEmail(email: string): string {
 }
 
 function getDisplayName(user: User): string {
-  if (user.name && user.name.trim() !== '') return user.name;
+  // if (user.name && user.name.trim() !== '') return user.name;
   return maskEmail(user.email);
 }
 
@@ -173,7 +173,28 @@ export async function GET(request: Request) {
     if (aLatest) return -1; // a submitted, b did not
     if (bLatest) return 1;  // b submitted, a did not
 
-    // Fallback: alphabetical
+    // Fallback: sort by previous week's submission time (with week 1 → 52 rollover)
+    let previousWeek = currentWeek - 1;
+    // let previousYear = currentYear;
+    if (previousWeek === 0) {
+      previousWeek = 52;
+      // previousYear = currentYear - 1;
+    }
+    const aPrev = submissions.find(
+      s => s.user_id === a.id && s.week_number === previousWeek /* && s.year === previousYear */
+    );
+    const bPrev = submissions.find(
+      s => s.user_id === b.id && s.week_number === previousWeek /* && s.year === previousYear */
+    );
+
+    if (aPrev && bPrev) {
+      // Earlier submission ranks higher
+      return new Date(aPrev.submitted_at).getTime() - new Date(bPrev.submitted_at).getTime();
+    }
+    if (aPrev) return -1; // a submitted last week, b did not
+    if (bPrev) return 1;  // b submitted last week, a did not
+
+    // Still fallback: alphabetical
     return a.name.localeCompare(b.name);
   });
 
