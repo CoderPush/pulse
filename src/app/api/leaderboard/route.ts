@@ -173,14 +173,18 @@ export async function GET(request: Request) {
     if (aLatest) return -1; // a submitted, b did not
     if (bLatest) return 1;  // b submitted, a did not
 
-    // Fallback: sort by previous week's submission time
-    // This keeps the leaderboard fresh and rewards recent activity if no one submitted this week
-    const previousWeek = currentWeek - 1;
+    // Fallback: sort by previous week's submission time (with week 1 → 52 rollover)
+    let previousWeek = currentWeek - 1;
+    let previousYear = currentYear;
+    if (previousWeek === 0) {
+      previousWeek = 52;
+      previousYear = currentYear - 1;
+    }
     const aPrev = submissions.find(
-      s => s.user_id === a.id && s.week_number === previousWeek
+      s => s.user_id === a.id && s.week_number === previousWeek /* && s.year === previousYear */
     );
     const bPrev = submissions.find(
-      s => s.user_id === b.id && s.week_number === previousWeek
+      s => s.user_id === b.id && s.week_number === previousWeek /* && s.year === previousYear */
     );
 
     if (aPrev && bPrev) {
