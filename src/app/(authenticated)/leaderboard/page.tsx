@@ -145,7 +145,11 @@ export default function LeaderboardPage() {
           </div>
         )}
         <section className="w-full max-w-xl bg-gradient-to-br from-blue-50 to-yellow-50 rounded-2xl shadow-2xl p-6 mx-auto">
-          {loading && <div className="text-blue-400 text-center py-4">Loading...</div>}
+          {loading && (
+            <div className="flex flex-col items-center justify-center py-4">
+              <span className="inline-block w-8 h-8 border-4 border-blue-300 border-t-blue-600 rounded-full animate-spin mb-2"></span>
+            </div>
+          )}
           {error && <div className="text-yellow-600 text-center py-2">{error}</div>}
           {tab === "fastest" && data.length === 0 ? (
             <motion.div
@@ -277,7 +281,12 @@ export default function LeaderboardPage() {
           </motion.div>
         )}
       </div>
-      <p className="mt-8 text-blue-400 text-sm text-center">* Avatars are generated and usernames are anonymized for privacy.</p>
+      {tab === "streaks" && (
+        <p className="mt-6 text-blue-500 text-xs text-center max-w-xl mx-auto">
+          <strong>Tip:</strong> If multiple users have the same streak, the leaderboard ranks them by who submitted earliest this week. If no one submitted this week, it uses last week&rsquo;s submission time. If there is still a tie, names are sorted alphabetically.
+        </p>
+      )}
+      <p className="mt-8 text-blue-400 text-sm text-center">* Avatars are generated and email addresses are anonymized for privacy.</p>
     </>
   );
 } 
