@@ -26,7 +26,7 @@ export default function LoginPage() {
           <div className="bg-blue-100 p-4 rounded-full mb-1 shadow-lg">
             <Mascot />
           </div>
-          <span className="text-indigo-500 font-semibold text-sm">Let's check in!</span>
+          <span className="text-indigo-500 font-semibold text-sm">Let&apos;s check in!</span>
           <CardTitle className="text-5xl font-extrabold text-center text-gray-900 dark:text-white leading-tight">
             Weekly <span className="text-indigo-600">Pulse</span>
           </CardTitle>
