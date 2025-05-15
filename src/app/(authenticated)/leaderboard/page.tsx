@@ -11,6 +11,7 @@ interface LeaderboardEntry {
   name: string;
   streak?: number; 
   isCurrentUser?: boolean;
+  time?: number; // Add this to match potential API response properties
 }
 
 type LeaderboardType = "streaks" | "fastest";
@@ -69,14 +70,6 @@ const now = new Date();
 const currentYear = now.getFullYear();
 const currentWeek = getMostRecentThursdayWeek();
 
-// Define a type for leaderboard API response
-interface LeaderboardApiEntry {
-  id: string;
-  name: string;
-  streak?: number;
-  isCurrentUser?: boolean;
-}
-
 export default function LeaderboardPage() {
   const [tab, setTab] = useState<LeaderboardType>("streaks");
   const [data, setData] = useState<LeaderboardEntry[]>(mockLeaderboard[tab]);
@@ -97,7 +90,7 @@ export default function LeaderboardPage() {
         const json = await res.json();
         if (!ignore && json.leaderboard) {
           setData(
-            (json.leaderboard as LeaderboardApiEntry[]).map((entry) =>
+            (json.leaderboard as LeaderboardEntry[]).map((entry) =>
               tab === "streaks"
                 ? { ...entry, streak: entry.streak }
                 : { ...entry }
