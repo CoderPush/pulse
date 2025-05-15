@@ -12,6 +12,18 @@ export const setupSupabaseMocks = () => {
   const mockFrom = vi.fn();
   const mockGetUser = vi.fn();
 
+  // Helper to allow .eq().eq().single().order() chaining
+  const makeEqChain = () => {
+    const chain = {
+      eq: vi.fn(() => chain),
+      single: mockSingle,
+      order: mockOrder,
+      in: mockIn,
+      gte: mockGte,
+    };
+    return chain;
+  };
+
   const mockSupabaseClient = {
     auth: { getUser: mockGetUser },
     from: mockFrom,
@@ -21,27 +33,22 @@ export const setupSupabaseMocks = () => {
   mockFrom.mockImplementation(() => ({
     select: (selectArg: string, options?: { count: 'exact' }) => {
       if (options?.count === 'exact') {
-         // This setup was working - mockSelectWithOptions returns eq
-        mockSelectWithOptions.mockReturnValue({ eq: mockEq });
+        mockSelectWithOptions.mockReturnValue(makeEqChain());
         return mockSelectWithOptions(selectArg, options);
       }
-       // This setup was working - mockSelect returns eq and in
-      mockSelect.mockReturnValue({ eq: mockEq, in: mockIn });
+      mockSelect.mockReturnValue(makeEqChain());
       return mockSelect(selectArg);
     },
     insert: mockInsert,
   }));
 
-  // Default resolutions/chaining setup - Mimic original
-  // This setup seemed sufficient for the tests passed
-  mockEq.mockReturnValue({ eq: mockEq, single: mockSingle, order: mockOrder }); // Allows eq chaining, single, order
-  mockIn.mockReturnValue({ gte: mockGte }); // in returns gte
-  mockGte.mockResolvedValue({ data: [], error: null }); // gte resolves
-  mockSingle.mockResolvedValue({ data: null, error: null }); // single resolves
-  mockOrder.mockResolvedValue({ data: null, error: null, count: 0 }); // order resolves
-  mockInsert.mockResolvedValue({ data: null, error: null }); // insert resolves
+  // Default resolutions/chaining setup
+  mockIn.mockReturnValue(makeEqChain());
+  mockGte.mockResolvedValue({ data: [], error: null });
+  mockSingle.mockResolvedValue({ data: null, error: null });
+  mockOrder.mockResolvedValue({ data: null, error: null, count: 0 });
+  mockInsert.mockResolvedValue({ data: null, error: null });
 
-  // Return all mocks needed by the tests
   return {
     mockEq,
     mockIn,
