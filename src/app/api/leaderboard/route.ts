@@ -78,7 +78,7 @@ export async function GET(request: Request) {
   // Get all users (including admins)
   const { data: users, error: usersError } = await supabase
     .from('users')
-    .select('id, name, email, is_admin');
+    .select('id, name, email');
   if (usersError) {
     return NextResponse.json({ error: 'Failed to fetch users' }, { status: 500 });
   }
@@ -154,8 +154,28 @@ export async function GET(request: Request) {
     };
   });
 
-  // Sort by streak descending, then by name
-  leaderboard.sort((a, b) => b.streak - a.streak || a.name.localeCompare(b.name));
+  // Sort by streak descending, then by earliest submission in the latest week, then by name
+  leaderboard.sort((a, b) => {
+    if (b.streak !== a.streak) return b.streak - a.streak;
+
+    // Find submissions for the latest week for both users
+    const aLatest = submissions.find(
+      s => s.user_id === a.id && s.week_number === currentWeek
+    );
+    const bLatest = submissions.find(
+      s => s.user_id === b.id && s.week_number === currentWeek
+    );
+
+    if (aLatest && bLatest) {
+      // Earlier submission ranks higher
+      return new Date(aLatest.submitted_at).getTime() - new Date(bLatest.submitted_at).getTime();
+    }
+    if (aLatest) return -1; // a submitted, b did not
+    if (bLatest) return 1;  // b submitted, a did not
+
+    // Fallback: alphabetical
+    return a.name.localeCompare(b.name);
+  });
 
   // Only top 10, but always include current user if not in top
   const top = leaderboard.slice(0, 10);

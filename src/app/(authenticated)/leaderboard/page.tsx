@@ -9,10 +9,8 @@ import { getMostRecentThursdayWeek } from '@/lib/utils/date';
 interface LeaderboardEntry {
   id: string;
   name: string;
-  streak?: number; // for real data
-  score?: number; // for mock data
+  streak?: number; 
   isCurrentUser?: boolean;
-  time?: number; // for fastest tab
 }
 
 type LeaderboardType = "streaks" | "fastest";
@@ -27,12 +25,12 @@ const mockLeaderboard: Record<LeaderboardType, LeaderboardEntry[]> = {
     // { id: "5", name: "CleverFox", streak: 14, isCurrentUser: true }, // Uncomment to test user in list
   ],
   fastest: [
-    { id: "2", name: "BraveTiger", time: 12 },
-    { id: "1", name: "SunnyLion", time: 15 },
-    { id: "3", name: "WiseOwl", time: 20 },
-    { id: "4", name: "MightyBear", time: 22 },
+    { id: "2", name: "BraveTiger" },
+    { id: "1", name: "SunnyLion" },
+    { id: "3", name: "WiseOwl" },
+    { id: "4", name: "MightyBear" },
     // ...more users
-    // { id: "5", name: "CleverFox", time: 18, isCurrentUser: true }, // Uncomment to test user in list
+    // { id: "5", name: "CleverFox", isCurrentUser: true }, // Uncomment to test user in list
   ],
 };
 
@@ -76,7 +74,6 @@ interface LeaderboardApiEntry {
   id: string;
   name: string;
   streak?: number;
-  time?: number;
   isCurrentUser?: boolean;
 }
 
@@ -103,7 +100,7 @@ export default function LeaderboardPage() {
             (json.leaderboard as LeaderboardApiEntry[]).map((entry) =>
               tab === "streaks"
                 ? { ...entry, streak: entry.streak }
-                : { ...entry, time: entry.time }
+                : { ...entry }
             )
           );
         }
