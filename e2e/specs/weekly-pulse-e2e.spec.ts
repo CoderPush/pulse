@@ -46,7 +46,7 @@ test('Weekly Pulse E2E: submit form and verify post-submission state', async ({ 
     await page.goto(`/api/auth/auto-login?token=${token}`);
     await expect(page.getByRole('heading', { name: /Welcome back/i })).toBeVisible();
     await page.getByRole('button', { name: /Start Weekly Pulse/i }).click();
-    await page.getByRole('button', { name: 'Capsule Transit' }).click();
+    await page.getByRole('button', { name: 'Captain America' }).click();
     await page.getByRole('button', { name: /Next step/ }).click();
     await page.getByRole('button', { name: /Next step/ }).click();
     await page.getByRole('textbox', { name: /manager/i }).fill('manager@example.com');
@@ -55,8 +55,6 @@ test('Weekly Pulse E2E: submit form and verify post-submission state', async ({ 
     await page.getByRole('button', { name: /^Next$/ }).click();
     await page.getByRole('button', { name: /^Next$/ }).click();
     await page.getByRole('textbox', { name: /hour reporting/i }).fill('Reporting hours helps me reflect on my weekly progress.');
-    await page.getByRole('button', { name: /^Next$/ }).click();
-    await page.getByRole('button', { name: '3 min' }).click();
     await page.getByRole('button', { name: /^Next$/ }).click();
     await page.getByRole('button', { name: /Submit Now/i }).click();
     await expect(page.getByRole('heading', { name: /Submission received/i })).toBeVisible();
@@ -84,7 +82,7 @@ test('Weekly Pulse E2E: view submission in history after submit', async ({ page 
     await page.goto(`/api/auth/auto-login?token=${token}`);
     await expect(page.getByRole('heading', { name: /Welcome back/i })).toBeVisible();
     await page.getByRole('button', { name: /Start Weekly Pulse/i }).click();
-    await page.getByRole('button', { name: 'Capsule Transit' }).click();
+    await page.getByRole('button', { name: 'Captain America' }).click();
     await page.getByRole('button', { name: /Next step/ }).click();
     await page.getByRole('button', { name: /Next step/ }).click();
     await page.getByRole('textbox', { name: /manager/i }).fill('manager@example.com');
@@ -93,8 +91,6 @@ test('Weekly Pulse E2E: view submission in history after submit', async ({ page 
     await page.getByRole('button', { name: /^Next$/ }).click();
     await page.getByRole('button', { name: /^Next$/ }).click();
     await page.getByRole('textbox', { name: /hour reporting/i }).fill('Reporting hours helps me reflect on my weekly progress.');
-    await page.getByRole('button', { name: /^Next$/ }).click();
-    await page.getByRole('button', { name: '3 min' }).click();
     await page.getByRole('button', { name: /^Next$/ }).click();
     await page.getByRole('button', { name: /Submit Now/i }).click();
     await expect(page.getByRole('heading', { name: /Submission received/i })).toBeVisible();
@@ -107,10 +103,9 @@ test('Weekly Pulse E2E: view submission in history after submit', async ({ page 
     // Check that the most recent week shows as submitted
     await expect(page.getByRole('button', { name: /This week: Submitted/i })).toBeVisible();
     // Check that the details are correct
-    await expect(page.getByRole('heading', { name: /Capsule Transit/i })).toBeVisible();
+    await expect(page.getByRole('heading', { name: /Captain America/i })).toBeVisible();
     await expect(page.getByText('40h')).toBeVisible();
     await expect(page.getByText('manager@example.com')).toBeVisible();
-    await expect(page.getByText('3 min')).toBeVisible();
     await expect(page.getByRole('heading', { name: /Hours Reporting Impact/i })).toBeVisible();
     await expect(page.getByText('Reporting hours helps me reflect on my weekly progress.')).toBeVisible();
   });

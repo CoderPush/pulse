@@ -74,3 +74,14 @@ VALUES
   ('Drax', TRUE),
   ('Rocket', TRUE),
   ('Groot', TRUE); 
+
+-- Seed default questions for the questions table (version 1, parent_id = id)
+INSERT INTO public.questions (id, parent_id, version, title, description, type, required, category, display_order)
+VALUES
+  ('11111111-1111-1111-1111-111111111111', '11111111-1111-1111-1111-111111111111', 1, 'What project did you spend most time on?', 'Select your primary project for this week', 'text', TRUE, 'primaryProject', 1),
+  ('22222222-2222-2222-2222-222222222222', '22222222-2222-2222-2222-222222222222', 1, 'How many hours did you work on it?', 'Enter the number of hours spent on your primary project', 'number', TRUE, 'primaryProjectHours', 2),
+  ('33333333-3333-3333-3333-333333333333', '33333333-3333-3333-3333-333333333333', 1, 'Who''s your manager right now?', 'Select your current manager', 'text', TRUE, 'manager', 3),
+  ('44444444-4444-4444-4444-444444444444', '44444444-4444-4444-4444-444444444444', 1, 'Did you work on any other projects?', 'Add any additional projects and hours', 'text', FALSE, 'additionalProjects', 4),
+  ('55555555-5555-5555-5555-555555555555', '55555555-5555-5555-5555-555555555555', 1, 'Any changes next week?', 'Mention further milestones/deadlines if applicable', 'textarea', FALSE, 'changesNextWeek', 5),
+  ('66666666-6666-6666-6666-666666666666', '66666666-6666-6666-6666-666666666666', 1, 'Anything else to share?', 'Wanting more/fewer challenges? Using more/less AI?', 'textarea', FALSE, 'otherFeedback', 6),
+  ('77777777-7777-7777-7777-777777777777', '77777777-7777-7777-7777-777777777777', 1, 'How has reporting the hours each week affected you?', 'Share your experience with weekly hour reporting', 'textarea', TRUE, 'hoursReportingImpact', 7); 

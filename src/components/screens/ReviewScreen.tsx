@@ -1,8 +1,8 @@
 import { ArrowLeft, Check, Clock } from 'lucide-react';
-import { ScreenProps } from '@/types/weekly-pulse';
+import { ScreenProps, Question } from '@/types/weekly-pulse';
 import { useState } from 'react';
 
-export default function ReviewScreen({ onBack, formData, onNext }: ScreenProps) {
+export default function ReviewScreen({ onBack, formData, onNext, questions = [] }: ScreenProps & { questions?: Question[] }) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -45,6 +45,11 @@ export default function ReviewScreen({ onBack, formData, onNext }: ScreenProps) 
     }
   };
 
+  // Helper to get question title by category
+  const getTitle = (category: string, fallback: string) => {
+    return questions?.find(q => q.category === category)?.title || fallback;
+  };
+
   return (
     <div className="flex flex-col h-full px-6">
       <h2 className="text-2xl font-bold mb-8">Review & Submit</h2>
@@ -57,7 +62,7 @@ export default function ReviewScreen({ onBack, formData, onNext }: ScreenProps) 
       
       <div className="bg-gray-50 rounded-lg p-6 mb-8 space-y-6">
         <div>
-          <div className="text-sm text-gray-500 mb-2">Primary Project</div>
+          <div className="text-sm text-gray-500 mb-2">{getTitle('primaryProject', 'Primary Project')}</div>
           <div className="flex items-center justify-between">
             <div className="font-medium text-lg">{formData.primaryProject.name}</div>
             <div className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
@@ -69,7 +74,7 @@ export default function ReviewScreen({ onBack, formData, onNext }: ScreenProps) 
         
         {formData.additionalProjects.length > 0 && (
           <div>
-            <div className="text-sm text-gray-500 mb-2">Additional Projects</div>
+            <div className="text-sm text-gray-500 mb-2">{getTitle('additionalProjects', 'Additional Projects')}</div>
             {formData.additionalProjects.map((proj, index) => (
               <div key={index} className="mb-3 last:mb-0">
                 <div className="flex items-center justify-between">
@@ -85,44 +90,38 @@ export default function ReviewScreen({ onBack, formData, onNext }: ScreenProps) 
         )}
         
         <div>
-          <div className="text-sm text-gray-500 mb-1">Manager</div>
+          <div className="text-sm text-gray-500 mb-1">{getTitle('manager', 'Manager')}</div>
           <div className="font-medium">{formData?.manager}</div>
         </div>
         
         {formData.feedback && (
           <div>
-            <div className="text-sm text-gray-500 mb-1">Blockers & Feedback</div>
+            <div className="text-sm text-gray-500 mb-1">{getTitle('feedback', 'Blockers & Feedback')}</div>
             <div className="font-medium">{formData.feedback}</div>
           </div>
         )}
 
         {formData.changesNextWeek && (
           <div>
-            <div className="text-sm text-gray-500 mb-1">Changes Next Week</div>
+            <div className="text-sm text-gray-500 mb-1">{getTitle('changesNextWeek', 'Changes Next Week')}</div>
             <div className="font-medium">{formData.changesNextWeek}</div>
           </div>
         )}
 
         {formData.otherFeedback && (
           <div>
-            <div className="text-sm text-gray-500 mb-1">Additional Comments</div>
+            <div className="text-sm text-gray-500 mb-1">{getTitle('otherFeedback', 'Additional Comments')}</div>
             <div className="font-medium">{formData.otherFeedback}</div>
           </div>
         )}
 
         {formData.hoursReportingImpact && (
           <div>
-            <div className="text-sm text-gray-500 mb-1">Hours Reporting Impact</div>
+            <div className="text-sm text-gray-500 mb-1">{getTitle('hoursReportingImpact', 'Hours Reporting Impact')}</div>
             <div className="font-medium">{formData.hoursReportingImpact}</div>
           </div>
         )}
 
-        {formData.formCompletionTime && (
-          <div>
-            <div className="text-sm text-gray-500 mb-1">Form Completion Time</div>
-            <div className="font-medium">{formData.formCompletionTime} minutes</div>
-          </div>
-        )}
       </div>
       
       <div className="mt-auto flex gap-3">

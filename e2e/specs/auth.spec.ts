@@ -13,15 +13,32 @@ test.describe('Authentication', () => {
     // Check if the page title is correct
     await expect(page).toHaveTitle(/Weekly Pulse/);
 
-    // Check if the main heading is visible
-    await expect(page.getByRole('heading', { name: 'Weekly Pulse' })).toBeVisible();
+    // Check if the mascot SVG is visible
+    const mascot = page.locator('svg[width="64"][height="64"][viewBox="0 0 64 64"]');
+    await expect(mascot).toBeVisible();
+    // Optionally, check for the mascot's unique attributes
+    await expect(mascot).toHaveAttribute('width', '64');
+    await expect(mascot).toHaveAttribute('height', '64');
 
-    // Check if the subtitle is visible
-    await expect(page.getByText('Track your weekly pulse')).toBeVisible();
+    // Check for the small subtitle
+    await expect(page.getByText("Let's check in!", { exact: false })).toBeVisible();
 
-    // Check if the Google sign-in button is present
+    // Check if the main heading is visible and styled
+    const cardTitle = page.locator('div[data-slot="card-title"]', { hasText: 'Weekly Pulse' });
+    await expect(cardTitle).toBeVisible();
+    // Check for the colored span in the heading
+    const pulseSpan = page.locator('div[data-slot="card-title"] span', { hasText: 'Pulse' });
+    await expect(pulseSpan).toBeVisible();
+
+    // Check for the new description
+    await expect(page.getByText('Your fun, simple way to check in every week!', { exact: false })).toBeVisible();
+
+    // Check if the Google sign-in button is present and has correct text
     const googleButton = page.getByRole('button', { name: /Sign in with Google/i });
     await expect(googleButton).toBeVisible();
+
+    // Check for the footer note about @coderpush.com email
+    await expect(page.getByText('Please login with your @coderpush.com email.', { exact: false })).toBeVisible();
   });
 });
 

@@ -4,7 +4,7 @@ import { ScreenProps } from '@/types/weekly-pulse';
 import { Card } from "@/components/ui/card";
 import { getPreviousWeekManager } from '@/app/actions';
 
-export default function ManagerScreen({ onNext, onBack, formData, setFormData, userId, currentWeekNumber, currentYear }: ScreenProps & { userId?: string; currentWeekNumber?: number; currentYear?: number }) {
+export default function ManagerScreen({ onNext, onBack, formData, setFormData, userId, currentWeekNumber, currentYear, question }: ScreenProps & { userId?: string; currentWeekNumber?: number; currentYear?: number; question?: import('@/types/weekly-pulse').Question }) {
   const [dontKnow, setDontKnow] = useState(false);
   const [fetchedPreviousManager, setFetchedPreviousManager] = useState<string | null>(null);
   const [isLoadingPreviousManager, setIsLoadingPreviousManager] = useState(true);
@@ -83,7 +83,12 @@ export default function ManagerScreen({ onNext, onBack, formData, setFormData, u
   return (
     <div className="flex flex-col h-full px-6">
       <div>
-        <h2 className="text-2xl font-bold mb-3">Who&apos;s your manager right now? <span className="text-red-500 ml-1">*</span></h2>
+        <h2 className="text-2xl font-bold mb-3">
+          {question?.title || "Who's your manager right now?"} {question?.required && <span className="text-red-500 ml-1">*</span>}
+        </h2>
+        {question?.description && (
+          <p className="text-gray-600 mb-6">{question.description}</p>
+        )}
       </div>
       
       <div className="flex flex-col gap-4 mb-6">

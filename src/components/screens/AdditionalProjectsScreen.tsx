@@ -1,11 +1,11 @@
 import { useState, useEffect } from 'react';
 import { ArrowRight, ArrowLeft, Plus, Trash2, Check } from 'lucide-react';
-import { ScreenProps, AdditionalProject } from '@/types/weekly-pulse';
+import { ScreenProps, AdditionalProject, Question } from '@/types/weekly-pulse';
 import { motion, AnimatePresence } from "framer-motion";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 
-export default function AdditionalProjectsScreen({ onNext, onBack, formData, setFormData, projects = [] }: ScreenProps) {
+export default function AdditionalProjectsScreen({ onNext, onBack, formData, setFormData, projects = [], question }: ScreenProps & { question?: Question }) {
   const [showOtherInput, setShowOtherInput] = useState(false);
   const [otherProject, setOtherProject] = useState('');
   const [hoursInput, setHoursInput] = useState('');
@@ -85,8 +85,13 @@ export default function AdditionalProjectsScreen({ onNext, onBack, formData, set
         className="flex items-center justify-between mb-6"
       >
         <div>
-          <h2 className="text-2xl sm:text-3xl font-bold text-gray-800">Any other projects?</h2>
-          <p className="text-sm text-gray-500 mt-1">Add more projects if you work on multiple (optional)</p>
+          <h2 className="text-2xl sm:text-3xl font-bold text-gray-800">
+            {question?.title || "Any other projects?"}
+            {question?.required && <span className="text-red-500 ml-1">*</span>}
+          </h2>
+          {question?.description && (
+            <p className="text-sm text-gray-500 mt-1">{question.description}</p>
+          )}
         </div>
         <button
           onClick={onNext} // Skip is equivalent to Next here
