@@ -338,10 +338,14 @@ export default function PulsePreviewPage({ params }: { params: Promise<{ week: s
               <label>
                 Category
                 <input
-                  className="w-full border rounded p-2"
+                  className="w-full border rounded p-2 bg-muted text-muted-foreground cursor-not-allowed"
                   value={editForm.category}
                   onChange={e => handleEditChange('category', e.target.value)}
+                  disabled
+                  aria-disabled="true"
+                  placeholder="Cannot edit category"
                 />
+                <span className="text-xs text-muted-foreground">Cannot edit category</span>
               </label>
               <label className="flex items-center gap-2">
                 <span>Required</span>
