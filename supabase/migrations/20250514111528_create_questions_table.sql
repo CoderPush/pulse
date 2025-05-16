@@ -13,7 +13,7 @@ CREATE TABLE questions (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     
-    CONSTRAINT fk_parent_question FOREIGN KEY (parent_id) REFERENCES questions(id) ON DELETE CASCADE
+    CONSTRAINT fk_parent_question FOREIGN KEY (parent_id) REFERENCES questions(id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED
 );
 
 -- The first version of a question has parent_id = id

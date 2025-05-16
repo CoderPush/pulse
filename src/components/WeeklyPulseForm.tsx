@@ -58,7 +58,6 @@ export default function WeeklyPulseForm({
       try {
         const res = await fetch('/api/questions');
         const data = await res.json();
-        console.log(data);
         setQuestions(data.questions || []);
       } catch {
         setQuestions([]);
