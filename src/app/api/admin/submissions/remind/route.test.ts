@@ -43,8 +43,13 @@ const createMockUser = (id: string): MockUser => ({
   name: `User ${id}`,
 });
 
-const createMockRequest = (body: ReminderRequest): Request => {
-  return { json: async () => body } as Request;
+const createMockRequest = (body: ReminderRequest, headers: Record<string, string> = {}): Request => {
+  return {
+    json: async () => body,
+    headers: {
+      get: (key: string) => headers[key],
+    },
+  } as unknown as Request;
 };
 
 // --- Test Suite ---
@@ -217,6 +222,59 @@ describe('/api/admin/submissions/remind POST Handler', () => {
           error: 'Failed to send email'
         }]
       });
+    });
+  });
+
+  // --- CRON_SECRET Header Authentication ---
+  describe('CRON_SECRET Header Authentication', () => {
+    const CRON_SECRET = 'test-cron-secret';
+    beforeAll(() => {
+      process.env.CRON_SECRET = CRON_SECRET;
+    });
+    afterAll(() => {
+      delete process.env.CRON_SECRET;
+    });
+
+    it('should allow request with valid CRON_SECRET header and bypass user/admin checks', async () => {
+      const user = createMockUser('cron1');
+      const week = 30;
+      const year = 2024;
+      const requestBody = { userIds: [user.id], week, year };
+      const mockRequest = createMockRequest(requestBody, { authorization: `Bearer ${CRON_SECRET}` });
+
+      // Should NOT call user/admin checks, so no need to mockGetUser or mockSingle
+      // Only mock user fetch and downstream DB/email
+      mocks.mockIn.mockResolvedValueOnce({ data: [user], error: null });
+      mocks.mockGte.mockResolvedValueOnce({ data: [], error: null });
+      mocks.mockOrder.mockResolvedValueOnce({ count: 0, error: null });
+      mocks.mockInsert.mockResolvedValueOnce({ error: null });
+      mockSendEmail.mockResolvedValueOnce({ success: true });
+
+      const response = await POST(mockRequest);
+      const data = await response.json();
+
+      expect(response.status).toBe(200);
+      expect(data).toEqual({
+        results: [{ userId: user.id, success: true }]
+      });
+      // Optionally, check that no user/admin check mocks were called
+      expect(mocks.mockGetUser).not.toHaveBeenCalled();
+      expect(mocks.mockSingle).not.toHaveBeenCalled();
+    });
+
+    it('should return 401 for invalid CRON_SECRET header', async () => {
+      const user = createMockUser('cron2');
+      const week = 31;
+      const year = 2024;
+      const requestBody = { userIds: [user.id], week, year };
+      const mockRequest = createMockRequest(requestBody, { authorization: 'Bearer wrong-secret' });
+
+      // Should fall back to user check, so mockGetUser returns null (unauthenticated)
+      mocks.mockGetUser.mockResolvedValueOnce({ data: { user: null }, error: null });
+
+      const response = await POST(mockRequest);
+      expect(response.status).toBe(401);
+      expect(await response.text()).toBe('Unauthorized');
     });
   });
 
