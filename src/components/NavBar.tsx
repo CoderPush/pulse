@@ -52,42 +52,55 @@ export default function NavBar({ user }: NavBarProps) {
               <DropdownMenuTrigger asChild>
                 <Button 
                   variant="ghost" 
-                  className="relative h-9 w-9 rounded-full bg-gray-50 hover:bg-gray-100 dark:bg-gray-900 dark:hover:bg-gray-800 transition-colors"
+                  className="relative h-11 w-11 rounded-full bg-white/70 hover:bg-white/90 dark:bg-gray-900/80 dark:hover:bg-gray-800 transition-colors shadow-lg border border-white/30"
                 >
-                  <Avatar className="h-8 w-8">
-                    <AvatarFallback className="bg-primary/10 text-sm font-medium">
+                  <span className="absolute bottom-1 right-1 block h-2.5 w-2.5 rounded-full bg-green-400 ring-2 ring-white dark:ring-gray-950 animate-pulse" />
+                  <Avatar className="h-9 w-9">
+                    <AvatarFallback className="bg-gradient-to-tr from-indigo-400 via-blue-400 to-purple-400 text-white text-lg font-bold flex items-center justify-center">
                       {userInitials}
                     </AvatarFallback>
                   </Avatar>
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent className="w-56" align="end" forceMount>
-                <DropdownMenuLabel className="font-normal">
-                  <div className="flex flex-col space-y-1">
-                    <p className="text-sm font-medium leading-none">{user.email}</p>
-                    <p className="text-xs leading-none text-muted-foreground">View profile</p>
+              <DropdownMenuContent className="w-72 rounded-2xl shadow-2xl bg-white/90 dark:bg-gray-900/90 border border-white/30 animate-fade-in" align="end" forceMount>
+                {/* User Card */}
+                <DropdownMenuLabel className="font-normal px-4 py-4">
+                  <div className="flex items-center space-x-4">
+                    <Avatar className="h-12 w-12">
+                      <AvatarFallback className="bg-gradient-to-tr from-indigo-400 via-blue-400 to-purple-400 text-white text-xl font-extrabold flex items-center justify-center">
+                        {userInitials}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div>
+                      <p className="text-base font-semibold text-gray-900 dark:text-white">{user.email}</p>
+                      <p>
+                        <Link href="/profile" className="text-xs text-indigo-500 font-semibold mt-1 hover:underline hover:text-indigo-700 transition-colors">
+                          View profile
+                        </Link>
+                      </p>
+                    </div>
                   </div>
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
                 <DropdownMenuGroup>
                   <Link href="/profile" className="w-full">
-                    <DropdownMenuItem className="cursor-pointer">
-                      <UserCircle className="mr-2 h-4 w-4" />
+                    <DropdownMenuItem className="cursor-pointer flex items-center gap-2 px-4 py-2 rounded-lg transition-all hover:bg-indigo-50 dark:hover:bg-indigo-900/30 active:scale-95">
+                      <UserCircle className="h-5 w-5 text-indigo-500" />
                       <span>Profile</span>
                     </DropdownMenuItem>
                   </Link>
                   <Link href="/history" className="w-full">
-                    <DropdownMenuItem className="cursor-pointer">
-                      <History className="mr-2 h-4 w-4" />
+                    <DropdownMenuItem className="cursor-pointer flex items-center gap-2 px-4 py-2 rounded-lg transition-all hover:bg-indigo-50 dark:hover:bg-indigo-900/30 active:scale-95">
+                      <History className="h-5 w-5 text-blue-500" />
                       <span>History</span>
                     </DropdownMenuItem>
                   </Link>
                 </DropdownMenuGroup>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem asChild className="cursor-pointer focus:bg-red-50 dark:focus:bg-red-950">
+                <DropdownMenuItem asChild className="cursor-pointer focus:bg-red-50 dark:focus:bg-red-950 px-4 py-2 rounded-lg transition-all hover:bg-red-50 dark:hover:bg-red-900/30 active:scale-95">
                   <form action={signOut} className="w-full">
-                    <button type="submit" className="w-full text-left text-red-600 dark:text-red-400 flex items-center">
-                      <LogOut className="mr-2 h-4 w-4" />
+                    <button type="submit" className="w-full text-left text-red-600 dark:text-red-400 flex items-center gap-2">
+                      <LogOut className="h-5 w-5" />
                       <span>Sign out</span>
                     </button>
                   </form>
