@@ -189,7 +189,9 @@ export default function WeeklyPulseForm({
     return (
       <div className="flex justify-center items-center w-full min-h-[calc(100vh-4rem)] py-8">
         <div className="flex flex-col items-center gap-2">
-          <span className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></span>
+          <span className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin" role="status" aria-label="Loading">
+            <span className="sr-only">Loading questions…</span>
+          </span>
         </div>
       </div>
     );
