@@ -50,7 +50,7 @@ export default async function HomePage({ searchParams }: HomeProps) {
   }
 
   return (
-    <div className="w-full px-4 -mt-16">
+    <div className="w-full px-4">
       <WeeklyPulseForm 
         user={user} 
         weekNumber={weekNumber} 

@@ -187,22 +187,26 @@ export default function WeeklyPulseForm({
   
   if (loadingQuestions) {
     return (
-      <div className="flex justify-center items-center w-full h-full min-h-screen py-8">
-        <div className="text-lg text-gray-600">Loading questions...</div>
+      <div className="flex justify-center items-center w-full min-h-[calc(100vh-4rem)] py-8">
+        <div className="flex flex-col items-center gap-2">
+          <span className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin" role="status" aria-label="Loading">
+            <span className="sr-only">Loading questions…</span>
+          </span>
+        </div>
       </div>
     );
   }
   
   if (hasSubmittedThisWeek) {
     return (
-      <div className="flex justify-center items-center w-full h-full min-h-screen py-8">
+      <div className="flex justify-center items-center w-full min-h-[calc(100vh-4rem)] py-8">
         <SubmissionSuccessScreen user={user} currentWeek={weekNumber} />
       </div>
     );
   }
   
   return (
-    <div className="flex justify-center items-center w-full h-full min-h-screen py-8">
+    <div className="flex justify-center items-center w-full min-h-[calc(100vh-4rem)] py-8">
       <div className="bg-white rounded-xl shadow-lg w-full max-w-md h-full flex flex-col relative overflow-hidden">
         {/* Progress bar */}
         {currentScreen > 0 && currentScreen < totalScreens - 2 && (
