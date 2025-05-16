@@ -8,6 +8,15 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import PulseResponses from '@/components/admin/PulseResponses';
 import { Question } from '@/types/weekly-pulse';
+import { Button } from '@/components/ui/button';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogFooter,
+  DialogTitle,
+  DialogDescription
+} from '@/components/ui/dialog';
 
 interface WeekData {
   year: number;
@@ -256,12 +265,14 @@ export default function PulsePreviewPage({ params }: { params: Promise<{ week: s
                               </div>
                               <div className="flex flex-col items-end gap-2">
                                 <Badge>{question.type}</Badge>
-                                <button
-                                  className="text-xs text-blue-600 underline"
+                                <Button
+                                  variant="link"
+                                  size="sm"
+                                  className="text-xs px-0 h-auto"
                                   onClick={() => openEditModal(question)}
                                 >
                                   Edit
-                                </button>
+                                </Button>
                               </div>
                             </div>
                             {renderQuestionPreview(question)}
@@ -285,75 +296,79 @@ export default function PulsePreviewPage({ params }: { params: Promise<{ week: s
       </div>
 
       {/* Edit Modal */}
-      <dialog ref={modalRef} className="rounded-lg p-0 w-full max-w-md">
-        {editingQuestion && editForm && (
-          <form
-            method="dialog"
-            className="flex flex-col gap-4 p-6"
-            onSubmit={e => { e.preventDefault(); handleEditSave(); }}
-          >
-            <h2 className="text-lg font-bold mb-2">Edit Question</h2>
-            <label>
-              Title
-              <input
-                className="w-full border rounded p-2"
-                value={editForm.title}
-                onChange={e => handleEditChange('title', e.target.value)}
-              />
-            </label>
-            <label>
-              Description
-              <textarea
-                className="w-full border rounded p-2"
-                value={editForm.description}
-                onChange={e => handleEditChange('description', e.target.value)}
-              />
-            </label>
-            <label>
-              Type
-              <select
-                className="w-full border rounded p-2"
-                value={editForm.type}
-                onChange={e => handleEditChange('type', e.target.value)}
-              >
-                <option value="text">Text</option>
-                <option value="number">Number</option>
-                <option value="textarea">Textarea</option>
-              </select>
-            </label>
-            <label>
-              Category
-              <input
-                className="w-full border rounded p-2"
-                value={editForm.category}
-                onChange={e => handleEditChange('category', e.target.value)}
-              />
-            </label>
-            <label>
-              Required
-              <input
-                type="checkbox"
-                checked={editForm.required}
-                onChange={e => handleEditChange('required', e.target.checked)}
-              />
-            </label>
-            <label>
-              Display Order
-              <input
-                type="number"
-                className="w-full border rounded p-2"
-                value={editForm.display_order ?? ''}
-                onChange={e => handleEditChange('display_order', Number(e.target.value))}
-              />
-            </label>
-            {saveError && <div className="text-red-600 text-sm">{saveError}</div>}
-            <div className="flex gap-2 mt-2">
-              <button type="button" className="px-4 py-2 rounded bg-gray-200" onClick={closeEditModal} disabled={saving}>Cancel</button>
-              <button type="submit" className="px-4 py-2 rounded bg-blue-600 text-white" disabled={saving}>{saving ? 'Saving...' : 'Save'}</button>
-            </div>
-          </form>
-        )}
-      </dialog>
+      <Dialog open={!!editingQuestion} onOpenChange={open => { if (!open) closeEditModal(); }}>
+        <DialogContent>
+          {editingQuestion && editForm && (
+            <form
+              className="flex flex-col gap-4"
+              onSubmit={e => { e.preventDefault(); handleEditSave(); }}
+            >
+              <DialogHeader>
+                <DialogTitle>Edit Question</DialogTitle>
+                <DialogDescription>Edit the details of this question below.</DialogDescription>
+              </DialogHeader>
+              <label>
+                Title
+                <input
+                  className="w-full border rounded p-2"
+                  value={editForm.title}
+                  onChange={e => handleEditChange('title', e.target.value)}
+                />
+              </label>
+              <label>
+                Description
+                <textarea
+                  className="w-full border rounded p-2"
+                  value={editForm.description}
+                  onChange={e => handleEditChange('description', e.target.value)}
+                />
+              </label>
+              <label>
+                Type
+                <select
+                  className="w-full border rounded p-2"
+                  value={editForm.type}
+                  onChange={e => handleEditChange('type', e.target.value)}
+                >
+                  <option value="text">Text</option>
+                  <option value="number">Number</option>
+                  <option value="textarea">Textarea</option>
+                </select>
+              </label>
+              <label>
+                Category
+                <input
+                  className="w-full border rounded p-2"
+                  value={editForm.category}
+                  onChange={e => handleEditChange('category', e.target.value)}
+                />
+              </label>
+              <label className="flex items-center gap-2">
+                <span>Required</span>
+                <input
+                  type="checkbox"
+                  checked={editForm.required}
+                  onChange={e => handleEditChange('required', e.target.checked)}
+                />
+              </label>
+              <label>
+                Display Order
+                <input
+                  type="number"
+                  className="w-full border rounded p-2"
+                  value={editForm.display_order ?? ''}
+                  onChange={e => handleEditChange('display_order', Number(e.target.value))}
+                />
+              </label>
+              {saveError && <div className="text-red-600 text-sm">{saveError}</div>}
+              <DialogFooter>
+                <Button type="button" variant="secondary" onClick={closeEditModal} disabled={saving}>Cancel</Button>
+                <Button type="submit" disabled={saving}>{saving ? 'Saving...' : 'Save'}</Button>
+              </DialogFooter>
+            </form>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 } 
