@@ -53,20 +53,8 @@ export async function GET(
       .eq('is_admin', false);
 
     // Fetch all questions
-    const { data: allQuestions, error: questionsError } = await supabase
-      .from('questions')
-      .select('*');
+    const { data: questions, error: questionsError } = await supabase.rpc('get_latest_questions');
     if (questionsError) throw questionsError;
-
-    // Group by parent_id and select the highest version for each
-    const latestQuestionsMap = new Map();
-    for (const q of allQuestions) {
-      const existing = latestQuestionsMap.get(q.parent_id);
-      if (!existing || q.version > existing.version) {
-        latestQuestionsMap.set(q.parent_id, q);
-      }
-    }
-    const questions = Array.from(latestQuestionsMap.values());
 
     return NextResponse.json({
       ...weekData,

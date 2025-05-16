@@ -26,3 +26,18 @@ COMMENT ON COLUMN questions.type IS 'Type of question (e.g., text, number, texta
 COMMENT ON COLUMN questions.required IS 'Whether the question is required.';
 COMMENT ON COLUMN questions.category IS 'Category of the question.';
 COMMENT ON COLUMN questions.display_order IS 'Order of the question in the form.';
+
+-- Create the get_latest_questions function
+CREATE OR REPLACE FUNCTION get_latest_questions()
+RETURNS SETOF questions AS $$
+  WITH LatestVersions AS (
+    SELECT parent_id, MAX(version) as max_version
+    FROM questions
+    GROUP BY parent_id
+  )
+  SELECT q.* 
+  FROM questions q
+  JOIN LatestVersions lv ON q.parent_id = lv.parent_id AND q.version = lv.max_version
+  ORDER BY q.display_order
+$$
+LANGUAGE SQL;
