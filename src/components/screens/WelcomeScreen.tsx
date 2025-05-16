@@ -123,9 +123,17 @@ export default function WelcomeScreen({ user, onNext, weekNumber }: WelcomeScree
           initial={{ y: 20, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           transition={{ delay: 0.3 }}
-          className="text-3xl font-bold mb-6 text-blue-600"
+          className="text-3xl font-bold mb-6 flex flex-col items-center gap-2"
         >
-          Welcome back, {user.email}!
+          <span className="flex items-center gap-2">
+            <span className="text-4xl animate-wave">👋</span>
+            <span className="bg-gradient-to-r from-blue-600 via-indigo-500 to-purple-500 bg-clip-text text-transparent">
+              Welcome back,
+            </span>
+          </span>
+          <span className="inline-block px-4 py-1 rounded-full bg-blue-100 text-blue-700 font-semibold shadow-sm text-lg animate-fade-in">
+            {user.email}
+          </span>
         </motion.h1>
         
         <motion.div 
