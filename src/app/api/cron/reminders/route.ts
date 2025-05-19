@@ -2,6 +2,8 @@ import { createClient } from '@/utils/supabase/server';
 import { NextResponse } from 'next/server';
 import { getMostRecentThursdayWeek } from '@/lib/utils/date';
 
+export const maxDuration = 300; // 5 minutes
+
 export async function GET(request: Request) {
   // Authenticate using CRON_SECRET
   const authHeader = request.headers.get('authorization');
