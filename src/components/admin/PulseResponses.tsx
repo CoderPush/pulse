@@ -11,6 +11,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
+import { Loader2 } from 'lucide-react';
 
 interface User {
   email: string;
@@ -53,6 +54,7 @@ export default function PulseResponses({ weekNumber }: PulseResponsesProps) {
   const [responses, setResponses] = useState<Questions | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [exporting, setExporting] = useState(false);
 
   useEffect(() => {
     const fetchResponses = async () => {
@@ -158,6 +160,7 @@ export default function PulseResponses({ weekNumber }: PulseResponsesProps) {
   // CSV Export handler
   const handleExportCSV = async () => {
     try {
+      setExporting(true);
       const res = await fetch(`/api/admin/pulses/${weekNumber}/responses/export`);
       if (!res.ok) throw new Error('Failed to export CSV');
       const blob = await res.blob();
@@ -171,6 +174,8 @@ export default function PulseResponses({ weekNumber }: PulseResponsesProps) {
       window.URL.revokeObjectURL(url);
     } catch {
       alert('Failed to export CSV');
+    } finally {
+      setExporting(false);
     }
   };
 
@@ -181,8 +186,13 @@ export default function PulseResponses({ weekNumber }: PulseResponsesProps) {
           variant="default"
           size="default"
           onClick={handleExportCSV}
+          disabled={exporting}
         >
-          Export CSV
+          {exporting ? (
+            <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Exporting...</>
+          ) : (
+            'Export CSV'
+          )}
         </Button>
       </div>
       <Tabs defaultValue="project" className="w-full">
