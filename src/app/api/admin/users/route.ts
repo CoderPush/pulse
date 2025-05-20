@@ -88,9 +88,9 @@ export async function PATCH(request: Request) {
       );
     }
 
-    const { userId, is_admin } = await request.json();
+    const { userId, is_admin, name } = await request.json();
 
-    if (!userId || typeof is_admin !== 'boolean') {
+    if (!userId || (typeof is_admin !== 'boolean' && typeof name !== 'string')) {
       return NextResponse.json(
         { error: 'Invalid request body' },
         { status: 400 }
@@ -98,16 +98,21 @@ export async function PATCH(request: Request) {
     }
 
     // Don't allow users to remove their own admin status
-    if (userId === user.id && !is_admin) {
+    if (userId === user.id && is_admin === false) {
       return NextResponse.json(
         { error: 'Cannot remove your own admin status' },
         { status: 400 }
       );
     }
 
+    // Build update object
+    const updateData: Record<string, unknown> = {};
+    if (typeof is_admin === 'boolean') updateData.is_admin = is_admin;
+    if (typeof name === 'string') updateData.name = name;
+
     const { error } = await supabase
       .from('users')
-      .update({ is_admin })
+      .update(updateData)
       .eq('id', userId);
 
     if (error) {
