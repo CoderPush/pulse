@@ -26,7 +26,13 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   const supabase = await createClient();
-  const { submission_id, content, parent_id } = await req.json();
+  const body = await req.json();
+  const { submission_id, content, parent_id } = body;
+  
+  // Validate required fields
+  if (!submission_id || !content) {
+    return NextResponse.json({ error: 'Missing required fields: submission_id and content are required' }, { status: 400 });
+  }
 
   // Get the current user
   const { data: { user } } = await supabase.auth.getUser();

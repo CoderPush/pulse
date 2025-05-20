@@ -8,7 +8,7 @@ CREATE TABLE comments (
     submission_id UUID NOT NULL REFERENCES submissions(id) ON DELETE CASCADE,
 
     -- For replies: parent comment (nullable for top-level comments)
-    parent_id UUID REFERENCES comments(id) ON DELETE CASCADE,
+    parent_id UUID REFERENCES comments(id) ON DELETE SET NULL,
 
     -- Who wrote the comment
     author_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,

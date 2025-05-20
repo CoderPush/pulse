@@ -41,6 +41,10 @@ export default function SubmissionDetailsModal({ submission, isOpen, onClose }: 
     setLoadingComments(true);
     try {
       const res = await fetch(`/api/comments?submission_id=${submissionId}`);
+      if (!res.ok) {
+        setComments([]);
+        return;
+      }
       const data = await res.json();
       setComments(data.comments || []);
     } catch {
@@ -55,6 +59,7 @@ export default function SubmissionDetailsModal({ submission, isOpen, onClose }: 
   }, [isOpen, submissionId, fetchComments]);
 
   const handlePostComment = async () => {
+    if (!submissionId) return;
     setPosting(true);
     setPostError(null);
     try {
@@ -67,8 +72,9 @@ export default function SubmissionDetailsModal({ submission, isOpen, onClose }: 
         }),
       });
       if (!res.ok) {
-        const data = await res.json();
-        setPostError(data.error || 'Failed to post comment');
+        let message = `HTTP ${res.status}`;
+        try { message = (await res.json()).error || message; } catch {}
+        setPostError(message);
       } else {
         setComment('');
         fetchComments();
@@ -261,7 +267,7 @@ function getRoleColor(role: string) {
 }
 
 function getInitial(role: string) {
-  return role?.charAt(0).toUpperCase() || '?';
+  return role ? role.charAt(0).toUpperCase() : '?';
 }
 
 function CommentThread({ comments }: { comments: Comment[] }) {
@@ -283,7 +289,9 @@ function CommentThread({ comments }: { comments: Comment[] }) {
                   {new Date(comment.created_at).toLocaleString()}
                 </div>
               </div>
-              <div className="text-sm mb-1">{comment.content}</div>
+              <div className="text-sm mb-1 whitespace-pre-wrap break-words">
+                {comment.content}
+              </div>
               {comment.replies && comment.replies.length > 0 && (
                 <div className="ml-4 border-l pl-2 mt-2">
                   <CommentThread comments={comment.replies!} />
