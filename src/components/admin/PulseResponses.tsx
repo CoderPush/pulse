@@ -10,6 +10,7 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Button } from '@/components/ui/button';
 
 interface User {
   email: string;
@@ -93,8 +94,8 @@ export default function PulseResponses({ weekNumber }: PulseResponsesProps) {
           <TableRow key={index}>
             <TableCell>
               <div>
-                <p className="font-medium">{response.user.name || 'N/A'}</p>
-                <p className="text-sm text-gray-500">{response.user.email}</p>
+                <p className="font-medium">{response.user.email}</p>
+                <p className="text-sm text-gray-500">{response.user.name || 'N/A'}</p>
               </div>
             </TableCell>
             <TableCell>
@@ -154,8 +155,36 @@ export default function PulseResponses({ weekNumber }: PulseResponsesProps) {
     );
   }
 
+  // CSV Export handler
+  const handleExportCSV = async () => {
+    try {
+      const res = await fetch(`/api/admin/pulses/${weekNumber}/responses/export`);
+      if (!res.ok) throw new Error('Failed to export CSV');
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `submissions-week-${weekNumber}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+    } catch {
+      alert('Failed to export CSV');
+    }
+  };
+
   return (
     <div className="space-y-6">
+      <div className="flex justify-end">
+        <Button
+          variant="default"
+          size="default"
+          onClick={handleExportCSV}
+        >
+          Export CSV
+        </Button>
+      </div>
       <Tabs defaultValue="project" className="w-full">
         <TabsList className="w-full justify-start">
           <TabsTrigger value="project">Projects</TabsTrigger>
