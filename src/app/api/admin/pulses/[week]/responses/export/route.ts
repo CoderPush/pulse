@@ -75,7 +75,7 @@ export async function GET(
     ];
 
     // Helper to escape CSV values
-    function escapeCSV(val: any) {
+    function escapeCSV(val: unknown) {
       if (val === null || val === undefined) return '';
       if (typeof val === 'object') return '"' + JSON.stringify(val).replace(/"/g, '""') + '"';
       const str = String(val);

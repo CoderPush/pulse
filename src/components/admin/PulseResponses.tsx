@@ -169,7 +169,7 @@ export default function PulseResponses({ weekNumber }: PulseResponsesProps) {
       a.click();
       a.remove();
       window.URL.revokeObjectURL(url);
-    } catch (err) {
+    } catch {
       alert('Failed to export CSV');
     }
   };
