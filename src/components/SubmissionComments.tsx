@@ -36,6 +36,46 @@ export default function SubmissionComments({ submissionId, currentUserId }: { su
 
   const refreshComments = () => setRefreshFlag(f => f + 1);
 
+  // Optimistically add a reply to the comment tree
+  const addReplyOptimistically = (parentId: string, reply: Comment) => {
+    function addReplyToTree(tree: Comment[]): Comment[] {
+      return tree.map(comment => {
+        if (comment.id === parentId) {
+          return {
+            ...comment,
+            replies: [...(comment.replies || []), reply],
+          };
+        } else if (comment.replies && comment.replies.length > 0) {
+          return {
+            ...comment,
+            replies: addReplyToTree(comment.replies),
+          };
+        }
+        return comment;
+      });
+    }
+    setComments(prev => addReplyToTree(prev));
+  };
+
+  // Remove an optimistic reply (by id)
+  const removeReplyById = (replyId: string) => {
+    function removeReply(tree: Comment[]): Comment[] {
+      return tree.map(comment => {
+        if (comment.replies && comment.replies.length > 0) {
+          return {
+            ...comment,
+            replies: comment.replies.filter(r => r.id !== replyId).map(r => ({
+              ...r,
+              replies: r.replies ? removeReply(r.replies) : [],
+            })),
+          };
+        }
+        return comment;
+      });
+    }
+    setComments(prev => removeReply(prev));
+  };
+
   const handlePostTopLevel = async () => {
     setPostingTopLevel(true);
     setTopLevelError(null);
@@ -95,15 +135,40 @@ export default function SubmissionComments({ submissionId, currentUserId }: { su
         </div>
       </div>
       {loading ? (
-        <div>Loading comments...</div>
+        <div className="flex items-center gap-2">
+          <Loader2 className="animate-spin h-5 w-5 text-blue-500" />
+          <span>Loading comments...</span>
+        </div>
       ) : (
-        <CommentThread comments={buildCommentTree(comments)} submissionId={submissionId} onReplySuccess={refreshComments} currentUserId={currentUserId} />
+        <CommentThread
+          comments={buildCommentTree(comments)}
+          submissionId={submissionId}
+          onReplySuccess={refreshComments}
+          currentUserId={currentUserId}
+          addReplyOptimistically={addReplyOptimistically}
+          removeReplyById={removeReplyById}
+          replaceOptimisticReply={(tempId, realComment) => {
+            setComments(prev => {
+              // Remove the optimistic reply and add the real comment
+              const filtered = prev.filter(c => c.id !== tempId);
+              return [...filtered, realComment];
+            });
+          }}
+        />
       )}
     </div>
   );
 }
 
-function CommentThread({ comments, submissionId, onReplySuccess, currentUserId }: { comments: Comment[]; submissionId: string; onReplySuccess: () => void; currentUserId: string }) {
+function CommentThread({ comments, submissionId, onReplySuccess, currentUserId, addReplyOptimistically, removeReplyById, replaceOptimisticReply }: {
+  comments: Comment[];
+  submissionId: string;
+  onReplySuccess: () => void;
+  currentUserId: string;
+  addReplyOptimistically: (parentId: string, reply: Comment) => void;
+  removeReplyById: (replyId: string) => void;
+  replaceOptimisticReply: (tempId: string, realComment: Comment) => void;
+}) {
   const [replyingTo, setReplyingTo] = useState<string | null>(null);
   const [replyContent, setReplyContent] = useState('');
   const [posting, setPosting] = useState(false);
@@ -112,6 +177,20 @@ function CommentThread({ comments, submissionId, onReplySuccess, currentUserId }
   const handleReply = async (parentId: string) => {
     setPosting(true);
     setError(null);
+    // Create a temporary optimistic reply
+    const tempId = `optimistic-${Date.now()}`;
+    const optimisticReply: Comment = {
+      id: tempId,
+      author_id: currentUserId,
+      author_role: 'user', // or get from context if available
+      content: replyContent,
+      created_at: new Date().toISOString(),
+      parent_id: parentId,
+      replies: [],
+    };
+    addReplyOptimistically(parentId, optimisticReply);
+    setReplyContent('');
+    setReplyingTo(null);
     try {
       const res = await fetch('/api/comments', {
         method: 'POST',
@@ -119,19 +198,23 @@ function CommentThread({ comments, submissionId, onReplySuccess, currentUserId }
         body: JSON.stringify({
           submission_id: submissionId,
           parent_id: parentId,
-          content: replyContent,
+          content: optimisticReply.content,
         }),
       });
       if (!res.ok) {
         const data = await res.json();
         setError(data.error || 'Failed to post reply');
+        removeReplyById(tempId);
       } else {
-        setReplyContent('');
-        setReplyingTo(null);
-        onReplySuccess();
+        // Optionally update the optimistic reply with the real data from the server
+        const data = await res.json();
+        if (data.comment && data.comment.id) {
+          replaceOptimisticReply(tempId, data.comment);
+        }
       }
     } catch {
       setError('Network error');
+      removeReplyById(tempId);
     } finally {
       setPosting(false);
     }
@@ -150,7 +233,7 @@ function CommentThread({ comments, submissionId, onReplySuccess, currentUserId }
   return (
     <ul className="space-y-3">
       {comments.map((comment: Comment) => (
-        <li key={comment.id} className="flex items-start space-x-3">
+        <li key={comment.id} className="flex items-start space-x-3 opacity-100 transition-opacity">
           <Avatar>
             <AvatarFallback className={getRoleColor(comment.author_role)}>
               {getInitial(comment.author_role)}
@@ -232,7 +315,15 @@ function CommentThread({ comments, submissionId, onReplySuccess, currentUserId }
             {/* Render replies recursively */}
             {comment.replies && comment.replies.length > 0 && (
               <div className="ml-8 mt-2 border-l border-muted pl-4">
-                <CommentThread comments={comment.replies!} submissionId={submissionId} onReplySuccess={onReplySuccess} currentUserId={currentUserId} />
+                <CommentThread
+                  comments={comment.replies!}
+                  submissionId={submissionId}
+                  onReplySuccess={onReplySuccess}
+                  currentUserId={currentUserId}
+                  addReplyOptimistically={addReplyOptimistically}
+                  removeReplyById={removeReplyById}
+                  replaceOptimisticReply={replaceOptimisticReply}
+                />
               </div>
             )}
           </div>
