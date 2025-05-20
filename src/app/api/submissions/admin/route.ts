@@ -82,6 +82,7 @@ export async function GET(request: Request) {
 
     // Transform the data to match the expected format
     const transformedSubmissions = submissions.map(submission => ({
+      id: submission.id,
       email: submission.users?.email,
       week_number: submission.week_number,
       status: submission.is_late ? 'Late' : 'On Time',
