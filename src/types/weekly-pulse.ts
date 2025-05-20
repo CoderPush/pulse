@@ -4,6 +4,7 @@ export interface Project {
 }
 
 export interface WeeklyPulseSubmission {
+  id: string;
   email: string;
   week_number: number;
   status: string;

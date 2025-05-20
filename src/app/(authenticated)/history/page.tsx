@@ -12,6 +12,7 @@ import { WeekFilter } from '@/components/WeekFilter'
 import { getMostRecentThursdayWeek } from '@/lib/utils/date'
 import { Calendar, AlertCircle, CalendarX, Star, Book, User, Clock } from 'lucide-react'
 import StreakCard from './StreakCard'
+import SubmissionComments from '@/components/SubmissionComments'
 
 const getCurrentYear = () => new Date().getFullYear();
 const getCurrentWeek = () => getMostRecentThursdayWeek();
@@ -254,6 +255,10 @@ export default async function HistoryPage({
                     </div>
                   )}
                 </div>
+
+                {submission && submission.id && (
+                  <SubmissionComments submissionId={submission.id} currentUserId={user.id} />
+                )}
               </div>
             ) : (
               <Card>
