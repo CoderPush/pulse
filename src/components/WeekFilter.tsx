@@ -22,9 +22,10 @@ export function WeekFilter({ weeks }: WeekFilterProps) {
   
   const currentYear = new Date().getFullYear();
   const currentWeek = getMostRecentThursdayWeek();
-  
+
+  // Use weeks as-is, assume already sorted by parent
   const defaultWeekValue = weeks.find(w => w.week_number === currentWeek && w.year === currentYear)?.value || 
-    (weeks.length > 0 ? weeks[weeks.length - 1].value : '');
+    (weeks.length > 0 ? weeks[0].value : '');
   
   const currentWeekValue = searchParams.get('week') || defaultWeekValue;
 
@@ -40,7 +41,7 @@ export function WeekFilter({ weeks }: WeekFilterProps) {
         <SelectTrigger className="w-full">
           <SelectValue placeholder="Filter by week" />
         </SelectTrigger>
-        <SelectContent>
+        <SelectContent className="max-h-60 overflow-y-auto">
           {weeks.map(option => (
             <SelectItem
               key={option.value}
