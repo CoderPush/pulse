@@ -98,7 +98,11 @@ export default async function HistoryPage({
       label: `Week ${w.week_number}, ${w.year}`,
       week_number: w.week_number,
       year: w.year,
-    }));
+    }))
+    .sort((a, b) => {
+      if (a.year !== b.year) return b.year - a.year;
+      return b.week_number - a.week_number;
+    });
 
   // Determine selected week
   const defaultWeekValue = weekOptions.find(w => w.week_number === currentWeek && w.year === currentYear)?.value || 
