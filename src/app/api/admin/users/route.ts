@@ -89,8 +89,13 @@ export async function PATCH(request: Request) {
     }
 
     const { userId, is_admin, name } = await request.json();
+    const trimmedName = typeof name === 'string' ? name.trim() : undefined;
 
-    if (!userId || (typeof is_admin !== 'boolean' && typeof name !== 'string')) {
+    if (
+      !userId ||
+      (typeof is_admin !== 'boolean' && typeof trimmedName !== 'string') ||
+      trimmedName === ''
+    ) {
       return NextResponse.json(
         { error: 'Invalid request body' },
         { status: 400 }
@@ -108,7 +113,7 @@ export async function PATCH(request: Request) {
     // Build update object
     const updateData: Record<string, unknown> = {};
     if (typeof is_admin === 'boolean') updateData.is_admin = is_admin;
-    if (typeof name === 'string') updateData.name = name;
+    if (typeof trimmedName === 'string' && trimmedName !== '') updateData.name = trimmedName;
 
     const { error } = await supabase
       .from('users')

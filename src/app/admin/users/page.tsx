@@ -95,7 +95,8 @@ export default function UsersPage() {
   };
 
   const handleNameSave = async (user: User) => {
-    if (editingName.trim() === user.name) {
+    const newName = editingName.trim();
+    if (newName === '' || newName === user.name) {
       setEditingUserId(null);
       return;
     }
@@ -104,7 +105,7 @@ export default function UsersPage() {
       const response = await fetch('/api/admin/users', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId: user.id, name: editingName.trim() }),
+        body: JSON.stringify({ userId: user.id, name: newName }),
       });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || 'Failed to update name');
@@ -209,16 +210,17 @@ export default function UsersPage() {
                       {editingUserId === user.id ? (
                         <div className="flex items-center gap-2">
                           <input
+                            id={`edit-user-name-${user.id}`}
+                            name={`edit-user-name-${user.id}`}
                             type="text"
                             value={editingName}
                             onChange={handleNameChange}
-                            onBlur={() => handleNameSave(user)}
                             onKeyDown={(e) => handleNameInputKeyDown(e, user)}
                             className="border rounded px-2 py-1 w-full text-sm focus:ring-2 focus:ring-blue-500"
                             autoFocus
                             disabled={savingName}
                             aria-label="Edit user name"
-                            autoComplete="name"
+                            autoComplete="off"
                           />
                           <Button
                             size="icon"
