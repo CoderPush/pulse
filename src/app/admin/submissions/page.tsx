@@ -84,7 +84,7 @@ function SubmissionsFilterAndTable() {
       }
     }
     fetchWeeks();
-  }, [searchParams]);
+  }, []);
 
   // Update selected week if query param changes
   useEffect(() => {
@@ -92,9 +92,8 @@ function SubmissionsFilterAndTable() {
     const weekParam = searchParams.get('week');
     const yearParam = searchParams.get('year');
     if (weekParam && yearParam) {
-      const [year, week] = [Number(yearParam), Number(weekParam)];
-      setSelectedWeek(week);
-      setSelectedYear(year);
+      setSelectedWeek(Number(weekParam));
+      setSelectedYear(Number(yearParam));
     }
   }, [searchParams, weeks]);
 
@@ -115,7 +114,7 @@ function SubmissionsFilterAndTable() {
   const fetchSubmissions = async (params: URLSearchParams) => {
     try {
       setLoading(true);
-      const response = await fetch(`/api/submissions/admin?${params}`);
+      const response = await fetch(`/api/admin/submissions?${params}`);
       const data = await response.json();
       if (!response.ok) {
         throw new Error(data.error || 'Failed to fetch submissions');

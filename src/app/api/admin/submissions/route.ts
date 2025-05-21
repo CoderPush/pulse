@@ -31,12 +31,16 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
     const email = searchParams.get('email');
     let week = searchParams.get('week');
-    const yearParam = searchParams.get('year');
-    const year = yearParam ? Number(yearParam) : new Date().getFullYear();
+    const yearStr = searchParams.get('year');
 
-    // Always filter by week: if not provided, use getMostRecentThursdayWeek
-    if (!week || week === 'all') {
-      week = String(getMostRecentThursdayWeek());
+    // derive defaults first
+    if (!week || week === 'all') week = String(getMostRecentThursdayWeek());
+    const year = yearStr ? Number(yearStr) : new Date().getFullYear();
+
+    // basic sanity checks
+    const weekNum = Number(week);
+    if (!Number.isInteger(weekNum) || weekNum < 1 || weekNum > 53 || !Number.isInteger(year)) {
+      return NextResponse.json({ error: 'Invalid week/year query parameter' }, { status: 400 });
     }
 
     const status = searchParams.get('status');
@@ -73,7 +77,7 @@ export async function GET(request: Request) {
       query = query.in('user_id', userIds);
     }
     // Always filter by week and year
-    query = query.eq('week_number', Number(week)).eq('year', year);
+    query = query.eq('week_number', weekNum).eq('year', year);
     if (status && status !== 'all') {
       query = query.eq('status', status);
     }
