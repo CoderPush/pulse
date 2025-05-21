@@ -1,5 +1,6 @@
 import { createClient } from '@/utils/supabase/server';
 import { NextResponse } from 'next/server';
+import { getMostRecentThursdayWeek } from '@/lib/utils/date';
 
 export async function GET(request: Request) {
   try {
@@ -29,7 +30,19 @@ export async function GET(request: Request) {
 
     const { searchParams } = new URL(request.url);
     const email = searchParams.get('email');
-    const week = searchParams.get('week');
+    let week = searchParams.get('week');
+    const yearStr = searchParams.get('year');
+
+    // derive defaults first
+    if (!week || week === 'all') week = String(getMostRecentThursdayWeek());
+    const year = yearStr ? Number(yearStr) : new Date().getFullYear();
+
+    // basic sanity checks
+    const weekNum = Number(week);
+    if (!Number.isInteger(weekNum) || weekNum < 1 || weekNum > 53 || !Number.isInteger(year)) {
+      return NextResponse.json({ error: 'Invalid week/year query parameter' }, { status: 400 });
+    }
+
     const status = searchParams.get('status');
 
     // Build the query
@@ -63,9 +76,8 @@ export async function GET(request: Request) {
       const userIds = usersData.map(user => user.id);
       query = query.in('user_id', userIds);
     }
-    if (week && week !== 'all') {
-      query = query.eq('week_number', Number(week));
-    }
+    // Always filter by week and year
+    query = query.eq('week_number', weekNum).eq('year', year);
     if (status && status !== 'all') {
       query = query.eq('status', status);
     }

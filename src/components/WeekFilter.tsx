@@ -27,11 +27,15 @@ export function WeekFilter({ weeks }: WeekFilterProps) {
   const defaultWeekValue = weeks.find(w => w.week_number === currentWeek && w.year === currentYear)?.value || 
     (weeks.length > 0 ? weeks[0].value : '');
   
-  const currentWeekValue = searchParams.get('week') || defaultWeekValue;
+  const weekParam = searchParams.get('week');
+  const yearParam = searchParams.get('year');
+  const currentWeekValue = (yearParam && weekParam) ? `${yearParam}-${weekParam}` : defaultWeekValue;
 
   const handleWeekChange = (value: string) => {
     const params = new URLSearchParams(searchParams);
-    params.set('week', value);
+    const [year, week] = value.split('-');
+    params.set('year', year);
+    params.set('week', week);
     router.push(`${pathname}?${params.toString()}`);
   };
 

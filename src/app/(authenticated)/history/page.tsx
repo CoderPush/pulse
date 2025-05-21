@@ -40,10 +40,15 @@ function calculateStreak(
   return streak;
 }
 
+interface HistoryPageParams {
+  week?: string;
+  year?: string;
+}
+
 export default async function HistoryPage({ 
   searchParams 
 }: { 
-  searchParams: Promise<{ week?: string }> 
+  searchParams: Promise<HistoryPageParams> 
 }) {
   const params = await searchParams;
   const supabase = await createClient()
@@ -108,8 +113,8 @@ export default async function HistoryPage({
   // Determine selected week
   const defaultWeekValue = weekOptions.find(w => w.week_number === currentWeek && w.year === currentYear)?.value || 
     (weekOptions.length > 0 ? weekOptions[weekOptions.length - 1].value : '');
-  const selectedWeekParam = params.week || defaultWeekValue;
-  const [selectedYear, selectedWeek] = selectedWeekParam.split('-').map(Number);
+  const selectedWeek = params.week ? Number(params.week) : Number((defaultWeekValue || '').split('-')[1]);
+  const selectedYear = params.year ? Number(params.year) : Number((defaultWeekValue || '').split('-')[0]);
 
   // Find the week and submission
   const week = weekOptions.find(w => w.year === selectedYear && w.week_number === selectedWeek);

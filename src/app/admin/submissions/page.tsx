@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import {
@@ -15,63 +15,139 @@ import { FileText, Search } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import SubmissionDetailsModal from '@/components/admin/SubmissionDetailsModal';
 import { WeeklyPulseSubmission } from '@/types/weekly-pulse';
+import { WeekFilter } from '@/components/WeekFilter';
+import { useSearchParams } from 'next/navigation';
+import { getMostRecentThursdayWeek } from '@/lib/utils/date';
+
+// Define a proper Week type
+interface WeekOption {
+  value: string;
+  label: string;
+  week_number: number;
+  year: number;
+}
 
 export default function SubmissionsPage() {
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <h1 className="text-3xl font-bold">Submissions</h1>
+      </div>
+      <Suspense fallback={<div className="py-8 text-center">Loading submissions...</div>}>
+        <SubmissionsFilterAndTable />
+      </Suspense>
+    </div>
+  );
+}
+
+function SubmissionsFilterAndTable() {
   const [submissions, setSubmissions] = useState<WeeklyPulseSubmission[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedSubmission, setSelectedSubmission] = useState<WeeklyPulseSubmission | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [weeks, setWeeks] = useState<WeekOption[]>([]);
+  const [selectedWeek, setSelectedWeek] = useState<number | null>(null);
+  const [selectedYear, setSelectedYear] = useState<number | null>(null);
+  const searchParams = useSearchParams();
 
-  const fetchSubmissions = async (search?: string) => {
+  // Extract week and year params for useEffect dependencies
+  const weekParam = searchParams.get('week');
+  const yearParam = searchParams.get('year');
+
+  // Fetch available weeks for the selector (run only once on mount)
+  useEffect(() => {
+    async function fetchWeeks() {
+      const res = await fetch('/api/admin/pulses');
+      const data = await res.json();
+      if (data.weeks && data.weeks.length > 0) {
+        const weekOptions: WeekOption[] = data.weeks.map((w: WeekOption) => ({
+          value: `${w.year}-${w.week_number}`,
+          label: `Week ${w.week_number} - ${w.year}`,
+          week_number: w.week_number,
+          year: w.year,
+        }));
+        setWeeks(weekOptions);
+        // Set default week from query or getMostRecentThursdayWeek
+        let defaultWeek = null;
+        if (weekParam && yearParam) {
+          const [year, week] = [Number(yearParam), Number(weekParam)];
+          const found = data.weeks.find((w: { week_number: number; year: number }) => w.week_number === week && w.year === year);
+          if (found) defaultWeek = found;
+        } else {
+          // Use getMostRecentThursdayWeek and current year
+          const currentWeek = getMostRecentThursdayWeek();
+          const currentYear = new Date().getFullYear();
+          defaultWeek = data.weeks.find((w: { week_number: number; year: number }) => w.week_number === currentWeek && w.year === currentYear) || data.weeks[0];
+        }
+        setSelectedWeek(defaultWeek.week_number);
+        setSelectedYear(defaultWeek.year);
+      }
+    }
+    fetchWeeks();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Only run once on mount
+
+  // Update selected week if query param changes
+  useEffect(() => {
+    if (!weeks.length) return;
+    if (weekParam && yearParam) {
+      setSelectedWeek(Number(weekParam));
+      setSelectedYear(Number(yearParam));
+    }
+  }, [weekParam, yearParam, weeks]);
+
+  // Fetch submissions for selected week and search query
+  useEffect(() => {
+    const debounceTimer = setTimeout(() => {
+      const params = new URLSearchParams();
+      if (searchQuery) params.append('email', searchQuery);
+      if (selectedWeek && selectedYear) {
+        params.append('week', String(selectedWeek));
+        params.append('year', String(selectedYear));
+      }
+      fetchSubmissions(params);
+    }, 300);
+    return () => clearTimeout(debounceTimer);
+  }, [searchQuery, selectedWeek, selectedYear]);
+
+  const fetchSubmissions = async (params: URLSearchParams) => {
     try {
       setLoading(true);
-      const params = new URLSearchParams();
-      if (search) params.append('email', search);
-      
-      const response = await fetch(`/api/submissions/admin?${params}`);
+      const response = await fetch(`/api/admin/submissions?${params}`);
       const data = await response.json();
-
       if (!response.ok) {
         throw new Error(data.error || 'Failed to fetch submissions');
       }
-
       setSubmissions(data.data);
       setError(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred');
+      setSubmissions([]);
       console.error('Error fetching submissions:', err);
     } finally {
       setLoading(false);
     }
   };
 
-  useEffect(() => {
-    const debounceTimer = setTimeout(() => {
-      fetchSubmissions(searchQuery);
-    }, 300);
-
-    return () => clearTimeout(debounceTimer);
-  }, [searchQuery]);
+  // Prepare WeekFilter options
+  const weekOptions = weeks;
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold">Submissions</h1>
-        <div className="flex items-center gap-2">
-          <div className="relative">
-            <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Search submissions..."
-              className="pl-8"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-            />
-          </div>
+    <>
+      <div className="flex justify-between gap-4 w-full max-w-xl ml-auto">
+        <WeekFilter weeks={weekOptions} />
+        <div className="relative flex-1">
+          <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Search submissions..."
+            className="pl-8 w-full"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
         </div>
       </div>
-
       <Card>
         <CardHeader>
           <CardTitle>All Submissions</CardTitle>
@@ -95,7 +171,7 @@ export default function SubmissionsPage() {
                 <TableRow>
                   <TableCell colSpan={8} className="text-center">
                     <div className="flex flex-col items-center justify-center py-8 text-muted-foreground">
-                      <FileText className="h-8 w-8" />
+                      <span className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mb-2" role="status" aria-label="Loading" />
                       <p className="mt-2">Loading submissions...</p>
                     </div>
                   </TableCell>
@@ -109,7 +185,10 @@ export default function SubmissionsPage() {
               ) : submissions.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={8} className="text-center text-muted-foreground">
-                    No submissions found
+                    <div className="flex flex-col items-center justify-center py-8">
+                      <FileText className="h-8 w-8 mb-2" />
+                      <p>No submissions found</p>
+                    </div>
                   </TableCell>
                 </TableRow>
               ) : (
@@ -151,7 +230,6 @@ export default function SubmissionsPage() {
           </Table>
         </CardContent>
       </Card>
-
       {selectedSubmission && (
         <SubmissionDetailsModal
           submission={selectedSubmission}
@@ -162,6 +240,6 @@ export default function SubmissionsPage() {
           }}
         />
       )}
-    </div>
+    </>
   );
 } 
