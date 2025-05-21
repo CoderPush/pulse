@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import {
@@ -28,6 +28,19 @@ interface WeekOption {
 }
 
 export default function SubmissionsPage() {
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <h1 className="text-3xl font-bold">Submissions</h1>
+      </div>
+      <Suspense fallback={<div className="py-8 text-center">Loading submissions...</div>}>
+        <SubmissionsFilterAndTable />
+      </Suspense>
+    </div>
+  );
+}
+
+function SubmissionsFilterAndTable() {
   const [submissions, setSubmissions] = useState<WeeklyPulseSubmission[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -77,8 +90,9 @@ export default function SubmissionsPage() {
   useEffect(() => {
     if (!weeks.length) return;
     const weekParam = searchParams.get('week');
-    if (weekParam) {
-      const [year, week] = weekParam.split('-').map(Number);
+    const yearParam = searchParams.get('year');
+    if (weekParam && yearParam) {
+      const [year, week] = [Number(yearParam), Number(weekParam)];
       setSelectedWeek(week);
       setSelectedYear(year);
     }
@@ -121,10 +135,7 @@ export default function SubmissionsPage() {
   const weekOptions = weeks;
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold">Submissions</h1>
-      </div>
+    <>
       <div className="flex justify-between gap-4 w-full max-w-xl ml-auto">
         <WeekFilter weeks={weekOptions} />
         <div className="relative flex-1">
@@ -139,7 +150,7 @@ export default function SubmissionsPage() {
       </div>
       <Card>
         <CardHeader>
-          <CardTitle>Submissions</CardTitle>
+          <CardTitle>All Submissions</CardTitle>
         </CardHeader>
         <CardContent>
           <Table>
@@ -229,6 +240,6 @@ export default function SubmissionsPage() {
           }}
         />
       )}
-    </div>
+    </>
   );
 } 
