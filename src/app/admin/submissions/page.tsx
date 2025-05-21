@@ -52,7 +52,11 @@ function SubmissionsFilterAndTable() {
   const [selectedYear, setSelectedYear] = useState<number | null>(null);
   const searchParams = useSearchParams();
 
-  // Fetch available weeks for the selector
+  // Extract week and year params for useEffect dependencies
+  const weekParam = searchParams.get('week');
+  const yearParam = searchParams.get('year');
+
+  // Fetch available weeks for the selector (run only once on mount)
   useEffect(() => {
     async function fetchWeeks() {
       const res = await fetch('/api/admin/pulses');
@@ -66,8 +70,6 @@ function SubmissionsFilterAndTable() {
         }));
         setWeeks(weekOptions);
         // Set default week from query or getMostRecentThursdayWeek
-        const weekParam = searchParams.get('week');
-        const yearParam = searchParams.get('year');
         let defaultWeek = null;
         if (weekParam && yearParam) {
           const [year, week] = [Number(yearParam), Number(weekParam)];
@@ -84,18 +86,17 @@ function SubmissionsFilterAndTable() {
       }
     }
     fetchWeeks();
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Only run once on mount
 
   // Update selected week if query param changes
   useEffect(() => {
     if (!weeks.length) return;
-    const weekParam = searchParams.get('week');
-    const yearParam = searchParams.get('year');
     if (weekParam && yearParam) {
       setSelectedWeek(Number(weekParam));
       setSelectedYear(Number(yearParam));
     }
-  }, [searchParams, weeks]);
+  }, [weekParam, yearParam, weeks]);
 
   // Fetch submissions for selected week and search query
   useEffect(() => {
