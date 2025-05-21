@@ -63,7 +63,7 @@ export async function POST(req: NextRequest) {
     if (userData && userData.email) {
       const week = submissionData.week_number;
       const year = submissionData.year;
-      const link = `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/history?week=${year}-${week}`;
+      const link = `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/history?week=${week}&year=${year}`;
       const subject = '🌟 New Feedback on Your Weekly Pulse Submission!';
       const html = `
         <div style="font-family: sans-serif;">
