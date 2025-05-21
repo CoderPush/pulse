@@ -100,13 +100,12 @@ function SubmissionsFilterAndTable() {
 
   // Fetch submissions for selected week and search query
   useEffect(() => {
+    if (!selectedWeek || !selectedYear) return; // Guard: only fetch if both are set
     const debounceTimer = setTimeout(() => {
       const params = new URLSearchParams();
       if (searchQuery) params.append('email', searchQuery);
-      if (selectedWeek && selectedYear) {
-        params.append('week', String(selectedWeek));
-        params.append('year', String(selectedYear));
-      }
+      params.append('week', String(selectedWeek));
+      params.append('year', String(selectedYear));
       fetchSubmissions(params);
     }, 300);
     return () => clearTimeout(debounceTimer);
