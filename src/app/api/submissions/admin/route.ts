@@ -1,5 +1,6 @@
 import { createClient } from '@/utils/supabase/server';
 import { NextResponse } from 'next/server';
+import { getMostRecentThursdayWeek } from '@/lib/utils/date';
 
 export async function GET(request: Request) {
   try {
@@ -29,7 +30,15 @@ export async function GET(request: Request) {
 
     const { searchParams } = new URL(request.url);
     const email = searchParams.get('email');
-    const week = searchParams.get('week');
+    let week = searchParams.get('week');
+    const yearParam = searchParams.get('year');
+    const year = yearParam ? Number(yearParam) : new Date().getFullYear();
+
+    // Always filter by week: if not provided, use getMostRecentThursdayWeek
+    if (!week || week === 'all') {
+      week = String(getMostRecentThursdayWeek());
+    }
+
     const status = searchParams.get('status');
 
     // Build the query
@@ -63,9 +72,8 @@ export async function GET(request: Request) {
       const userIds = usersData.map(user => user.id);
       query = query.in('user_id', userIds);
     }
-    if (week && week !== 'all') {
-      query = query.eq('week_number', Number(week));
-    }
+    // Always filter by week and year
+    query = query.eq('week_number', Number(week)).eq('year', year);
     if (status && status !== 'all') {
       query = query.eq('status', status);
     }
