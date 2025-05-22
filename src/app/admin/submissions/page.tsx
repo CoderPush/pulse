@@ -159,6 +159,7 @@ function SubmissionsFilterAndTable() {
                 <TableHead>Week</TableHead>
                 <TableHead>Project</TableHead>
                 <TableHead>Hours</TableHead>
+                <TableHead>Additional Projects</TableHead>
                 <TableHead>Manager</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Submitted At</TableHead>
@@ -194,9 +195,25 @@ function SubmissionsFilterAndTable() {
                 submissions.map((submission, index) => (
                   <TableRow key={index}>
                     <TableCell>{submission.email}</TableCell>
-                    <TableCell>Week {submission.week_number}</TableCell>
+                    <TableCell>{submission.week_number}</TableCell>
                     <TableCell>{submission.primary_project.name}</TableCell>
-                    <TableCell>{submission.primary_project.hours}</TableCell>
+                    <TableCell>{submission.primary_project.hours}h</TableCell>
+                    <TableCell>
+                      {submission.additional_projects && submission.additional_projects.length > 0 ? (
+                        <div className="flex flex-col gap-1">
+                          {submission.additional_projects.map((proj, idx) => (
+                            <span
+                              key={idx}
+                              className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium w-fit"
+                            >
+                              {proj.name} <span className="ml-1 px-2 py-0.5 rounded-full bg-gray-200 text-gray-800 text-xs font-semibold">{proj.hours}h</span>
+                            </span>
+                          ))}
+                        </div>
+                      ) : (
+                        '-'
+                      )}
+                    </TableCell>
                     <TableCell>{submission.manager}</TableCell>
                     <TableCell>
                       <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
@@ -219,7 +236,7 @@ function SubmissionsFilterAndTable() {
                           setIsModalOpen(true);
                         }}
                       >
-                        View Details
+                        Add Comment
                       </Button>
                     </TableCell>
                   </TableRow>
