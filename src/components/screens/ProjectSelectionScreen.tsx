@@ -16,6 +16,7 @@ export default function ProjectSelectionScreen({ onNext, formData, setFormData, 
   const searchInputRef = useRef<HTMLInputElement>(null);
   const selectedProjectRef = useRef<HTMLButtonElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const pendingOtherProjectRef = useRef<string | null>(null);
 
   const filteredProjects = useMemo(() => {
     return projects.filter(project =>
@@ -100,10 +101,20 @@ export default function ProjectSelectionScreen({ onNext, formData, setFormData, 
 
   const handleOtherProjectSubmit = () => {
     if (otherProject.trim()) {
+      pendingOtherProjectRef.current = otherProject.trim();
       selectProject(otherProject.trim());
-      onNext();
     }
   };
+
+  useEffect(() => {
+    if (
+      pendingOtherProjectRef.current &&
+      formData.primaryProject.name === pendingOtherProjectRef.current
+    ) {
+      onNext();
+      pendingOtherProjectRef.current = null;
+    }
+  }, [formData.primaryProject.name, onNext]);
 
   const handleOtherClick = () => {
     setShowOtherInput(true);
