@@ -45,7 +45,9 @@ export default function WeeklyPulseForm({
     milestones: '',
     otherFeedback: '',
     hoursReportingImpact: '',
-    formCompletionTime: 0
+    formCompletionTime: 0,
+    startTime: undefined,
+    endTime: undefined
   });
   const [questions, setQuestions] = useState<Question[] | null>(null);
   const [loadingQuestions, setLoadingQuestions] = useState(true);
@@ -70,14 +72,14 @@ export default function WeeklyPulseForm({
   
   const handleNext = () => {
     setError(null); // Clear any previous errors
-    
-    // Validate current screen before proceeding
+    if (currentScreen === 0 && !formData.startTime) {
+      setFormData((prev) => ({ ...prev, startTime: new Date().toISOString() }));
+    }
     const validationError = validateCurrentScreen();
     if (validationError) {
       setError(validationError);
       return;
     }
-
     if (currentScreen < totalScreens - 1) {
       setCurrentScreen(currentScreen + 1);
       if (currentScreen > 0 && currentScreen < totalScreens - 2) {

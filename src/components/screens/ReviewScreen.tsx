@@ -11,6 +11,12 @@ export default function ReviewScreen({ onBack, formData, onNext, questions = [] 
       setIsSubmitting(true);
       setError(null);
 
+      // Set endTime just before sending
+      const submissionData = {
+        ...formData,
+        endTime: new Date().toISOString(),
+      };
+
       // Send raw form data to backend
       const response = await fetch('/api/submissions', {
         method: 'POST',
@@ -18,7 +24,7 @@ export default function ReviewScreen({ onBack, formData, onNext, questions = [] 
           'Content-Type': 'application/json',
         },
         credentials: 'include',
-        body: JSON.stringify(formData),
+        body: JSON.stringify(submissionData),
       });
 
       const data = await response.json();

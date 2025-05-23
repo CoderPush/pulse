@@ -54,6 +54,17 @@ export async function POST(request: Request) {
     // Check if submission is late
     const isLate = currentDate > new Date(week.submission_end);
 
+    // Calculate form completion time robustly
+    let formCompletionTime = null;
+    if (formData.startTime && formData.endTime) {
+      const start = new Date(formData.startTime);
+      const end = new Date(formData.endTime);
+      const diffMs = end.getTime() - start.getTime();
+      formCompletionTime = Math.max(1, Math.round(diffMs / 60000));
+    } else if (formData.formCompletionTime) {
+      formCompletionTime = formData.formCompletionTime;
+    }
+
     // Format data for database
     const submissionData = {
       user_id: userId, // Use userId from form data
@@ -71,7 +82,7 @@ export async function POST(request: Request) {
       milestones: formData.milestones || null,
       other_feedback: formData.otherFeedback || null,
       hours_reporting_impact: formData.hoursReportingImpact || null,
-      form_completion_time: formData.formCompletionTime || null,
+      form_completion_time: formCompletionTime,
       status: 'submitted',
       is_late: isLate
     };

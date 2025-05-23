@@ -137,7 +137,6 @@ export default function SubmissionComments({ submissionId, currentUserId }: { su
       {loading ? (
         <div className="flex items-center gap-2">
           <Loader2 className="animate-spin h-5 w-5 text-blue-500" />
-          <span>Loading comments...</span>
         </div>
       ) : (
         <CommentThread
