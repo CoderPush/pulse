@@ -63,18 +63,31 @@ export default function AdditionalProjectsScreen({ onNext, onBack, formData, set
     }
   };
 
+  // Wrap onNext to auto-add pending project or other input before moving on
+  const handleNextWithAutoAdd = () => {
+    // If a project is selected and hours entered but not added
+    if (selectedProject && projectHours && !formData.additionalProjects.some(p => p.project === selectedProject)) {
+      addAdditionalProject(selectedProject, parseInt(projectHours, 10));
+    }
+    // If 'Other' input is filled but not added
+    if (showOtherInput && otherProject.trim() && hoursInput && !formData.additionalProjects.some(p => p.project === otherProject.trim())) {
+      addAdditionalProject(otherProject.trim(), parseInt(hoursInput, 10));
+    }
+    onNext();
+  };
+
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.shiftKey && event.key === 'Enter') {
         event.preventDefault();
-        onNext(); // Always allow next as this screen is optional
+        handleNextWithAutoAdd();
       }
     };
     document.addEventListener('keydown', handleKeyDown);
     return () => {
       document.removeEventListener('keydown', handleKeyDown);
     };
-  }, [onNext]);
+  }, [onNext, selectedProject, projectHours, showOtherInput, otherProject, hoursInput, formData.additionalProjects]);
 
   return (
     <div className="flex flex-col h-full w-full max-w-lg mx-auto px-4 pt-8 pb-20">
@@ -94,7 +107,7 @@ export default function AdditionalProjectsScreen({ onNext, onBack, formData, set
           )}
         </div>
         <button
-          onClick={onNext} // Skip is equivalent to Next here
+          onClick={handleNextWithAutoAdd} // Skip is equivalent to Next here
           className="text-blue-600 hover:text-blue-700 font-medium transition-colors px-4 py-2 rounded-lg hover:bg-blue-50"
         >
           Skip
@@ -285,7 +298,7 @@ export default function AdditionalProjectsScreen({ onNext, onBack, formData, set
             <ArrowLeft size={20} /> Back
           </button>
           <button 
-            onClick={onNext}
+            onClick={handleNextWithAutoAdd}
             className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white px-6 py-3.5 rounded-xl font-semibold flex items-center justify-center gap-2 w-2/3 transition-all duration-200 transform hover:-translate-y-0.5 disabled:opacity-60 disabled:cursor-not-allowed shadow-md hover:shadow-lg"
             aria-label="Next step, or press Shift + Enter"
           >
