@@ -45,6 +45,8 @@ export interface WeeklyPulseFormData {
   otherFeedback: string;
   hoursReportingImpact: string;
   formCompletionTime: number;
+  startTime?: string;
+  endTime?: string;
 }
 
 export interface ScreenProps {

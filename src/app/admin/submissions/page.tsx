@@ -11,13 +11,14 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { FileText, Search } from 'lucide-react';
+import { FileText, Search, Clock, Eye, MessageCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import SubmissionDetailsModal from '@/components/admin/SubmissionDetailsModal';
 import { WeeklyPulseSubmission } from '@/types/weekly-pulse';
 import { WeekFilter } from '@/components/WeekFilter';
 import { useSearchParams } from 'next/navigation';
 import { getMostRecentThursdayWeek } from '@/lib/utils/date';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 // Define a proper Week type
 interface WeekOption {
@@ -152,98 +153,132 @@ function SubmissionsFilterAndTable() {
           <CardTitle>All Submissions</CardTitle>
         </CardHeader>
         <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>User</TableHead>
-                <TableHead>Week</TableHead>
-                <TableHead>Project</TableHead>
-                <TableHead>Hours</TableHead>
-                <TableHead>Additional Projects</TableHead>
-                <TableHead>Manager</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Submitted At</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {loading ? (
+          <TooltipProvider>
+            <Table>
+              <TableHeader>
                 <TableRow>
-                  <TableCell colSpan={8} className="text-center">
-                    <div className="flex flex-col items-center justify-center py-8 text-muted-foreground">
-                      <span className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mb-2" role="status" aria-label="Loading" />
-                      <p className="mt-2">Loading submissions...</p>
-                    </div>
-                  </TableCell>
+                  <TableHead>User</TableHead>
+                  <TableHead>Week</TableHead>
+                  <TableHead>Project</TableHead>
+                  <TableHead>Hours</TableHead>
+                  <TableHead>Additional Projects</TableHead>
+                  <TableHead>Manager</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Submitted At</TableHead>
+                  <TableHead>
+                    <span className="inline-flex items-center gap-1">
+                      <Clock className="w-4 h-4 mr-1 inline-block" /> Time
+                    </span>
+                  </TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
-              ) : error ? (
-                <TableRow>
-                  <TableCell colSpan={8} className="text-center text-red-500">
-                    {error}
-                  </TableCell>
-                </TableRow>
-              ) : submissions.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={8} className="text-center text-muted-foreground">
-                    <div className="flex flex-col items-center justify-center py-8">
-                      <FileText className="h-8 w-8 mb-2" />
-                      <p>No submissions found</p>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ) : (
-                submissions.map((submission, index) => (
-                  <TableRow key={index}>
-                    <TableCell>{submission.email}</TableCell>
-                    <TableCell>{submission.week_number}</TableCell>
-                    <TableCell>{submission.primary_project.name}</TableCell>
-                    <TableCell>{submission.primary_project.hours}h</TableCell>
-                    <TableCell>
-                      {submission.additional_projects && submission.additional_projects.length > 0 ? (
-                        <div className="flex flex-col gap-1">
-                          {submission.additional_projects.map((proj, idx) => (
-                            <span
-                              key={idx}
-                              className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium w-fit"
-                            >
-                              {proj.name} <span className="ml-1 px-2 py-0.5 rounded-full bg-gray-200 text-gray-800 text-xs font-semibold">{proj.hours}h</span>
-                            </span>
-                          ))}
-                        </div>
-                      ) : (
-                        '-'
-                      )}
-                    </TableCell>
-                    <TableCell>{submission.manager}</TableCell>
-                    <TableCell>
-                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                        submission.status === 'On Time' ? 'bg-green-100 text-green-800' :
-                        submission.status === 'Late' ? 'bg-red-100 text-red-800' :
-                        'bg-gray-100 text-gray-800'
-                      }`}>
-                        {submission.status}
-                      </span>
-                    </TableCell>
-                    <TableCell>
-                      {new Date(submission.submission_at).toLocaleDateString()}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => {
-                          setSelectedSubmission(submission);
-                          setIsModalOpen(true);
-                        }}
-                      >
-                        Add Comment
-                      </Button>
+              </TableHeader>
+              <TableBody>
+                {loading ? (
+                  <TableRow>
+                    <TableCell colSpan={8} className="text-center">
+                      <div className="flex flex-col items-center justify-center py-8 text-muted-foreground">
+                        <span className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mb-2" role="status" aria-label="Loading" />
+                        <p className="mt-2">Loading submissions...</p>
+                      </div>
                     </TableCell>
                   </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
+                ) : error ? (
+                  <TableRow>
+                    <TableCell colSpan={8} className="text-center text-red-500">
+                      {error}
+                    </TableCell>
+                  </TableRow>
+                ) : submissions.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={8} className="text-center text-muted-foreground">
+                      <div className="flex flex-col items-center justify-center py-8">
+                        <FileText className="h-8 w-8 mb-2" />
+                        <p>No submissions found</p>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  submissions.map((submission, index) => (
+                    <TableRow key={index}>
+                      <TableCell>{submission.email}</TableCell>
+                      <TableCell>{submission.week_number}</TableCell>
+                      <TableCell>{submission.primary_project.name}</TableCell>
+                      <TableCell>{submission.primary_project.hours}h</TableCell>
+                      <TableCell>
+                        {submission.additional_projects && submission.additional_projects.length > 0 ? (
+                          <div className="flex flex-col gap-1">
+                            {submission.additional_projects.map((proj, idx) => (
+                              <span
+                                key={idx}
+                                className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium w-fit"
+                              >
+                                {proj.name} <span className="ml-1 px-2 py-0.5 rounded-full bg-gray-200 text-gray-800 text-xs font-semibold">{proj.hours}h</span>
+                              </span>
+                            ))}
+                          </div>
+                        ) : (
+                          '-'
+                        )}
+                      </TableCell>
+                      <TableCell>{submission.manager}</TableCell>
+                      <TableCell>
+                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                          submission.status === 'On Time' ? 'bg-green-100 text-green-800' :
+                          submission.status === 'Late' ? 'bg-red-100 text-red-800' :
+                          'bg-gray-100 text-gray-800'
+                        }`}>
+                          {submission.status}
+                        </span>
+                      </TableCell>
+                      <TableCell>
+                        {new Date(submission.submission_at).toLocaleDateString()}
+                      </TableCell>
+                      <TableCell>
+                        <span className="inline-flex items-center gap-1">
+                          {submission.form_completion_time ? `${submission.form_completion_time} min` : '-'}
+                        </span>
+                      </TableCell>
+                      <TableCell className="text-right flex gap-2 justify-end">
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              aria-label="View Details"
+                              onClick={() => {
+                                setSelectedSubmission(submission);
+                                setIsModalOpen(true);
+                              }}
+                            >
+                              <Eye className="w-5 h-5" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>View details</TooltipContent>
+                        </Tooltip>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              aria-label="Add Comment"
+                              onClick={() => {
+                                setSelectedSubmission(submission);
+                                setIsModalOpen(true);
+                              }}
+                            >
+                              <MessageCircle className="w-5 h-5" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>Add comment</TooltipContent>
+                        </Tooltip>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </TooltipProvider>
         </CardContent>
       </Card>
       {selectedSubmission && (
