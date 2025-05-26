@@ -4,7 +4,7 @@ import { buildCommentTree, Comment } from '@/utils/buildCommentTree';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Loader2, UserPlus, X } from 'lucide-react';
+import { Loader2, UserPlus, X, Copy } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 
 interface SubmissionDetailsModalProps {
@@ -365,9 +365,12 @@ export default function SubmissionDetailsModal({ submission, isOpen, onClose }: 
           {/* Share Section */}
           {isOpen && submissionId && (
             <div className="border-t pt-4 my-6">
-              <h3 className="font-semibold mb-2 flex items-center gap-2">
-                <UserPlus className="w-4 h-4" /> Share Submission
-              </h3>
+              <div className="flex items-center justify-between gap-2 mb-2">
+                <h3 className="font-semibold mb-2 flex items-center gap-2">
+                  <UserPlus className="w-4 h-4" /> Share Submission
+                </h3>
+                <CopyLinkButton submissionId={submissionId} />
+              </div>
               <div className="mb-2">
                 <Input
                   placeholder="Search users by name or email..."
@@ -455,7 +458,9 @@ function CommentThread({ comments }: { comments: Comment[] }) {
           <div className="flex-1">
             <Card className="p-3">
               <div className="mb-1">
-                <span className="font-bold">{comment.author_role}</span>
+                <span className="font-bold">
+                  {comment.author_role === 'admin' ? 'admin' : comment.users?.email || 'user'}
+                </span>
                 <div className="text-xs text-gray-500">
                   {new Date(comment.created_at).toLocaleString()}
                 </div>
@@ -478,4 +483,28 @@ function CommentThread({ comments }: { comments: Comment[] }) {
 
 function CheckIcon() {
   return <svg className="w-4 h-4 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>;
+}
+
+function CopyLinkButton({ submissionId }: { submissionId: string }) {
+  const [copied, setCopied] = useState(false);
+  const link = typeof window !== 'undefined' ? `${window.location.origin}/submissions/${submissionId}` : '';
+
+  const handleCopy = async () => {
+    await navigator.clipboard.writeText(link);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 1500);
+  };
+
+  return (
+    <Button
+      type="button"
+      variant="outline"
+      size="sm"
+      className="flex items-center gap-2"
+      onClick={handleCopy}
+    >
+      <Copy className="w-4 h-4" />
+      {copied ? "Copied!" : "Copy Link"}
+    </Button>
+  );
 } 

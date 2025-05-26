@@ -1,16 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/utils/supabase/server';
 
-// Define the type for the row returned from Supabase
-interface SubmissionShareRow {
-  users: {
-    id: string;
-    name: string | null;
-    email: string;
-  }[];
-  shared_with_id: string;
-}
-
 export async function GET(
   req: NextRequest,
   context: { params: Promise<{ id: string }> }
@@ -37,8 +27,9 @@ export async function GET(
   if (error)
     return NextResponse.json({ error: error.message }, { status: 500 });
 
-  const users = ((data as SubmissionShareRow[]) || [])
-    .map(row => row.users[0])
-    .filter((u): u is NonNullable<typeof u> => Boolean(u));
+  const users = (data || [])
+    .map(row => row.users)
+    .filter(u => Boolean(u));
+
   return NextResponse.json({ users });
 } 

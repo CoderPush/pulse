@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/utils/supabase/server';
+import { sendEmail } from '@/lib/email';
 
 export async function POST(
   req: NextRequest,
@@ -24,10 +25,16 @@ export async function POST(
   if (!user_id)
     return NextResponse.json({ error: 'Missing user_id' }, { status: 400 });
 
-  // Fetch the submission to get the owner
+  // Fetch the submission to get the owner and details
   const { data: submission } = await supabase
     .from('submissions')
-    .select('user_id')
+    .select(`
+      *,
+      users:user_id (
+        email,
+        name
+      )
+    `)
     .eq('id', id)
     .single();
 
@@ -54,6 +61,63 @@ export async function POST(
     });
   if (error)
     return NextResponse.json({ error: error.message }, { status: 500 });
+
+  // Fetch the shared user's email and name
+  const { data: sharedUser } = await supabase
+    .from('users')
+    .select('email, name')
+    .eq('id', user_id)
+    .single();
+
+  // Prepare submission details for the email
+  const submissionLink = `${process.env.NEXT_PUBLIC_APP_URL}/submissions/${id}`;
+  console.log('submissionLink', submissionLink);
+  const submitter = submission?.users?.email || 'Unknown user';
+  const week = submission?.week_number ? `Week ${submission.week_number}` : '';
+  const status = submission?.status ? `<li><b>Status:</b> ${submission.status}</li>` : '';
+  const late = submission?.is_late ? `<li><b>Late:</b> Yes</li>` : '';
+  const project = submission?.primary_project_name ? `<li><b>Primary Project:</b> ${submission.primary_project_name} (${submission.primary_project_hours || 0}h)</li>` : '';
+  const additionalProjects = submission?.additional_projects && submission.additional_projects.length > 0
+    ? `<li><b>Additional Projects:</b><ul>${submission.additional_projects.map((p: { name: string; hours: number }) => `<li>${p.name} (${p.hours}h)</li>`).join('')}</ul></li>`
+    : '';
+  const submittedAt = submission?.submitted_at ? `<li><b>Submitted At:</b> ${new Date(submission.submitted_at).toLocaleString()}</li>` : '';
+  const manager = submission?.manager ? `<li><b>Manager:</b> ${submission.manager}</li>` : '';
+  const formTime = submission?.form_completion_time ? `<li><b>Time to complete:</b> ${submission.form_completion_time} min</li>` : '';
+  const feedback = submission?.feedback ? `<li><b>Feedback:</b> ${submission.feedback}</li>` : '';
+  const changes = submission?.changes_next_week ? `<li><b>Changes Next Week:</b> ${submission.changes_next_week}</li>` : '';
+  const milestones = submission?.milestones ? `<li><b>Milestones:</b> ${submission.milestones}</li>` : '';
+  const otherFeedback = submission?.other_feedback ? `<li><b>Other Feedback:</b> ${submission.other_feedback}</li>` : '';
+  const hoursImpact = submission?.hours_reporting_impact ? `<li><b>Hours Reporting Impact:</b> ${submission.hours_reporting_impact}</li>` : '';
+
+  if (sharedUser?.email) {
+    await sendEmail({
+      to: sharedUser.email,
+      subject: 'A submission has been shared with you',
+      html: `
+        <p>Hello${sharedUser.name ? ` ${sharedUser.name}` : ''},</p>
+        <p>An admin has shared a submission with you. Here are the details:</p>
+        <ul>
+          <li><b>Submitted by:</b> ${submitter}</li>
+          <li><b>${week}</b></li>
+          ${status}
+          ${late}
+          ${project}
+          ${additionalProjects}
+          ${submittedAt}
+          ${manager}
+          ${formTime}
+          ${feedback}
+          ${changes}
+          ${milestones}
+          ${otherFeedback}
+          ${hoursImpact}
+        </ul>
+        <p>Click the link below to view the submission and add more comments if you want:</p>
+        <p><a href="${submissionLink}">${submissionLink}</a></p>
+        <p>If you have any questions, please contact your admin.</p>
+      `
+    });
+  }
 
   return NextResponse.json({ success: true });
 }

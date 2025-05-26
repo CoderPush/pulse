@@ -125,3 +125,17 @@ Enable admins and users to communicate on weekly submissions via comments and em
 5. Set up email notifications for new comments/replies and shares
 6. Test permissions (admin vs user, shared users)
 7. Polish UX (avatars, real-time, notifications) 
+
+
+
+5. Next Steps
+Backend:
+Implement API to fetch shared submissions for user.
+Update submission detail API to check access.
+Frontend:
+Add sidebar link and page for “Shared with Me”.
+Update submission detail page to allow commenting if shared.
+Email:
+Update notification to include direct link to /submissions/[id].
+Security:
+Double-check all access control for shared submissions.
