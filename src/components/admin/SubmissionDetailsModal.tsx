@@ -4,13 +4,21 @@ import { buildCommentTree, Comment } from '@/utils/buildCommentTree';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Loader2 } from 'lucide-react';
+import { Loader2, UserPlus, X } from 'lucide-react';
+import { Input } from '@/components/ui/input';
 
 interface SubmissionDetailsModalProps {
   submission: WeeklyPulseSubmission;
   isOpen: boolean;
   onClose: () => void;
 }
+
+// Define a type for user options
+export type UserOption = {
+  id: string;
+  name?: string | null;
+  email: string;
+};
 
 export default function SubmissionDetailsModal({ submission, isOpen, onClose }: SubmissionDetailsModalProps) {
   const modalRef = useRef<HTMLDivElement>(null);
@@ -19,12 +27,22 @@ export default function SubmissionDetailsModal({ submission, isOpen, onClose }: 
   const [comment, setComment] = useState('');
   const [posting, setPosting] = useState(false);
   const [postError, setPostError] = useState<string | null>(null);
+  const [sharedUsers, setSharedUsers] = useState<UserOption[]>([]);
+  const [loadingShares, setLoadingShares] = useState(false);
+  const [shareError, setShareError] = useState<string | null>(null);
+  const [userSearch, setUserSearch] = useState('');
+  const [userOptions, setUserOptions] = useState<UserOption[]>([]);
+  const [searchLoading, setSearchLoading] = useState(false);
+  const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
+  const [sharing, setSharing] = useState(false);
+  const [removingUserId, setRemovingUserId] = useState<string | null>(null);
+  const [allUsers, setAllUsers] = useState<UserOption[]>([]);
 
   const submissionId = submission?.id;
 
   // Handle Escape key press
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Escape') {
+  const handleKeyDown = (event: React.KeyboardEvent) => {
+    if (event.key === 'Escape') {
       onClose();
     }
   };
@@ -83,6 +101,94 @@ export default function SubmissionDetailsModal({ submission, isOpen, onClose }: 
       setPostError('Network error');
     } finally {
       setPosting(false);
+    }
+  };
+
+  // Fetch shared users
+  const fetchShares = useCallback(async () => {
+    if (!submissionId) return;
+    setLoadingShares(true);
+    setShareError(null);
+    try {
+      const res = await fetch(`/api/admin/submissions/${submissionId}/shares`);
+      const data = await res.json();
+      if (res.ok) setSharedUsers(data.users || []);
+      else setShareError(data.error || 'Failed to load shared users');
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    } catch (e) {
+      setShareError('Network error');
+    } finally {
+      setLoadingShares(false);
+    }
+  }, [submissionId]);
+
+  useEffect(() => {
+    if (isOpen && submissionId) fetchShares();
+  }, [isOpen, submissionId, fetchShares]);
+
+  // Fetch all users once when modal opens
+  useEffect(() => {
+    if (isOpen) {
+      fetch('/api/admin/users')
+        .then(res => res.json())
+        .then(data => setAllUsers(data.data || []))
+        .catch(() => setAllUsers([]));
+    }
+  }, [isOpen]);
+
+  // User search (frontend filtering)
+  useEffect(() => {
+    if (!userSearch) {
+      setUserOptions([]);
+      return;
+    }
+    setSearchLoading(true);
+    const filtered = allUsers.filter(u =>
+      (u.name || u.email).toLowerCase().includes(userSearch.toLowerCase())
+    );
+    setUserOptions(filtered);
+    setSearchLoading(false);
+  }, [userSearch, allUsers]);
+
+  // Share with user
+  const handleShare = async () => {
+    if (!selectedUserId || !submissionId) return;
+    setSharing(true);
+    setShareError(null);
+    try {
+      const res = await fetch(`/api/admin/submissions/${submissionId}/share`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ user_id: selectedUserId })
+      });
+      const data = await res.json();
+      if (!res.ok) setShareError(data.error || 'Failed to share');
+      else {
+        setSelectedUserId(null);
+        setUserSearch('');
+        fetchShares();
+      }
+    } catch {
+      setShareError('Network error');
+    } finally {
+      setSharing(false);
+    }
+  };
+
+  // Remove user
+  const handleRemove = async (userId: string) => {
+    if (!submissionId) return;
+    setRemovingUserId(userId);
+    setShareError(null);
+    try {
+      const res = await fetch(`/api/admin/submissions/${submissionId}/share?user_id=${userId}`, { method: 'DELETE' });
+      const data = await res.json();
+      if (!res.ok) setShareError(data.error || 'Failed to remove');
+      else fetchShares();
+    } catch {
+      setShareError('Network error');
+    } finally {
+      setRemovingUserId(null);
     }
   };
 
@@ -256,6 +362,71 @@ export default function SubmissionDetailsModal({ submission, isOpen, onClose }: 
               {postError && <span className="text-red-600">{postError}</span>}
             </div>
           </div>
+          {/* Share Section */}
+          {isOpen && submissionId && (
+            <div className="border-t pt-4 my-6">
+              <h3 className="font-semibold mb-2 flex items-center gap-2">
+                <UserPlus className="w-4 h-4" /> Share Submission
+              </h3>
+              <div className="mb-2">
+                <Input
+                  placeholder="Search users by name or email..."
+                  value={userSearch}
+                  onChange={e => setUserSearch(e.target.value)}
+                  className="max-w-md"
+                  disabled={searchLoading}
+                />
+                {userSearch && userOptions.length > 0 && (
+                  <div className="bg-white border rounded shadow mt-1 max-h-40 overflow-y-auto z-10">
+                    {userOptions.map((u: UserOption) => (
+                      <div
+                        key={u.id}
+                        className={`px-3 py-2 cursor-pointer hover:bg-blue-50 flex items-center justify-between ${selectedUserId === u.id ? 'bg-blue-100' : ''}`}
+                        onClick={() => setSelectedUserId(u.id)}
+                      >
+                        <span>{u.name || u.email}</span>
+                        {selectedUserId === u.id && <CheckIcon />}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+              <Button
+                onClick={handleShare}
+                disabled={!selectedUserId || sharing}
+                className="mt-2"
+              >
+                {sharing ? <Loader2 className="animate-spin w-4 h-4 mr-2" /> : <UserPlus className="w-4 h-4 mr-2" />}
+                Share
+              </Button>
+              {shareError && <div className="text-red-600 mt-2 text-sm">{shareError}</div>}
+              <div className="mt-4">
+                <h4 className="text-sm font-medium text-gray-500 mb-1">Shared With</h4>
+                {loadingShares ? (
+                  <Loader2 className="animate-spin w-4 h-4" />
+                ) : sharedUsers.length === 0 ? (
+                  <div className="text-muted-foreground text-sm">Not shared with anyone yet.</div>
+                ) : (
+                  <ul className="space-y-2">
+                    {sharedUsers.map((u: UserOption) => (
+                      <li key={u.id} className="flex items-center gap-2">
+                        <span>{u.name || u.email}</span>
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          onClick={() => handleRemove(u.id)}
+                          disabled={removingUserId === u.id}
+                          aria-label="Remove user"
+                        >
+                          {removingUserId === u.id ? <Loader2 className="animate-spin w-4 h-4" /> : <X className="w-4 h-4" />}
+                        </Button>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>
@@ -303,4 +474,8 @@ function CommentThread({ comments }: { comments: Comment[] }) {
       ))}
     </ul>
   );
+}
+
+function CheckIcon() {
+  return <svg className="w-4 h-4 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>;
 } 

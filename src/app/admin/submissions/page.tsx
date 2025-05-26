@@ -157,14 +157,14 @@ function SubmissionsFilterAndTable() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>User</TableHead>
+                  <TableHead className="sticky left-0 bg-white">User</TableHead>
                   <TableHead>Week</TableHead>
                   <TableHead>Project</TableHead>
                   <TableHead>Hours</TableHead>
                   <TableHead>Additional Projects</TableHead>
-                  <TableHead>Manager</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Submitted At</TableHead>
+                  <TableHead className="hidden 2xl:table-cell">Manager</TableHead>
+                  <TableHead className="min-w-[120px]">Status</TableHead>
+                  <TableHead className="hidden 2xl:table-cell">Submitted At</TableHead>
                   <TableHead>
                     <span className="inline-flex items-center gap-1">
                       <Clock className="w-4 h-4 mr-1 inline-block" /> Time
@@ -201,7 +201,7 @@ function SubmissionsFilterAndTable() {
                 ) : (
                   submissions.map((submission, index) => (
                     <TableRow key={index}>
-                      <TableCell>{submission.email}</TableCell>
+                      <TableCell className="sticky left-0 bg-white">{submission.email}</TableCell>
                       <TableCell>{submission.week_number}</TableCell>
                       <TableCell>{submission.primary_project.name}</TableCell>
                       <TableCell>{submission.primary_project.hours}h</TableCell>
@@ -221,7 +221,7 @@ function SubmissionsFilterAndTable() {
                           '-'
                         )}
                       </TableCell>
-                      <TableCell>{submission.manager}</TableCell>
+                      <TableCell className="hidden 2xl:table-cell">{submission.manager}</TableCell>
                       <TableCell>
                         <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
                           submission.status === 'On Time' ? 'bg-green-100 text-green-800' :
@@ -231,7 +231,7 @@ function SubmissionsFilterAndTable() {
                           {submission.status}
                         </span>
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="hidden 2xl:table-cell">
                         {new Date(submission.submission_at).toLocaleDateString()}
                       </TableCell>
                       <TableCell>
