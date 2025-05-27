@@ -91,47 +91,63 @@ export async function POST(
   const submissionLink = `${process.env.NEXT_PUBLIC_APP_URL}/submissions/${id}`;
   const submitter = escapeHTML(submission?.users?.email || 'Unknown user');
   const week = submission?.week_number ? `Week ${escapeHTML(String(submission.week_number))}` : '';
-  const status = submission?.status ? `<li><b>Status:</b> ${escapeHTML(submission.status)}</li>` : '';
-  const late = submission?.is_late ? `<li><b>Late:</b> Yes</li>` : '';
-  const project = submission?.primary_project_name ? `<li><b>Primary Project:</b> ${escapeHTML(submission.primary_project_name)} (${escapeHTML(String(submission.primary_project_hours ?? 0))}h)</li>` : '';
+  const status = submission?.status ? `<li style="margin-bottom:12px;"><b>Status:</b> ${escapeHTML(submission.status)}</li>` : '';
+  const late = submission?.is_late ? `<li style="margin-bottom:12px;"><b>Late:</b> Yes</li>` : '';
+  const project = submission?.primary_project_name ? `<li style="margin-bottom:12px;"><b>Primary Project:</b> ${escapeHTML(submission.primary_project_name)} (${escapeHTML(String(submission.primary_project_hours ?? 0))}h)</li>` : '';
   const additionalProjects = submission?.additional_projects && submission.additional_projects.length > 0
-    ? `<li><b>Additional Projects:</b><ul>${submission.additional_projects.map((p: { name: string; hours: number }) => `<li>${escapeHTML(p.name)} (${escapeHTML(String(p.hours))}h)</li>`).join('')}</ul></li>`
+    ? `<li style="margin-bottom:12px;"><b>Additional Projects:</b><ul>${submission.additional_projects.map((p: { name: string; hours: number }) => `<li style="margin-bottom:12px;">${escapeHTML(p.name)} (${escapeHTML(String(p.hours))}h)</li>`).join('')}</ul></li>`
     : '';
-  const submittedAt = submission?.submitted_at ? `<li><b>Submitted At:</b> ${escapeHTML(new Date(submission.submitted_at).toLocaleString())}</li>` : '';
-  const manager = submission?.manager ? `<li><b>Manager:</b> ${escapeHTML(submission.manager)}</li>` : '';
-  const formTime = submission?.form_completion_time ? `<li><b>Time to complete:</b> ${escapeHTML(String(submission.form_completion_time))} min</li>` : '';
-  const feedback = submission?.feedback ? `<li><b>Feedback:</b> ${escapeHTML(submission.feedback)}</li>` : '';
-  const changes = submission?.changes_next_week ? `<li><b>Changes Next Week:</b> ${escapeHTML(submission.changes_next_week)}</li>` : '';
-  const milestones = submission?.milestones ? `<li><b>Milestones:</b> ${escapeHTML(submission.milestones)}</li>` : '';
-  const otherFeedback = submission?.other_feedback ? `<li><b>Other Feedback:</b> ${escapeHTML(submission.other_feedback)}</li>` : '';
-  const hoursImpact = submission?.hours_reporting_impact ? `<li><b>Hours Reporting Impact:</b> ${escapeHTML(submission.hours_reporting_impact)}</li>` : '';
+  const submittedAt = submission?.submitted_at ? `<li style="margin-bottom:12px;"><b>Submitted At:</b> ${escapeHTML(new Date(submission.submitted_at).toLocaleString())}</li>` : '';
+  const manager = submission?.manager ? `<li style="margin-bottom:12px;"><b>Manager:</b> ${escapeHTML(submission.manager)}</li>` : '';
+  const formTime = submission?.form_completion_time ? `<li style="margin-bottom:12px;"><b>Time to complete:</b> ${escapeHTML(String(submission.form_completion_time))} min</li>` : '';
+  const feedback = submission?.feedback ? `<li style="margin-bottom:12px;"><b>Feedback:</b> ${escapeHTML(submission.feedback)}</li>` : '';
+  const changes = submission?.changes_next_week ? `<li style="margin-bottom:12px;"><b>Changes Next Week:</b> ${escapeHTML(submission.changes_next_week)}</li>` : '';
+  const milestones = submission?.milestones ? `<li style="margin-bottom:12px;"><b>Milestones:</b> ${escapeHTML(submission.milestones)}</li>` : '';
+  const otherFeedback = submission?.other_feedback ? `<li style="margin-bottom:12px;"><b>Other Feedback:</b> ${escapeHTML(submission.other_feedback)}</li>` : '';
+  const hoursImpact = submission?.hours_reporting_impact ? `<li style="margin-bottom:12px;"><b>Hours Reporting Impact:</b> ${escapeHTML(submission.hours_reporting_impact)}</li>` : '';
 
   if (sharedUser?.email) {
     await sendEmail({
       to: sharedUser.email,
-      subject: 'A submission has been shared with you',
+      subject: 'A weekly pulse has been shared with you',
       html: `
-        <p>Hello${sharedUser.name ? ` ${escapeHTML(sharedUser.name)}` : ''},</p>
-        <p>An admin has shared a submission with you. Here are the details:</p>
-        <ul>
-          <li><b>Submitted by:</b> ${submitter}</li>
-          <li><b>${week}</b></li>
-          ${status}
-          ${late}
-          ${project}
-          ${additionalProjects}
-          ${submittedAt}
-          ${manager}
-          ${formTime}
-          ${feedback}
-          ${changes}
-          ${milestones}
-          ${otherFeedback}
-          ${hoursImpact}
-        </ul>
-        <p>Click the link below to view the submission and add more comments if you want:</p>
-        <p><a href="${submissionLink}">${submissionLink}</a></p>
-        <p>If you have any questions, please contact your admin.</p>
+        <div style="background:#f6f8fa;padding:32px 0;">
+          <div style="max-width:520px;margin:0 auto;background:#fff;border-radius:16px;box-shadow:0 2px 8px rgba(0,0,0,0.06);padding:40px 24px 32px 24px;font-family:system-ui,sans-serif;">
+            <div style="text-align:center;margin-bottom:32px;">
+              <h2 style="color:#2563eb;font-size:1.5rem;font-weight:800;margin:16px 0 0;">Weekly Pulse Shared With You</h2>
+            </div>
+            <p style="font-size:1.1rem;color:#334155;margin-bottom:20px;">
+              Hello${sharedUser.name ? ` ${escapeHTML(sharedUser.name)}` : ''},
+            </p>
+            <p style="color:#64748b;margin-bottom:28px;">
+              An admin has shared a weekly pulse with you. Here are the details:
+            </p>
+            <ul style="background:#f1f5f9;border-radius:12px;padding:24px 28px;margin-bottom:32px;list-style:none;">
+              <li style="margin-bottom:12px;"><b>Submitted by:</b> ${submitter}</li>
+              <li style="margin-bottom:12px;"><b>${week}</b></li>
+              ${status}
+              ${late}
+              ${project}
+              ${additionalProjects}
+              ${submittedAt}
+              ${manager}
+              ${formTime}
+              ${feedback}
+              ${changes}
+              ${milestones}
+              ${otherFeedback}
+              ${hoursImpact}
+            </ul>
+            <div style="text-align:center;margin-bottom:32px;">
+              <a href="${submissionLink}" style="display:inline-block;background:#2563eb;color:#fff;font-weight:600;padding:14px 36px;border-radius:8px;text-decoration:none;font-size:1.1rem;box-shadow:0 1px 4px rgba(37,99,235,0.08);transition:background 0.2s;">
+                View Pulse
+              </a>
+            </div>
+            <p style="color:#94a3b8;font-size:0.95rem;text-align:center;margin-bottom:0;">
+              If you have any questions, please contact your admin.
+            </p>
+          </div>
+        </div>
       `
     });
   }
