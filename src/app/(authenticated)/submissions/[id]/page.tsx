@@ -6,7 +6,7 @@ import { Star, Book, Calendar, User, Clock } from 'lucide-react';
 import SubmissionComments from '@/components/SubmissionComments';
 
 interface SubmissionDetailPageProps {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }
 
 interface AdditionalProject {
