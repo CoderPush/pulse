@@ -144,15 +144,28 @@ export default function SubmissionDetailsModal({ submission, isOpen, onClose }: 
     }
     setSearchLoading(true);
     const filtered = allUsers.filter(u =>
-      (u.name || u.email).toLowerCase().includes(userSearch.toLowerCase())
+      (u.name || u.email).toLowerCase().includes(userSearch.toLowerCase()) &&
+      (
+        (submission.user_id && u.id !== submission.user_id) ||
+        (!submission.user_id && u.email !== submission.email)
+      )
     );
     setUserOptions(filtered);
     setSearchLoading(false);
-  }, [userSearch, allUsers]);
+  }, [userSearch, allUsers, submission.user_id, submission.email]);
 
   // Share with user
   const handleShare = async () => {
     if (!selectedUserId || !submissionId) return;
+    // Check if user already has access
+    if (submission.user_id && submission.user_id === selectedUserId) {
+      setShareError('Not needed to share with the original submitter');
+      return;
+    }
+    if (sharedUsers.some(u => u.id === selectedUserId)) {
+      setShareError('Already shared with this user');
+      return;
+    }
     setSharing(true);
     setShareError(null);
     try {

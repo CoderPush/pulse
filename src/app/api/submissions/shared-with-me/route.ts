@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/utils/supabase/server';
-export async function GET() {
+
+export async function GET(request: Request) {
   const supabase = await createClient();
 
   // Get current user
@@ -13,38 +14,33 @@ export async function GET() {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  // Query submission_shares for submissions shared with this user
-  const { data: shares, error: sharesError } = await supabase
+  // Parse pagination params
+  const { searchParams } = new URL(request.url);
+  const limit = parseInt(searchParams.get('limit') || '20', 10);
+  const offset = parseInt(searchParams.get('offset') || '0', 10);
+
+  // Single join query to get shared submissions and user info
+  const { data, error } = await supabase
     .from('submission_shares')
-    .select('submission_id')
-    .eq('shared_with_id', user.id);
-
-  if (sharesError) {
-    return NextResponse.json({ error: sharesError.message }, { status: 500 });
-  }
-
-  const submissionIds = shares.map((s) => s.submission_id);
-
-  if (submissionIds.length === 0) {
-    return NextResponse.json({ submissions: [] });
-  }
-
-  // Fetch submission details and join with users table for email
-  const { data: submissions, error: submissionsError } = await supabase
-    .from('submissions')
     .select(`
-      *,
-      users:user_id (
-        email,
-        name
+      submission:submissions (
+        *,
+        users:user_id (
+          email,
+          name
+        )
       )
     `)
-    .in('id', submissionIds)
-    .order('submitted_at', { ascending: false });
+    .eq('shared_with_id', user.id)
+    .order('created_at', { ascending: false })
+    .range(offset, offset + limit - 1);
 
-  if (submissionsError) {
-    return NextResponse.json({ error: submissionsError.message }, { status: 500 });
+  if (error) {
+    return NextResponse.json({ error: error.message }, { status: 500 });
   }
+
+  // Flatten the result to just the submissions array
+  const submissions = (data || []).map((row) => row.submission);
 
   return NextResponse.json({ submissions });
 }

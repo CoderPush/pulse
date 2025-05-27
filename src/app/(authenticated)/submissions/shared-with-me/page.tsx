@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Star, Book, Calendar, User, Clock } from "lucide-react";
+import { Star, Book, Calendar, User, Clock, Loader } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 
@@ -32,17 +32,35 @@ type Submission = {
 export default function SharedWithMePage() {
   const [submissions, setSubmissions] = useState<Submission[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     fetch("/api/submissions/shared-with-me")
-      .then((res) => res.json())
+      .then((res) => {
+        if (!res.ok) throw new Error("Failed to fetch submissions");
+        return res.json();
+      })
       .then((data) => {
         setSubmissions(data.submissions || []);
+        setLoading(false);
+      })
+      .catch((err) => {
+        setError(err.message || "An error occurred");
         setLoading(false);
       });
   }, []);
 
-  if (loading) return <div className="flex justify-center items-center h-40 text-muted-foreground">Loading...</div>;
+  if (loading) return (
+    <div className="flex justify-center items-center h-40 text-muted-foreground">
+      <Loader className="animate-spin w-6 h-6" />
+    </div>
+  );
+
+  if (error) return (
+    <div className="flex flex-col items-center justify-center h-40 text-destructive">
+      <span className="font-bold">Error:</span> {error}
+    </div>
+  );
 
   if (submissions.length === 0) {
     return (
@@ -85,7 +103,7 @@ export default function SharedWithMePage() {
               <Star className="w-7 h-7 text-sky-400 mr-4" />
               <div className="flex-1 flex items-center justify-between">
                 <h3 className="font-bold text-lg text-blue-900 mb-0">{submission.primary_project_name}</h3>
-                <span className="bg-yellow-300 text-blue-900 rounded-full px-4 py-2 font-bold shadow ml-2">{submission.primary_project_hours}h</span>
+                <span className="bg-yellow-300 text-blue-900 rounded-full px-4 py-2 font-bold shadow ml-2">{submission.primary_project_hours ?? 0}h</span>
               </div>
             </div>
             {/* Additional Projects */}

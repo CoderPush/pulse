@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/utils/supabase/server';
 import { sendEmail } from '@/lib/email';
+import { escapeHTML } from '@/lib/utils';
 
 export async function POST(
   req: NextRequest,
@@ -52,6 +53,23 @@ export async function POST(
   if (existing)
     return NextResponse.json({ error: 'Already shared' }, { status: 409 });
 
+  // Check if the user_id exists in the users table and get their email
+  const { data: targetUser, error: userLookupError } = await supabase
+    .from('users')
+    .select('id, email')
+    .eq('id', user_id)
+    .single();
+  if (userLookupError || !targetUser) {
+    return NextResponse.json({ error: 'User does not exist' }, { status: 404 });
+  }
+  // In production, only allow sharing with @coderpush.com emails
+  if (
+    process.env.NODE_ENV === 'production' &&
+    (!targetUser.email || !targetUser.email.endsWith('@coderpush.com'))
+  ) {
+    return NextResponse.json({ error: 'Can only share with @coderpush.com emails in production' }, { status: 403 });
+  }
+
   const { error } = await supabase
     .from('submission_shares')
     .insert({
@@ -71,30 +89,29 @@ export async function POST(
 
   // Prepare submission details for the email
   const submissionLink = `${process.env.NEXT_PUBLIC_APP_URL}/submissions/${id}`;
-  console.log('submissionLink', submissionLink);
-  const submitter = submission?.users?.email || 'Unknown user';
-  const week = submission?.week_number ? `Week ${submission.week_number}` : '';
-  const status = submission?.status ? `<li><b>Status:</b> ${submission.status}</li>` : '';
+  const submitter = escapeHTML(submission?.users?.email || 'Unknown user');
+  const week = submission?.week_number ? `Week ${escapeHTML(String(submission.week_number))}` : '';
+  const status = submission?.status ? `<li><b>Status:</b> ${escapeHTML(submission.status)}</li>` : '';
   const late = submission?.is_late ? `<li><b>Late:</b> Yes</li>` : '';
-  const project = submission?.primary_project_name ? `<li><b>Primary Project:</b> ${submission.primary_project_name} (${submission.primary_project_hours || 0}h)</li>` : '';
+  const project = submission?.primary_project_name ? `<li><b>Primary Project:</b> ${escapeHTML(submission.primary_project_name)} (${escapeHTML(String(submission.primary_project_hours ?? 0))}h)</li>` : '';
   const additionalProjects = submission?.additional_projects && submission.additional_projects.length > 0
-    ? `<li><b>Additional Projects:</b><ul>${submission.additional_projects.map((p: { name: string; hours: number }) => `<li>${p.name} (${p.hours}h)</li>`).join('')}</ul></li>`
+    ? `<li><b>Additional Projects:</b><ul>${submission.additional_projects.map((p: { name: string; hours: number }) => `<li>${escapeHTML(p.name)} (${escapeHTML(String(p.hours))}h)</li>`).join('')}</ul></li>`
     : '';
-  const submittedAt = submission?.submitted_at ? `<li><b>Submitted At:</b> ${new Date(submission.submitted_at).toLocaleString()}</li>` : '';
-  const manager = submission?.manager ? `<li><b>Manager:</b> ${submission.manager}</li>` : '';
-  const formTime = submission?.form_completion_time ? `<li><b>Time to complete:</b> ${submission.form_completion_time} min</li>` : '';
-  const feedback = submission?.feedback ? `<li><b>Feedback:</b> ${submission.feedback}</li>` : '';
-  const changes = submission?.changes_next_week ? `<li><b>Changes Next Week:</b> ${submission.changes_next_week}</li>` : '';
-  const milestones = submission?.milestones ? `<li><b>Milestones:</b> ${submission.milestones}</li>` : '';
-  const otherFeedback = submission?.other_feedback ? `<li><b>Other Feedback:</b> ${submission.other_feedback}</li>` : '';
-  const hoursImpact = submission?.hours_reporting_impact ? `<li><b>Hours Reporting Impact:</b> ${submission.hours_reporting_impact}</li>` : '';
+  const submittedAt = submission?.submitted_at ? `<li><b>Submitted At:</b> ${escapeHTML(new Date(submission.submitted_at).toLocaleString())}</li>` : '';
+  const manager = submission?.manager ? `<li><b>Manager:</b> ${escapeHTML(submission.manager)}</li>` : '';
+  const formTime = submission?.form_completion_time ? `<li><b>Time to complete:</b> ${escapeHTML(String(submission.form_completion_time))} min</li>` : '';
+  const feedback = submission?.feedback ? `<li><b>Feedback:</b> ${escapeHTML(submission.feedback)}</li>` : '';
+  const changes = submission?.changes_next_week ? `<li><b>Changes Next Week:</b> ${escapeHTML(submission.changes_next_week)}</li>` : '';
+  const milestones = submission?.milestones ? `<li><b>Milestones:</b> ${escapeHTML(submission.milestones)}</li>` : '';
+  const otherFeedback = submission?.other_feedback ? `<li><b>Other Feedback:</b> ${escapeHTML(submission.other_feedback)}</li>` : '';
+  const hoursImpact = submission?.hours_reporting_impact ? `<li><b>Hours Reporting Impact:</b> ${escapeHTML(submission.hours_reporting_impact)}</li>` : '';
 
   if (sharedUser?.email) {
     await sendEmail({
       to: sharedUser.email,
       subject: 'A submission has been shared with you',
       html: `
-        <p>Hello${sharedUser.name ? ` ${sharedUser.name}` : ''},</p>
+        <p>Hello${sharedUser.name ? ` ${escapeHTML(sharedUser.name)}` : ''},</p>
         <p>An admin has shared a submission with you. Here are the details:</p>
         <ul>
           <li><b>Submitted by:</b> ${submitter}</li>

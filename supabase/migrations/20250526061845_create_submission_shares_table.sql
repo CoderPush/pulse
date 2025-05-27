@@ -2,7 +2,7 @@ create table public.submission_shares (
   id uuid primary key default gen_random_uuid(),
   submission_id uuid not null references submissions(id) on delete cascade,
   shared_with_id uuid not null references public.users(id) on delete cascade,
-  shared_by_id uuid not null references public.users(id) on delete set null,
+  shared_by_id uuid references public.users(id) on delete set null,
   created_at timestamp with time zone default timezone('utc', now()) not null
 );
 
