@@ -6,7 +6,7 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Loader2, Reply, MessageCircle } from 'lucide-react';
+import { Loader2, Reply, MessageCircle, Shield } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 function getRoleColor(role: string) {
@@ -241,12 +241,23 @@ function CommentThread({ comments, submissionId, onReplySuccess, currentUserId, 
           <div className="flex-1">
             <Card className="p-3">
               <div className="flex items-center gap-2 mb-1">
-                <Badge variant={comment.author_role === 'admin' ? 'default' : 'secondary'}>
-                  {comment.author_role === 'admin'
-                    ? 'admin'
-                    : comment.author_id === currentUserId
-                      ? 'You'
-                      : comment.users?.email || 'user'}
+                <Badge
+                  className={
+                    comment.author_role === 'admin'
+                      ? 'bg-blue-600 text-white flex items-center gap-1 shadow-md ring-2 ring-blue-300'
+                      : ''
+                  }
+                  variant={comment.author_role === 'admin' ? 'default' : 'secondary'}
+                >
+                  {comment.author_role === 'admin' ? (
+                    <span className="flex items-center gap-1">
+                      {comment.users?.email || 'Unknown admin'}
+                      <Shield className="w-3 h-3 text-white" />
+                      <span className="text-xs font-semibold">Admin</span>
+                    </span>
+                  ) : comment.author_id === currentUserId
+                    ? 'You'
+                    : comment.users?.email || 'user'}
                 </Badge>
                 <span className="text-xs text-muted-foreground">{new Date(comment.created_at).toLocaleString()}</span>
               </div>
