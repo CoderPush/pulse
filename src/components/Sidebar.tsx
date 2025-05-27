@@ -15,7 +15,7 @@ const sidebarItems: SidebarItem[] = [
     icon: <User className="w-5 h-5" />
   },
   {
-    title: 'History',
+    title: 'My Pulses',
     href: '/history',
     icon: <History className="w-5 h-5" />
   },

@@ -78,7 +78,9 @@ export default function SharedWithMePage() {
 
   return (
     <div className="max-w-4xl mx-auto space-y-6 py-8">
-      <h1 className="text-3xl font-bold mb-2">Submissions Shared With Me</h1>
+      <h1 className="text-3xl font-extrabold mb-6 text-blue-700 drop-shadow text-center w-full">
+        Pulses Shared With Me
+      </h1>
       {submissions.map((submission) => (
         <Card key={submission.id} className="w-full shadow-lg border-primary/10">
           <CardHeader className="border-b pb-4">
@@ -194,7 +196,7 @@ export default function SharedWithMePage() {
             </div>
             <div className="flex justify-end pt-4">
               <Button asChild variant="outline" size="sm" className="rounded-full px-4 font-bold">
-                <Link href={`/submissions/${submission.id}`}>View Detail</Link>
+                <Link href={`/submissions/${submission.id}`}>Add Comment</Link>
               </Button>
             </div>
           </CardContent>
