@@ -102,6 +102,28 @@ export async function POST(request: Request) {
       );
     }
 
+    // Auto-share with manager if manager is a coderpush.com email
+    try {
+      const managerEmail = submission.manager?.trim().toLowerCase();
+      if (managerEmail && managerEmail.endsWith('@coderpush.com')) {
+        const { data: managerUser } = await supabase
+          .from('users')
+          .select('id')
+          .eq('email', managerEmail)
+          .single();
+        if (managerUser?.id) {
+          await supabase.from('submission_shares').insert({
+            submission_id: submission.id,
+            shared_with_id: managerUser.id,
+            shared_by_id: submission.user_id,
+          });
+        }
+      }
+    } catch (e) {
+      // Optional: log error, but do not affect main response
+      console.error('Optional auto-share failed:', e);
+    }
+
     return NextResponse.json({ submission });
   } catch (error) {
     console.error('Error in submission route:', error);
