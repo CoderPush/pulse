@@ -92,7 +92,7 @@ export default function NavBar({ user }: NavBarProps) {
                   <Link href="/history" className="w-full">
                     <DropdownMenuItem className="cursor-pointer flex items-center gap-2 px-4 py-2 rounded-lg transition-all hover:bg-indigo-50 dark:hover:bg-indigo-900/30 active:scale-95">
                       <History className="h-5 w-5 text-blue-500" />
-                      <span>History</span>
+                      <span>My Pulses</span>
                     </DropdownMenuItem>
                   </Link>
                 </DropdownMenuGroup>

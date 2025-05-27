@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { User, History, Trophy } from 'lucide-react'
+import { User, History, Trophy, Share } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 export type SidebarItem = {
@@ -15,7 +15,7 @@ const sidebarItems: SidebarItem[] = [
     icon: <User className="w-5 h-5" />
   },
   {
-    title: 'History',
+    title: 'My Pulses',
     href: '/history',
     icon: <History className="w-5 h-5" />
   },
@@ -23,6 +23,11 @@ const sidebarItems: SidebarItem[] = [
     title: 'Leaderboard',
     href: '/leaderboard',
     icon: <Trophy className="w-5 h-5 text-yellow-500" />
+  },
+  {
+    title: 'Shared with Me',
+    href: '/submissions/shared-with-me',
+    icon: <Share className="w-5 h-5" />
   }
 ]
 

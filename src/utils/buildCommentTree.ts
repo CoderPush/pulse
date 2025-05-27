@@ -6,6 +6,7 @@ export interface Comment {
   content: string;
   created_at: string;
   replies?: Comment[];
+  users?: { email?: string } | null;
 }
 
 export function buildCommentTree(comments: Comment[]): Comment[] {

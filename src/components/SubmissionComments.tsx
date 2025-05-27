@@ -246,13 +246,13 @@ function CommentThread({ comments, submissionId, onReplySuccess, currentUserId, 
                     ? 'admin'
                     : comment.author_id === currentUserId
                       ? 'You'
-                      : 'user'}
+                      : comment.users?.email || 'user'}
                 </Badge>
                 <span className="text-xs text-muted-foreground">{new Date(comment.created_at).toLocaleString()}</span>
               </div>
               <div className="text-sm">{comment.content}</div>
               {/* Reply button for admin comments */}
-              {comment.author_role === 'admin' && (
+              {(comment.author_role === 'admin' || comment.author_id !== currentUserId) && (
                 <motion.div
                   whileTap={{ scale: 0.97 }}
                   className="inline-block w-full"

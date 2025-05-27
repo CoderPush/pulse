@@ -13,7 +13,7 @@ export async function GET(req: NextRequest) {
   // Fetch all comments for the submission, ordered by created_at
   const { data, error } = await supabase
     .from('comments')
-    .select('*')
+    .select('*, users:author_id (email)')
     .eq('submission_id', submission_id)
     .order('created_at', { ascending: true });
 

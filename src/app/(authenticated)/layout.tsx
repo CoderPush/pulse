@@ -1,7 +1,6 @@
 import { createClient } from '@/utils/supabase/server'
 import { redirect } from 'next/navigation'
 import NavBar from '@/components/NavBar'
-
 export default async function AuthenticatedLayout({
   children,
 }: {

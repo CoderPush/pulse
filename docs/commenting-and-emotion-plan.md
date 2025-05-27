@@ -1,8 +1,7 @@
 # Two-way Commenting & Emotion Feature Plan
 
 ## Overview
-Enable admins and users to communicate on weekly submissions via comments and emotions (reactions). Admins can comment and react to any submission; users can reply and react back. Notifications and visibility are managed for both roles.
-
+Enable admins and users to communicate on weekly submissions via comments and emotions (reactions). Admins can comment and react to any submission; users can reply and react back. Admins can also share a submission (pulse) with other users (e.g., managers) so they can view and comment. 
 ---
 
 ## 1. Database Design
@@ -38,6 +37,15 @@ Enable admins and users to communicate on weekly submissions via comments and em
 | emotion       | text         | e.g. 'like', 'love', etc.          |
 | created_at    | timestamp    | When emotion was added             |
 
+#### `submission_shares` (NEW)
+| Column         | Type         | Description                              |
+|----------------|--------------|------------------------------------------|
+| id             | uuid (PK)    | Unique ID                                |
+| submission_id  | uuid (FK)    | References submissions                   |
+| shared_with_id | uuid (FK)    | User who can view/comment (manager/etc.) |
+| shared_by_id   | uuid (FK)    | Admin who shared                         |
+| created_at     | timestamp    | When shared                              |
+
 ---
 
 ## 2. API Endpoints (Next.js Route Handlers)
@@ -46,6 +54,8 @@ Enable admins and users to communicate on weekly submissions via comments and em
 - `POST /api/comments/[id]/emotions` — Add emotion to a comment
 - `POST /api/submissions/[id]/emotions` — Add emotion to a submission (optional)
 - `POST /api/comments/[id]/reply` — Add a reply to a comment
+- `POST /api/submissions/[id]/share` — Share a submission with another user (admin only)
+- `GET /api/submissions/shared-with-me` — List submissions shared with the current user
 
 ---
 
@@ -57,18 +67,23 @@ Enable admins and users to communicate on weekly submissions via comments and em
 - Add emotion to any submission or comment
 - See all comments and replies (threaded view)
 - See who commented/emoted
+- **Share a submission with other users (search & select user, e.g., manager)**
+- **See who a submission is shared with**
 
 ### User Dashboard
 - View their own submissions and all comments/replies
 - Reply to admin comments
 - Add emotion to comments or submissions
 - See who commented/emoted
+- **See submissions shared with them (not just their own)**
+- **Comment on shared submissions if they have access**
 
 ---
 
 ## 4. Email Notification
 - When admin comments, trigger email to user (via Supabase Edge Functions or Next.js API route with nodemailer/Resend)
 - When user replies, optionally notify admin
+- **When a submission is shared, notify the user (email or in-app)**
 
 ---
 
@@ -76,6 +91,8 @@ Enable admins and users to communicate on weekly submissions via comments and em
 - Use Supabase Auth to identify users and admins
 - Only admins can comment on any submission; users can only comment/reply on their own submissions
 - Store `author_id` and `author_role` for each comment
+- **Only users listed in `submission_shares` (or the original owner/admin) can view/comment on a shared submission**
+- **Only admins can share submissions**
 
 ---
 
@@ -85,6 +102,9 @@ Enable admins and users to communicate on weekly submissions via comments and em
 - Emoji picker for emotions
 - Real-time updates (optional: Supabase Realtime)
 - Mark unread comments for users/admins
+- **"Share" button on each submission (admin only)**
+- **Modal to select users to share with**
+- **"Shared with" list on submission detail**
 
 ---
 
@@ -98,10 +118,24 @@ Enable admins and users to communicate on weekly submissions via comments and em
 ---
 
 ## 8. Implementation Steps
-1. Update DB schema
-2. Create API endpoints for comments and emotions
+1. Update DB schema (add `submission_shares` table)
+2. Create API endpoints for comments, emotions, and sharing
 3. Integrate with Supabase Auth for role/user identification
-4. Build UI components for threaded comments, emotion picker, etc.
-5. Set up email notifications for new comments/replies
-6. Test permissions (admin vs user)
+4. Build UI components for threaded comments, emotion picker, sharing, etc.
+5. Set up email notifications for new comments/replies and shares
+6. Test permissions (admin vs user, shared users)
 7. Polish UX (avatars, real-time, notifications) 
+
+
+
+5. Next Steps
+Backend:
+Implement API to fetch shared submissions for user.
+Update submission detail API to check access.
+Frontend:
+Add sidebar link and page for “Shared with Me”.
+Update submission detail page to allow commenting if shared.
+Email:
+Update notification to include direct link to /submissions/[id].
+Security:
+Double-check all access control for shared submissions.
