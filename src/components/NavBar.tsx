@@ -49,7 +49,20 @@ export default function NavBar({ user }: NavBarProps) {
           </div>
 
           {/* User Dropdown */}
-          <div className="flex items-center space-x-4">
+          <div className="flex items-center space-x-6">
+            <Link
+              href="/history"
+              className="relative px-5 py-2 rounded-xl bg-gradient-to-r from-blue-600 via-indigo-500 to-purple-600 text-white font-bold shadow-lg hover:from-blue-700 hover:to-purple-700 transition-all flex items-center gap-2 ring-2 ring-blue-200 hover:ring-4 hover:scale-105 focus:outline-none focus:ring-4"
+              style={{ fontSize: '1.08rem', letterSpacing: '0.01em' }}
+            >
+              {/* Animated pulse dot for attention */}
+              <span className="absolute -top-1 -right-1 flex h-3 w-3">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-pink-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-3 w-3 bg-pink-500"></span>
+              </span>
+              <History className="h-5 w-5" />
+              <span>My Pulses</span>
+            </Link>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button 

@@ -122,9 +122,9 @@ export default function SubmissionSuccessScreen({ user, currentWeek }: Submissio
             damping: 20,
             delay: 0.2
           }}
-          className="w-24 h-24 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6"
+          className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-3"
         >
-          <CheckCircle2 className="w-12 h-12 text-green-600" />
+          <CheckCircle2 className="w-8 h-8 text-green-600" />
         </motion.div>
         
         <motion.h2 
@@ -289,20 +289,31 @@ export default function SubmissionSuccessScreen({ user, currentWeek }: Submissio
           </motion.div>
         </motion.div>
 
-        <motion.button
-          whileHover={{ scale: 1.02, rotate: 1 }}
-          whileTap={{ scale: 0.98 }}
-          onClick={() => router.push('/history')}
-          className="w-full bg-gradient-to-r from-blue-500 to-blue-600 text-white py-3 px-4 rounded-lg hover:from-blue-600 hover:to-blue-700 transition-all flex items-center justify-center gap-2 group shadow-lg"
-        >
-          <motion.div
-            animate={{ rotate: 360 }}
-            transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
+        {/* Enhanced Call-to-Action Button */}
+        <div className="relative mt-6">
+          {/* Animated badge */}
+          <span className="absolute -top-3 left-1/2 -translate-x-1/2 bg-pink-500 text-white text-xs font-bold px-3 py-1 rounded-full shadow animate-bounce z-10">
+            💬 See Comments!
+          </span>
+          <motion.button
+            whileHover={{ scale: 1.05, rotate: 1 }}
+            whileTap={{ scale: 0.98 }}
+            onClick={() => router.push('/history')}
+            className="w-full bg-gradient-to-r from-blue-500 via-indigo-500 to-purple-600 text-white py-4 px-6 rounded-xl hover:from-blue-600 hover:to-purple-700 transition-all flex flex-col items-center justify-center gap-2 group shadow-2xl border-2 border-blue-200"
+            style={{ fontSize: '1.15rem', fontWeight: 700, letterSpacing: '0.01em' }}
           >
-            <FileText className="w-5 h-5 group-hover:scale-110 transition-transform" />
-          </motion.div>
-          View My Submission History
-        </motion.button>
+            <motion.div
+              animate={{ rotate: 360, scale: [1, 1.15, 1] }}
+              transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
+            >
+              <FileText className="w-7 h-7 group-hover:scale-125 transition-transform" />
+            </motion.div>
+            View Your Pulses
+            <span className="text-xs text-blue-100 font-normal mt-1">
+              See your submissions &amp; add comments
+            </span>
+          </motion.button>
+        </div>
       </motion.div>
     </div>
   );
