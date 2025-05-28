@@ -16,7 +16,7 @@ export async function GET(request: Request) {
 
   // Parse pagination params
   const { searchParams } = new URL(request.url);
-  const limit = parseInt(searchParams.get('limit') || '50', 10);
+  const limit = parseInt(searchParams.get('limit') || '100', 10);
   const offset = parseInt(searchParams.get('offset') || '0', 10);
 
   // Single join query to get shared submissions and user info
