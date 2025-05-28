@@ -106,7 +106,7 @@ export async function POST(
   const otherFeedback = submission?.other_feedback ? `<li style="margin-bottom:12px;"><b>Other Feedback:</b> ${escapeHTML(submission.other_feedback)}</li>` : '';
   const hoursImpact = submission?.hours_reporting_impact ? `<li style="margin-bottom:12px;"><b>Hours Reporting Impact:</b> ${escapeHTML(submission.hours_reporting_impact)}</li>` : '';
 
-  if (sharedUser?.email) {
+  if (process.env.NEXT_PUBLIC_ENABLE_EMAILS === 'true' && sharedUser?.email) {
     await sendEmail({
       to: sharedUser.email,
       subject: 'A weekly pulse has been shared with you',
