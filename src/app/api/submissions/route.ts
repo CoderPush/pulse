@@ -102,6 +102,22 @@ export async function POST(request: Request) {
       );
     }
 
+    // Insert answers for dynamic questions
+    if (formData.answers && Object.keys(formData.answers).length > 0) {
+      const answerInserts = Object.entries(formData.answers).map(([questionId, answer]) => ({
+        submission_id: submission.id,
+        question_id: questionId,
+        answer: answer
+      }));
+      const { error: answersError } = await supabase
+        .from('submission_answers')
+        .insert(answerInserts);
+      if (answersError) {
+        console.error('Error inserting answers:', answersError);
+        // Don't fail the whole submission if answers fail
+      }
+    }
+
     // Auto-share with manager if manager is a coderpush.com email
     try {
       const managerEmail = submission.manager?.trim().toLowerCase();

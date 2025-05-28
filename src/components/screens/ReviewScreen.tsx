@@ -67,6 +67,27 @@ export default function ReviewScreen({ onBack, formData, onNext, questions = [] 
       )}
       
       <div className="bg-gray-50 rounded-lg p-6 mb-8 space-y-6">
+        {/* Dynamic Questions */}
+        {questions.map((question) => {
+          if ([
+            'primaryProject',
+            'primaryProjectHours',
+            'manager',
+            'additionalProjects',
+            'formCompletionTime',
+          ].includes(question.category)) {
+            return null;
+          }
+          const answer = formData.answers?.[question.id];
+          if (!answer) return null;
+          return (
+            <div key={question.id}>
+              <div className="text-sm text-gray-500 mb-1">{question.title}</div>
+              <div className="font-medium whitespace-pre-wrap">{answer}</div>
+            </div>
+          );
+        })}
+        
         <div>
           <div className="text-sm text-gray-500 mb-2">{getTitle('primaryProject', 'Primary Project')}</div>
           <div className="flex items-center justify-between">
