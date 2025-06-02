@@ -22,6 +22,7 @@ export default function AdminQuestionsPage() {
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [toggleQuestion, setToggleQuestion] = useState<Question | null>(null);
   const [toggleToActive, setToggleToActive] = useState(true);
+  const [addError, setAddError] = useState<string | null>(null);
 
   useEffect(() => {
     fetch('/api/admin/questions')
@@ -31,22 +32,27 @@ export default function AdminQuestionsPage() {
 
   const handleAdd = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    console.log('form', form);
-    await fetch('/api/questions', {
+    setAddError(null);
+    const res = await fetch('/api/admin/questions', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ ...form }),
     });
+    const data = await res.json();
+    if (!res.ok) {
+      setAddError(data.error || 'Failed to add question');
+      return;
+    }
     setOpen(false);
     setForm({ title: '', description: '', type: 'text', required: false, choices: [] });
     // Refresh questions
-    const res = await fetch('/api/questions');
-    const data = await res.json();
-    setQuestions(data.questions || []);
+    const res2 = await fetch('/api/admin/questions');
+    const data2 = await res2.json();
+    setQuestions(data2.questions || []);
   };
 
   const refreshQuestions = async () => {
-    const res = await fetch('/api/questions');
+    const res = await fetch('/api/admin/questions');
     const data = await res.json();
     setQuestions(data.questions || []);
   };
@@ -64,7 +70,7 @@ export default function AdminQuestionsPage() {
 
   const confirmToggleStatus = async () => {
     if (!toggleQuestion) return;
-    await fetch(`/api/questions/${toggleQuestion.id}`, {
+    await fetch(`/api/admin/questions/${toggleQuestion.id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ is_active: toggleToActive }),
@@ -101,6 +107,11 @@ export default function AdminQuestionsPage() {
                 <DialogTitle>Add New Question</DialogTitle>
               </DialogHeader>
               <form onSubmit={handleAdd} className="space-y-4">
+                {addError && (
+                  <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-2 rounded mb-4">
+                    {addError}
+                  </div>
+                )}
                 <div>
                   <Label htmlFor="title" className="mb-1">Title</Label>
                   <Input

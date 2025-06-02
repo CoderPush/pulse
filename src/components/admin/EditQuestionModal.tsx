@@ -68,7 +68,7 @@ export function EditQuestionModal({ question, open, onOpenChange, onSave }: Edit
     };
     try {
       if (!question) return;
-      const res = await fetch(`/api/questions/${question.id}`, {
+      const res = await fetch(`/api/admin/questions/${question.id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(filteredForm),
