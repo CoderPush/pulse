@@ -34,16 +34,16 @@ interface FastestLeaderboardEntry {
   isCurrentUser?: boolean;
 }
 
-function maskEmail(email: string): string {
-  // Mask email for privacy (e.g., j***@gmail.com)
-  const [name, domain] = email.split('@');
-  if (!name || !domain) return email;
-  return name[0] + '***@' + domain;
+// Helper to capitalize every word
+function toTitleCase(str: string): string {
+  return str.replace(/\w\S*/g, (txt) => txt.charAt(0).toUpperCase() + txt.slice(1).toLowerCase());
 }
 
 function getDisplayName(user: User): string {
-  // if (user.name && user.name.trim() !== '') return user.name;
-  return maskEmail(user.email);
+  if (user.name && user.name.trim() !== '') return toTitleCase(user.name);
+  // If no name, use the part before @ in email
+  const [beforeAt] = user.email.split('@');
+  return toTitleCase(beforeAt);
 }
 
 function calculateMaxStreak(submissions: Submission[], allWeeks: Week[], currentWeek: number): number {
