@@ -51,11 +51,6 @@ export default function ReviewScreen({ onBack, formData, onNext, questions = [] 
     }
   };
 
-  // Helper to get question title by category
-  const getTitle = (category: string, fallback: string) => {
-    return questions?.find(q => q.category === category)?.title || fallback;
-  };
-
   return (
     <div className="flex flex-col h-full px-6">
       <h2 className="text-2xl font-bold mb-8">Review & Submit</h2>
@@ -67,88 +62,135 @@ export default function ReviewScreen({ onBack, formData, onNext, questions = [] 
       )}
       
       <div className="bg-gray-50 rounded-lg p-6 mb-8 space-y-6">
-        {/* Dynamic Questions */}
-        {questions.map((question) => {
-          if ([
-            'primaryProject',
-            'primaryProjectHours',
-            'manager',
-            'additionalProjects',
-            'formCompletionTime',
-          ].includes(question.category)) {
+        {/* Core Questions */}
+        {questions.filter(q => [
+          'primaryProject',
+          'primaryProjectHours',
+          'manager',
+          'additionalProjects',
+          'formCompletionTime',
+          'feedback',
+          'changesNextWeek',
+          'milestones',
+          'otherFeedback',
+          'hoursReportingImpact',
+        ].includes(q.category)).map((question) => {
+          let value: any = '';
+          switch (question.category) {
+            case 'primaryProject':
+              value = formData.primaryProject.name;
+              break;
+            case 'primaryProjectHours':
+              value = formData.primaryProject.hours;
+              break;
+            case 'manager':
+              value = formData.manager;
+              break;
+            case 'additionalProjects':
+              value = formData.additionalProjects;
+              break;
+            case 'formCompletionTime':
+              value = formData.formCompletionTime;
+              break;
+            case 'feedback':
+              value = formData.feedback;
+              break;
+            case 'changesNextWeek':
+              value = formData.changesNextWeek;
+              break;
+            case 'milestones':
+              value = formData.milestones;
+              break;
+            case 'otherFeedback':
+              value = formData.otherFeedback;
+              break;
+            case 'hoursReportingImpact':
+              value = formData.hoursReportingImpact;
+              break;
+            default:
+              value = '';
+          }
+          // Custom rendering for primaryProject and skip primaryProjectHours
+          if (question.category === 'primaryProject') {
+            return (
+              <div key={question.id}>
+                <div className="text-sm text-gray-500 mb-1">{question.title}</div>
+                <div className="flex items-center gap-3">
+                  <span className="font-medium text-lg">{formData.primaryProject.name}</span>
+                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 border border-blue-200">
+                    <Clock size={12} className="mr-1" />
+                    {formData.primaryProject.hours} hours
+                  </span>
+                </div>
+              </div>
+            );
+          }
+          if (question.category === 'primaryProjectHours') {
             return null;
           }
-          const answer = formData.answers?.[question.id];
-          if (!answer) return null;
+          if (!value || (question.category === 'additionalProjects' && (!Array.isArray(value) || value.length === 0))) return null;
           return (
             <div key={question.id}>
               <div className="text-sm text-gray-500 mb-1">{question.title}</div>
-              <div className="font-medium whitespace-pre-wrap">{answer}</div>
+              {question.category === 'additionalProjects' ? (
+                <div className="flex flex-col gap-2">
+                  {Array.isArray(value) && value.length > 0 ? value.map((p, idx) => (
+                    <div key={idx} className="flex items-center gap-3">
+                      <span className="font-medium text-base">{p.project}</span>
+                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 border border-blue-200">
+                        <Clock size={12} className="mr-1" />
+                        {p.hours} hours
+                      </span>
+                    </div>
+                  )) : <span className="text-gray-400">None</span>}
+                </div>
+              ) : (
+                <div className="font-medium whitespace-pre-wrap">{value}</div>
+              )}
             </div>
           );
         })}
-        
-        <div>
-          <div className="text-sm text-gray-500 mb-2">{getTitle('primaryProject', 'Primary Project')}</div>
-          <div className="flex items-center justify-between">
-            <div className="font-medium text-lg">{formData.primaryProject.name}</div>
-            <div className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-              <Clock size={12} className="mr-1" />
-              {formData.primaryProject.hours} hours
-            </div>
-          </div>
-        </div>
-        
-        {formData.additionalProjects.length > 0 && (
-          <div>
-            <div className="text-sm text-gray-500 mb-2">{getTitle('additionalProjects', 'Additional Projects')}</div>
-            {formData.additionalProjects.map((proj, index) => (
-              <div key={index} className="mb-3 last:mb-0">
-                <div className="flex items-center justify-between">
-                  <div className="font-medium text-lg">{proj.project}</div>
-                  <div className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                    <Clock size={12} className="mr-1" />
-                    {proj.hours} hours
+      </div>
+      {/* Dynamic Questions */}
+      <div className="bg-gray-50 rounded-lg p-6 mb-8 space-y-6">
+        {questions
+          .filter(q =>
+            ![
+              'primaryProject',
+              'primaryProjectHours',
+              'manager',
+              'additionalProjects',
+              'formCompletionTime',
+              'feedback',
+              'changesNextWeek',
+              'milestones',
+              'otherFeedback',
+              'hoursReportingImpact',
+            ].includes(q.category)
+          )
+          .map((question) => {
+            const answer = formData.answers?.[question.id];
+            if (!answer) return null;
+            return (
+              <div key={question.id}>
+                <div className="text-sm text-gray-500 mb-1">{question.title}</div>
+                {Array.isArray(answer) ? (
+                  <div className="flex flex-wrap gap-2">
+                    {answer.map((val, idx) => (
+                      <span
+                        key={idx}
+                        className="inline-block bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-xs font-medium border border-blue-200"
+                      >
+                        {val}
+                      </span>
+                    ))}
                   </div>
-                </div>
+                ) : (
+                  <div className="font-medium whitespace-pre-wrap">{answer}</div>
+                )}
               </div>
-            ))}
-          </div>
-        )}
-        
-        <div>
-          <div className="text-sm text-gray-500 mb-1">{getTitle('manager', 'Manager')}</div>
-          <div className="font-medium">{formData?.manager}</div>
-        </div>
-        
-        {formData.feedback && (
-          <div>
-            <div className="text-sm text-gray-500 mb-1">{getTitle('feedback', 'Blockers & Feedback')}</div>
-            <div className="font-medium">{formData.feedback}</div>
-          </div>
-        )}
-
-        {formData.changesNextWeek && (
-          <div>
-            <div className="text-sm text-gray-500 mb-1">{getTitle('changesNextWeek', 'Changes Next Week')}</div>
-            <div className="font-medium">{formData.changesNextWeek}</div>
-          </div>
-        )}
-
-        {formData.otherFeedback && (
-          <div>
-            <div className="text-sm text-gray-500 mb-1">{getTitle('otherFeedback', 'Additional Comments')}</div>
-            <div className="font-medium">{formData.otherFeedback}</div>
-          </div>
-        )}
-
-        {formData.hoursReportingImpact && (
-          <div>
-            <div className="text-sm text-gray-500 mb-1">{getTitle('hoursReportingImpact', 'Hours Reporting Impact')}</div>
-            <div className="font-medium">{formData.hoursReportingImpact}</div>
-          </div>
-        )}
-
+            );
+          })}
       </div>
       
       <div className="mt-auto flex gap-3">

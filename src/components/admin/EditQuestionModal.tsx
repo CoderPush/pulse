@@ -17,13 +17,14 @@ type EditQuestionModalProps = {
 
 export function EditQuestionModal({ question, open, onOpenChange, onSave }: EditQuestionModalProps) {
   const [form, setForm] = useState({
-    title: "",
-    description: "",
-    type: "text",
-    required: false,
+    title: question?.title || '',
+    description: question?.description || '',
+    type: question?.type || 'text',
+    required: question?.required || false,
     version: 1,
-    category: "",
-    display_order: 0,
+    category: question?.category || '',
+    display_order: question?.display_order ?? 0,
+    choices: question && 'choices' in question ? (question as any).choices : [],
   });
 
   useEffect(() => {
@@ -36,6 +37,7 @@ export function EditQuestionModal({ question, open, onOpenChange, onSave }: Edit
         version: question.version,
         category: question.category || "",
         display_order: question.display_order ?? 0,
+        choices: question && 'choices' in question ? (question as any).choices : [],
       });
     }
   }, [question]);
@@ -91,6 +93,8 @@ export function EditQuestionModal({ question, open, onOpenChange, onSave }: Edit
                 <SelectItem value="text">Text</SelectItem>
                 <SelectItem value="textarea">Textarea</SelectItem>
                 <SelectItem value="number">Number</SelectItem>
+                <SelectItem value="multiple_choice">Multiple Choice</SelectItem>
+                <SelectItem value="checkbox">Checkbox (Multi-Select)</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -112,19 +116,21 @@ export function EditQuestionModal({ question, open, onOpenChange, onSave }: Edit
               onChange={(e: ChangeEvent<HTMLInputElement>) => setForm(f => ({ ...f, version: Number(e.target.value) }))}
             />
           </div>
-          <div>
-            <Label htmlFor="category" className="mb-1 block">Category</Label>
-            <Input
-              id="category"
-              className="mt-1"
-              value={form.category}
-              onChange={(e: ChangeEvent<HTMLInputElement>) => setForm(f => ({ ...f, category: e.target.value }))}
-              disabled
-            />
-            <p className="text-xs text-muted-foreground mt-1">
-              This field is only used for core questions mapped to fixed columns in the submissions table. It cannot be changed.
-            </p>
-          </div>
+          {form.category && (
+            <div>
+              <Label htmlFor="category" className="mb-1 block">Category</Label>
+              <Input
+                id="category"
+                className="mt-1"
+                value={form.category}
+                onChange={(e: ChangeEvent<HTMLInputElement>) => setForm(f => ({ ...f, category: e.target.value }))}
+                disabled
+              />
+              <p className="text-xs text-muted-foreground mt-1">
+                This field is only used for core questions mapped to fixed columns in the submissions table. It cannot be changed.
+              </p>
+            </div>
+          )}
           <div>
             <Label htmlFor="display_order" className="mb-1 block">Display Order</Label>
             <Input
@@ -135,6 +141,49 @@ export function EditQuestionModal({ question, open, onOpenChange, onSave }: Edit
               onChange={(e: ChangeEvent<HTMLInputElement>) => setForm(f => ({ ...f, display_order: Number(e.target.value) }))}
             />
           </div>
+          {/* Choices editor for multiple_choice and checkbox */}
+          {(form.type === 'multiple_choice' || form.type === 'checkbox') && (
+            <div className="mt-4">
+              <Label className="mb-1 block">Choices</Label>
+              {form.choices && form.choices.length > 0 ? (
+                <ul className="mb-2">
+                  {form.choices.map((choice: string, idx: number) => (
+                    <li key={idx} className="flex items-center gap-2 mb-1">
+                      <Input
+                        value={choice}
+                        onChange={e => {
+                          const newChoices = [...form.choices];
+                          newChoices[idx] = e.target.value;
+                          setForm(f => ({ ...f, choices: newChoices }));
+                        }}
+                        className="flex-1"
+                        placeholder={`Option ${idx + 1}`}
+                      />
+                      <Button
+                        type="button"
+                        size="icon"
+                        variant="ghost"
+                        onClick={() => setForm(f => ({ ...f, choices: f.choices.filter((_: any, i: number) => i !== idx) }))}
+                        aria-label="Remove choice"
+                      >
+                        ×
+                      </Button>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <div className="text-xs text-muted-foreground mb-2">No choices yet.</div>
+              )}
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                onClick={() => setForm(f => ({ ...f, choices: [...(f.choices || []), ''] }))}
+              >
+                Add Choice
+              </Button>
+            </div>
+          )}
           <DialogFooter>
             <Button type="submit">Save</Button>
           </DialogFooter>

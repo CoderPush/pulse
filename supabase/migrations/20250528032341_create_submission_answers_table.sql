@@ -4,7 +4,7 @@ CREATE TABLE submission_answers (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     submission_id UUID NOT NULL,
     question_id UUID NOT NULL,
-    answer TEXT,
+    answer JSONB,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     
@@ -27,7 +27,7 @@ CREATE OR REPLACE FUNCTION get_submission_answers(submission_id UUID)
 RETURNS TABLE (
     id UUID,
     question_id UUID,
-    answer TEXT,
+    answer JSONB,
     question_title TEXT,
     question_description TEXT,
     question_type TEXT,

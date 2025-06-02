@@ -15,7 +15,7 @@ import { EditQuestionModal } from '@/components/admin/EditQuestionModal';
 
 export default function AdminQuestionsPage() {
   const [questions, setQuestions] = useState<Question[]>([]);
-  const [form, setForm] = useState({ title: '', description: '', type: 'text', required: false });
+  const [form, setForm] = useState({ title: '', description: '', type: 'text', required: false, choices: [] as string[] });
   const [open, setOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
   const [editQuestion, setEditQuestion] = useState<Question | null>(null);
@@ -24,20 +24,21 @@ export default function AdminQuestionsPage() {
   const [toggleToActive, setToggleToActive] = useState(true);
 
   useEffect(() => {
-    fetch('/api/questions')
+    fetch('/api/admin/questions')
       .then(res => res.json())
       .then(data => setQuestions(data.questions || []));
   }, []);
 
   const handleAdd = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    console.log('form', form);
     await fetch('/api/questions', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ ...form }),
     });
     setOpen(false);
-    setForm({ title: '', description: '', type: 'text', required: false });
+    setForm({ title: '', description: '', type: 'text', required: false, choices: [] });
     // Refresh questions
     const res = await fetch('/api/questions');
     const data = await res.json();
@@ -101,7 +102,7 @@ export default function AdminQuestionsPage() {
               </DialogHeader>
               <form onSubmit={handleAdd} className="space-y-4">
                 <div>
-                  <Label htmlFor="title">Title</Label>
+                  <Label htmlFor="title" className="mb-1">Title</Label>
                   <Input
                     id="title"
                     placeholder="Title"
@@ -111,7 +112,7 @@ export default function AdminQuestionsPage() {
                   />
                 </div>
                 <div>
-                  <Label htmlFor="description">Description</Label>
+                  <Label htmlFor="description" className="mb-1">Description</Label>
                   <Textarea
                     id="description"
                     placeholder="Description"
@@ -120,7 +121,7 @@ export default function AdminQuestionsPage() {
                   />
                 </div>
                 <div>
-                  <Label htmlFor="type">Type</Label>
+                  <Label htmlFor="type" className="mb-1">Type</Label>
                   <Select
                     value={form.type}
                     onValueChange={(value: string) => setForm(f => ({ ...f, type: value }))}
@@ -132,6 +133,8 @@ export default function AdminQuestionsPage() {
                       <SelectItem value="text">Text</SelectItem>
                       <SelectItem value="textarea">Textarea</SelectItem>
                       <SelectItem value="number">Number</SelectItem>
+                      <SelectItem value="multiple_choice">Multiple Choice</SelectItem>
+                      <SelectItem value="checkbox">Checkbox (Multi-Select)</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -143,6 +146,49 @@ export default function AdminQuestionsPage() {
                   />
                   <Label htmlFor="required">Required</Label>
                 </div>
+                {/* Choices editor for multiple_choice and checkbox */}
+                {(form.type === 'multiple_choice' || form.type === 'checkbox') && (
+                  <div className="mt-4">
+                    <Label className="mb-1 block">Choices</Label>
+                    {form.choices && form.choices.length > 0 ? (
+                      <ul className="mb-2">
+                        {form.choices.map((choice: string, idx: number) => (
+                          <li key={idx} className="flex items-center gap-2 mb-1">
+                            <Input
+                              value={choice}
+                              onChange={e => {
+                                const newChoices = [...form.choices];
+                                newChoices[idx] = e.target.value;
+                                setForm(f => ({ ...f, choices: newChoices }));
+                              }}
+                              className="flex-1"
+                              placeholder={`Option ${idx + 1}`}
+                            />
+                            <Button
+                              type="button"
+                              size="icon"
+                              variant="ghost"
+                              onClick={() => setForm(f => ({ ...f, choices: f.choices.filter((_: any, i: number) => i !== idx) }))}
+                              aria-label="Remove choice"
+                            >
+                              ×
+                            </Button>
+                          </li>
+                        ))}
+                      </ul>
+                    ) : (
+                      <div className="text-xs text-muted-foreground mb-2">No choices yet.</div>
+                    )}
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      onClick={() => setForm(f => ({ ...f, choices: [...(f.choices || []), ''] }))}
+                    >
+                      Add Choice
+                    </Button>
+                  </div>
+                )}
                 <DialogFooter>
                   <Button type="submit">Save</Button>
                 </DialogFooter>
@@ -189,12 +235,21 @@ export default function AdminQuestionsPage() {
                   <TableCell>{q.display_order ?? ""}</TableCell>
                   <TableCell>{renderStatusBadge(q.is_active)}</TableCell>
                   <TableCell>
-                    <Button size="sm" variant="outline" onClick={() => handleEdit(q)}>Edit</Button>
-                    {q.is_active ? (
-                      <Button size="sm" variant="destructive" className="ml-2" onClick={() => handleToggleStatus(q, false)}>Deactivate</Button>
-                    ) : (
-                      <Button size="sm" variant="secondary" className="ml-2" onClick={() => handleToggleStatus(q, true)}>Activate</Button>
-                    )}
+                    <div className="flex gap-2">
+                      <Button size="sm" variant="outline" onClick={() => handleEdit(q)}>Edit</Button>
+                      {q.is_active ? (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="text-yellow-800 border-yellow-400 hover:bg-yellow-50"
+                          onClick={() => handleToggleStatus(q, false)}
+                        >
+                          Deactivate
+                        </Button>
+                      ) : (
+                        <Button size="sm" variant="secondary" onClick={() => handleToggleStatus(q, true)}>Activate</Button>
+                      )}
+                    </div>
                   </TableCell>
                 </TableRow>
               ))}
@@ -238,12 +293,21 @@ export default function AdminQuestionsPage() {
                   <TableCell>{q.display_order ?? ""}</TableCell>
                   <TableCell>{renderStatusBadge(q.is_active)}</TableCell>
                   <TableCell>
-                    <Button size="sm" variant="outline" onClick={() => handleEdit(q)}>Edit</Button>
-                    {q.is_active ? (
-                      <Button size="sm" variant="destructive" className="ml-2" onClick={() => handleToggleStatus(q, false)}>Deactivate</Button>
-                    ) : (
-                      <Button size="sm" variant="secondary" className="ml-2" onClick={() => handleToggleStatus(q, true)}>Activate</Button>
-                    )}
+                    <div className="flex gap-2">
+                      <Button size="sm" variant="outline" onClick={() => handleEdit(q)}>Edit</Button>
+                      {q.is_active ? (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="text-yellow-800 border-yellow-400 hover:bg-yellow-50"
+                          onClick={() => handleToggleStatus(q, false)}
+                        >
+                          Deactivate
+                        </Button>
+                      ) : (
+                        <Button size="sm" variant="secondary" onClick={() => handleToggleStatus(q, true)}>Activate</Button>
+                      )}
+                    </div>
                   </TableCell>
                 </TableRow>
               ))}

@@ -48,7 +48,7 @@ export interface WeeklyPulseFormData {
   formCompletionTime: number;
   startTime?: string;
   endTime?: string;
-  answers?: Record<string, string>;
+  answers?: Record<string, string | string[]>;
 }
 
 export interface ScreenProps {

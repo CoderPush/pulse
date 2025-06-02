@@ -5,9 +5,12 @@ interface TextInputScreenProps extends ScreenProps {
   title: string;
   description?: string;
   placeholder: string;
-  fieldName: keyof WeeklyPulseFormData;
+  fieldName: keyof WeeklyPulseFormData | string;
   maxLength?: number;
   optional?: boolean;
+  isDynamic?: boolean;
+  type?: string;
+  multiline?: boolean;
 }
 
 export default function TextInputScreen({
@@ -17,19 +20,34 @@ export default function TextInputScreen({
   fieldName,
   maxLength = 500,
   optional = false,
+  isDynamic = false,
+  type = 'text',
+  multiline = true,
   onNext,
   onBack,
   formData,
   setFormData
 }: TextInputScreenProps) {
   const handleChange = (value: string) => {
-    setFormData({
-      ...formData,
-      [fieldName]: value
-    });
+    if (isDynamic) {
+      setFormData({
+        ...formData,
+        answers: {
+          ...formData.answers,
+          [fieldName]: value
+        }
+      });
+    } else {
+      setFormData({
+        ...formData,
+        [fieldName as keyof WeeklyPulseFormData]: value
+      });
+    }
   };
 
-  const currentValue = (formData[fieldName] ?? '') as string;
+  const currentValue = isDynamic
+    ? (formData.answers?.[fieldName as string] ?? '')
+    : (formData[fieldName as keyof WeeklyPulseFormData] ?? '') as string;
   const remainingChars = maxLength - currentValue.length;
 
   return (
@@ -39,13 +57,24 @@ export default function TextInputScreen({
         {description && (
           <p className="text-gray-600 mb-6">{description}</p>
         )}
-        <textarea
-          value={currentValue}
-          onChange={(e) => handleChange(e.target.value)}
-          placeholder={placeholder}
-          maxLength={maxLength}
-          className="w-full h-48 p-4 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
-        />
+        {multiline ? (
+          <textarea
+            value={currentValue}
+            onChange={(e) => handleChange(e.target.value)}
+            placeholder={placeholder}
+            maxLength={maxLength}
+            className="w-full h-48 p-4 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+          />
+        ) : (
+          <input
+            value={currentValue}
+            onChange={(e) => handleChange(e.target.value)}
+            placeholder={placeholder}
+            maxLength={maxLength}
+            type={type}
+            className="w-full p-4 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          />
+        )}
         <div className="flex justify-between items-center mt-2 text-sm text-gray-500 pb-4">
           <span>{remainingChars} characters remaining</span>
           {optional && <span>Optional</span>}

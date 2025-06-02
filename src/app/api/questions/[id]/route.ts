@@ -55,4 +55,39 @@ export async function PUT(
     console.error('Error in PUT /api/questions/[id]:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
+}
+
+export async function PATCH(
+  request: Request,
+  { params }: { params: Promise<{ id: string }> }
+): Promise<Response> {
+  const { id } = await params;
+  try {
+    const supabase = await createClient();
+    // Auth: Only allow admins
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    if (userError || !user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const { data: adminCheck } = await supabase
+      .from('users')
+      .select('is_admin')
+      .eq('id', user.id)
+      .single();
+    if (!adminCheck?.is_admin) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+
+    const updates = await request.json();
+    if (typeof updates.is_active !== 'boolean') {
+      return NextResponse.json({ error: 'Missing or invalid is_active field' }, { status: 400 });
+    }
+    const { data: updated, error: updateError } = await supabase
+      .from('questions')
+      .update({ is_active: updates.is_active })
+      .eq('id', id)
+      .select()
+      .single();
+    if (updateError) throw updateError;
+    return NextResponse.json({ question: updated });
+  } catch (error) {
+    console.error('Error in PATCH /api/questions/[id]:', error);
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+  }
 } 
