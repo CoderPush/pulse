@@ -14,7 +14,7 @@ import ReviewScreen from './screens/ReviewScreen';
 import SuccessScreen from './screens/SuccessScreen';
 import SubmissionSuccessScreen from './screens/SubmissionSuccessScreen';
 import { getISOWeek } from 'date-fns/getISOWeek';
-import { Button } from '@/components/ui/button';
+import MultipleChoiceScreen from './screens/MultipleChoiceScreen';
 
 interface WeeklyPulseFormProps {
   user: User;
@@ -201,7 +201,7 @@ export default function WeeklyPulseForm({
                 title={question.title}
                 description={question.description}
                 placeholder={question.description || question.title}
-                fieldName={question.id as string}
+                fieldName={question.id}
                 optional={!question.required}
                 type="number"
                 isDynamic
@@ -221,83 +221,16 @@ export default function WeeklyPulseForm({
               />
             );
           case 'multiple_choice':
-            return (
-              <div className="px-6">
-                <div className="mb-4">
-                  <div className="text-lg font-semibold mb-2">{question.title}</div>
-                  {question.description && <div className="text-gray-500 mb-2">{question.description}</div>}
-                  <div className="flex flex-col gap-2">
-                    {Array.isArray(question.choices) && question.choices.map((choice: string, idx: number) => (
-                      <label key={idx} className="flex items-center gap-2 cursor-pointer">
-                        <input
-                          type="radio"
-                          name={question.id}
-                          value={choice}
-                          checked={formData.answers?.[question.id] === choice}
-                          onChange={() => {
-                            setFormData(f => ({
-                              ...f,
-                              answers: { ...f.answers, [question.id]: choice }
-                            }));
-                          }}
-                          className="accent-blue-600"
-                        />
-                        <span>{choice}</span>
-                      </label>
-                    ))}
-                  </div>
-                </div>
-                <div className="flex gap-3 mt-8">
-                  <Button variant="outline" onClick={handleBack}>Back</Button>
-                  <Button onClick={handleNext}>Next</Button>
-                </div>
-              </div>
-            );
           case 'checkbox':
             return (
-              <div className="px-6">
-                <div className="mb-4">
-                  <div className="text-lg font-semibold mb-2">{question.title}</div>
-                  {question.description && <div className="text-gray-500 mb-2">{question.description}</div>}
-                  <div className="flex flex-col gap-2">
-                    {Array.isArray(question.choices) && question.choices.map((choice: string, idx: number) => {
-                      const prev: string[] = Array.isArray(formData.answers?.[question.id]) ? formData.answers[question.id] as string[] : [];
-                      const checked = prev.includes(choice);
-                      return (
-                        <label key={idx} className="flex items-center gap-2 cursor-pointer">
-                          <input
-                            type="checkbox"
-                            name={question.id}
-                            value={choice}
-                            checked={checked}
-                            onChange={e => {
-                              setFormData(f => {
-                                const prev: string[] = Array.isArray(f.answers?.[question.id]) ? f.answers[question.id] as string[] : [];
-                                let next: string[];
-                                if (e.target.checked) {
-                                  next = [...prev, choice];
-                                } else {
-                                  next = prev.filter((v: string) => v !== choice);
-                                }
-                                return {
-                                  ...f,
-                                  answers: { ...f.answers, [question.id]: next }
-                                };
-                              });
-                            }}
-                            className="accent-blue-600"
-                          />
-                          <span>{choice}</span>
-                        </label>
-                      );
-                    })}
-                  </div>
-                </div>
-                <div className="flex gap-3 mt-8">
-                  <Button variant="outline" onClick={handleBack}>Back</Button>
-                  <Button onClick={handleNext}>Next</Button>
-                </div>
-              </div>
+              <MultipleChoiceScreen
+                question={question}
+                formData={formData}
+                setFormData={setFormData}
+                onNext={handleNext}
+                onBack={handleBack}
+                error={error}
+              />
             );
           default:
             return <div>Unsupported question type</div>;

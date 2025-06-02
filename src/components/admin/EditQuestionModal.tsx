@@ -26,6 +26,9 @@ export function EditQuestionModal({ question, open, onOpenChange, onSave }: Edit
     display_order: question?.display_order ?? 0,
     choices: question?.choices ?? [],
   });
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [choiceErrors, setChoiceErrors] = useState<number[]>([]);
 
   useEffect(() => {
     if (question) {
@@ -39,19 +42,48 @@ export function EditQuestionModal({ question, open, onOpenChange, onSave }: Edit
         display_order: question.display_order ?? 0,
         choices: question.choices ?? [],
       });
+      setError(null);
     }
   }, [question]);
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    if (!question) return;
-    await fetch(`/api/questions/${question.id}`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(form),
-    });
-    onOpenChange(false);
-    onSave();
+    setLoading(true);
+    setError(null);
+    setChoiceErrors([]);
+    if ((form.type === 'multiple_choice' || form.type === 'checkbox') && form.choices) {
+      const emptyIndexes = form.choices.map((c, i) => (c.trim() === '' ? i : -1)).filter(i => i !== -1);
+      if (emptyIndexes.length > 0) {
+        setChoiceErrors(emptyIndexes);
+        setError('Choices cannot be empty. Please fill in all options or remove empty ones.');
+        setLoading(false);
+        return;
+      }
+    }
+    const filteredForm = {
+      ...form,
+      choices: (form.type === 'multiple_choice' || form.type === 'checkbox') && form.choices
+        ? form.choices.filter(c => c.trim() !== '')
+        : form.choices
+    };
+    try {
+      if (!question) return;
+      const res = await fetch(`/api/questions/${question.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(filteredForm),
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || 'Failed to update question');
+      }
+      onOpenChange(false);
+      onSave();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to update question');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -69,6 +101,7 @@ export function EditQuestionModal({ question, open, onOpenChange, onSave }: Edit
               value={form.title}
               onChange={(e: ChangeEvent<HTMLInputElement>) => setForm(f => ({ ...f, title: e.target.value }))}
               required
+              disabled={loading}
             />
           </div>
           <div>
@@ -78,6 +111,7 @@ export function EditQuestionModal({ question, open, onOpenChange, onSave }: Edit
               className="mt-1"
               value={form.description}
               onChange={(e: ChangeEvent<HTMLTextAreaElement>) => setForm(f => ({ ...f, description: e.target.value }))}
+              disabled={loading}
             />
           </div>
           <div>
@@ -85,6 +119,7 @@ export function EditQuestionModal({ question, open, onOpenChange, onSave }: Edit
             <Select
               value={form.type}
               onValueChange={(value: string) => setForm(f => ({ ...f, type: value }))}
+              disabled={loading}
             >
               <SelectTrigger id="type" className="mt-1">
                 <SelectValue placeholder="Select type" />
@@ -103,6 +138,7 @@ export function EditQuestionModal({ question, open, onOpenChange, onSave }: Edit
               id="required"
               checked={form.required}
               onCheckedChange={(checked: boolean) => setForm(f => ({ ...f, required: !!checked }))}
+              disabled={loading}
             />
             <Label htmlFor="required" className="mb-1">Required</Label>
           </div>
@@ -114,6 +150,7 @@ export function EditQuestionModal({ question, open, onOpenChange, onSave }: Edit
               className="mt-1"
               value={form.version}
               onChange={(e: ChangeEvent<HTMLInputElement>) => setForm(f => ({ ...f, version: Number(e.target.value) }))}
+              disabled={loading}
             />
           </div>
           {form.category && (
@@ -139,9 +176,9 @@ export function EditQuestionModal({ question, open, onOpenChange, onSave }: Edit
               className="mt-1"
               value={form.display_order}
               onChange={(e: ChangeEvent<HTMLInputElement>) => setForm(f => ({ ...f, display_order: Number(e.target.value) }))}
+              disabled={loading}
             />
           </div>
-          {/* Choices editor for multiple_choice and checkbox */}
           {(form.type === 'multiple_choice' || form.type === 'checkbox') && (
             <div className="mt-4">
               <Label className="mb-1 block">Choices</Label>
@@ -155,9 +192,11 @@ export function EditQuestionModal({ question, open, onOpenChange, onSave }: Edit
                           const newChoices = [...form.choices];
                           newChoices[idx] = e.target.value;
                           setForm(f => ({ ...f, choices: newChoices }));
+                          setChoiceErrors([]);
                         }}
-                        className="flex-1"
+                        className={`flex-1${choiceErrors.includes(idx) ? ' border-red-500 focus:ring-red-500' : ''}`}
                         placeholder={`Option ${idx + 1}`}
+                        disabled={loading}
                       />
                       <Button
                         type="button"
@@ -165,6 +204,7 @@ export function EditQuestionModal({ question, open, onOpenChange, onSave }: Edit
                         variant="ghost"
                         onClick={() => setForm(f => ({ ...f, choices: f.choices.filter((_, i) => i !== idx) }))}
                         aria-label="Remove choice"
+                        disabled={loading}
                       >
                         ×
                       </Button>
@@ -174,18 +214,29 @@ export function EditQuestionModal({ question, open, onOpenChange, onSave }: Edit
               ) : (
                 <div className="text-xs text-muted-foreground mb-2">No choices yet.</div>
               )}
+              {choiceErrors.length > 0 && (
+                <div className="text-red-600 text-xs mb-2">Choices cannot be empty. Please fill in all options or remove empty ones.</div>
+              )}
               <Button
                 type="button"
                 size="sm"
                 variant="outline"
                 onClick={() => setForm(f => ({ ...f, choices: [...(f.choices || []), ''] }))}
+                disabled={loading}
               >
                 Add Choice
               </Button>
             </div>
           )}
+          {error && (
+            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-2 rounded-lg text-sm">
+              {error}
+            </div>
+          )}
           <DialogFooter>
-            <Button type="submit">Save</Button>
+            <Button type="submit" disabled={loading}>
+              {loading ? 'Saving...' : 'Save'}
+            </Button>
           </DialogFooter>
         </form>
       </DialogContent>

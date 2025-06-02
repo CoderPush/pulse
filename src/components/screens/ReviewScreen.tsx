@@ -3,6 +3,19 @@ import { ScreenProps, Question } from '@/types/weekly-pulse';
 import { useState } from 'react';
 import type { AdditionalProject } from '@/types/weekly-pulse';
 
+const CORE_QUESTION_CATEGORIES = [
+  'primaryProject',
+  'primaryProjectHours',
+  'manager',
+  'additionalProjects',
+  'formCompletionTime',
+  'feedback',
+  'changesNextWeek',
+  'milestones',
+  'otherFeedback',
+  'hoursReportingImpact',
+];
+
 export default function ReviewScreen({ onBack, formData, onNext, questions = [] }: ScreenProps & { questions?: Question[] }) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -64,18 +77,7 @@ export default function ReviewScreen({ onBack, formData, onNext, questions = [] 
       
       <div className="bg-gray-50 rounded-lg p-6 mb-8 space-y-6">
         {/* Core Questions */}
-        {questions.filter(q => [
-          'primaryProject',
-          'primaryProjectHours',
-          'manager',
-          'additionalProjects',
-          'formCompletionTime',
-          'feedback',
-          'changesNextWeek',
-          'milestones',
-          'otherFeedback',
-          'hoursReportingImpact',
-        ].includes(q.category)).map((question) => {
+        {questions.filter(q => CORE_QUESTION_CATEGORIES.includes(q.category)).map((question) => {
           let value: string | number | AdditionalProject[] | undefined = '';
           switch (question.category) {
             case 'primaryProject':
@@ -155,20 +157,7 @@ export default function ReviewScreen({ onBack, formData, onNext, questions = [] 
       {/* Dynamic Questions */}
       <div className="bg-gray-50 rounded-lg p-6 mb-8 space-y-6">
         {questions
-          .filter(q =>
-            ![
-              'primaryProject',
-              'primaryProjectHours',
-              'manager',
-              'additionalProjects',
-              'formCompletionTime',
-              'feedback',
-              'changesNextWeek',
-              'milestones',
-              'otherFeedback',
-              'hoursReportingImpact',
-            ].includes(q.category)
-          )
+          .filter(q => !CORE_QUESTION_CATEGORIES.includes(q.category))
           .map((question) => {
             const answer = formData.answers?.[question.id];
             if (!answer) return null;

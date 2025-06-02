@@ -22,7 +22,7 @@ export default function TextInputScreen({
   optional = false,
   isDynamic = false,
   type = 'text',
-  multiline = true,
+  multiline = type === 'textarea',
   onNext,
   onBack,
   formData,
