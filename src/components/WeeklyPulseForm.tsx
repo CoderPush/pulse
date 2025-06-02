@@ -227,7 +227,7 @@ export default function WeeklyPulseForm({
                   <div className="text-lg font-semibold mb-2">{question.title}</div>
                   {question.description && <div className="text-gray-500 mb-2">{question.description}</div>}
                   <div className="flex flex-col gap-2">
-                    {Array.isArray((question as any).choices) && (question as any).choices.map((choice: string, idx: number) => (
+                    {Array.isArray(question.choices) && question.choices.map((choice: string, idx: number) => (
                       <label key={idx} className="flex items-center gap-2 cursor-pointer">
                         <input
                           type="radio"
@@ -260,7 +260,7 @@ export default function WeeklyPulseForm({
                   <div className="text-lg font-semibold mb-2">{question.title}</div>
                   {question.description && <div className="text-gray-500 mb-2">{question.description}</div>}
                   <div className="flex flex-col gap-2">
-                    {Array.isArray((question as any).choices) && (question as any).choices.map((choice: string, idx: number) => {
+                    {Array.isArray(question.choices) && question.choices.map((choice: string, idx: number) => {
                       const prev: string[] = Array.isArray(formData.answers?.[question.id]) ? formData.answers[question.id] as string[] : [];
                       const checked = prev.includes(choice);
                       return (

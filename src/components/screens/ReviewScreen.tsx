@@ -1,6 +1,7 @@
 import { ArrowLeft, Check, Clock } from 'lucide-react';
 import { ScreenProps, Question } from '@/types/weekly-pulse';
 import { useState } from 'react';
+import type { AdditionalProject } from '@/types/weekly-pulse';
 
 export default function ReviewScreen({ onBack, formData, onNext, questions = [] }: ScreenProps & { questions?: Question[] }) {
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -75,7 +76,7 @@ export default function ReviewScreen({ onBack, formData, onNext, questions = [] 
           'otherFeedback',
           'hoursReportingImpact',
         ].includes(q.category)).map((question) => {
-          let value: any = '';
+          let value: string | number | AdditionalProject[] | undefined = '';
           switch (question.category) {
             case 'primaryProject':
               value = formData.primaryProject.name;
@@ -145,7 +146,7 @@ export default function ReviewScreen({ onBack, formData, onNext, questions = [] 
                   )) : <span className="text-gray-400">None</span>}
                 </div>
               ) : (
-                <div className="font-medium whitespace-pre-wrap">{value}</div>
+                <div className="font-medium whitespace-pre-wrap">{String(value)}</div>
               )}
             </div>
           );
@@ -186,7 +187,7 @@ export default function ReviewScreen({ onBack, formData, onNext, questions = [] 
                     ))}
                   </div>
                 ) : (
-                  <div className="font-medium whitespace-pre-wrap">{answer}</div>
+                  <div className="font-medium whitespace-pre-wrap">{String(answer)}</div>
                 )}
               </div>
             );

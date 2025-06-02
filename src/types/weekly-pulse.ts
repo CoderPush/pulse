@@ -76,4 +76,5 @@ export interface Question {
   updated_at?: string;
   display_order?: number;
   is_active?: boolean;
+  choices?: string[];
 } 

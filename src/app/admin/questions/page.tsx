@@ -168,7 +168,7 @@ export default function AdminQuestionsPage() {
                               type="button"
                               size="icon"
                               variant="ghost"
-                              onClick={() => setForm(f => ({ ...f, choices: f.choices.filter((_: any, i: number) => i !== idx) }))}
+                              onClick={() => setForm(f => ({ ...f, choices: f.choices.filter((_, i) => i !== idx) }))}
                               aria-label="Remove choice"
                             >
                               ×

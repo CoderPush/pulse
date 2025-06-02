@@ -24,7 +24,7 @@ export function EditQuestionModal({ question, open, onOpenChange, onSave }: Edit
     version: 1,
     category: question?.category || '',
     display_order: question?.display_order ?? 0,
-    choices: question && 'choices' in question ? (question as any).choices : [],
+    choices: question?.choices ?? [],
   });
 
   useEffect(() => {
@@ -37,7 +37,7 @@ export function EditQuestionModal({ question, open, onOpenChange, onSave }: Edit
         version: question.version,
         category: question.category || "",
         display_order: question.display_order ?? 0,
-        choices: question && 'choices' in question ? (question as any).choices : [],
+        choices: question.choices ?? [],
       });
     }
   }, [question]);
@@ -163,7 +163,7 @@ export function EditQuestionModal({ question, open, onOpenChange, onSave }: Edit
                         type="button"
                         size="icon"
                         variant="ghost"
-                        onClick={() => setForm(f => ({ ...f, choices: f.choices.filter((_: any, i: number) => i !== idx) }))}
+                        onClick={() => setForm(f => ({ ...f, choices: f.choices.filter((_, i) => i !== idx) }))}
                         aria-label="Remove choice"
                       >
                         ×
