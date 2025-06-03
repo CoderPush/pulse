@@ -13,19 +13,10 @@ import { getMostRecentThursdayWeek } from '@/lib/utils/date'
 import { Calendar, AlertCircle, CalendarX, Star, Book, User, Clock } from 'lucide-react'
 import StreakCard from './StreakCard'
 import SubmissionComments from '@/components/SubmissionComments'
+import { START_WEEK, isWeekExcluded } from '@/utils/streak'
 
 const getCurrentYear = () => new Date().getFullYear();
 const getCurrentWeek = () => getMostRecentThursdayWeek();
-
-// Configuration for excluded weeks (should match API logic)
-const EXCLUDED_WEEKS = [
-  { year: 2025, week_number: 16 }, // Exclude week 16 of 2025
-  // Add more exclusions as needed
-];
-
-function isWeekExcluded(year: number, week_number: number) {
-  return EXCLUDED_WEEKS.some(w => w.year === year && w.week_number === week_number);
-}
 
 function calculateStreak(
   submissions: { week_number: number }[],
@@ -141,7 +132,7 @@ export default async function HistoryPage({
       {/* Weeks Streak Section */}
       <StreakCard
         streak={streak}
-        allWeeks={filteredWeeks.filter(w => w.week_number >= 9)}
+        allWeeks={filteredWeeks.filter(w => w.week_number >= START_WEEK)}
         submissions={submissions || []}
         currentWeek={currentWeek}
         currentYear={currentYear}
