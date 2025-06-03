@@ -19,6 +19,7 @@ import { WeekFilter } from '@/components/WeekFilter';
 import { useSearchParams } from 'next/navigation';
 import { getMostRecentThursdayWeek } from '@/lib/utils/date';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import ImportSubmissionsDialog from '@/components/admin/ImportSubmissionsDialog';
 
 // Define a proper Week type
 interface WeekOption {
@@ -51,6 +52,7 @@ function SubmissionsFilterAndTable() {
   const [weeks, setWeeks] = useState<WeekOption[]>([]);
   const [selectedWeek, setSelectedWeek] = useState<number | null>(null);
   const [selectedYear, setSelectedYear] = useState<number | null>(null);
+  const [isImportDialogOpen, setIsImportDialogOpen] = useState(false);
   const searchParams = useSearchParams();
 
   // Extract week and year params for useEffect dependencies
@@ -137,15 +139,24 @@ function SubmissionsFilterAndTable() {
   return (
     <>
       <div className="flex justify-between gap-4 w-full max-w-xl ml-auto">
-        <WeekFilter weeks={weekOptions} />
-        <div className="relative flex-1">
-          <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Search submissions..."
-            className="pl-8 w-full"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-          />
+        <Button
+          variant="default"
+          className="h-full bg-black text-white hover:bg-gray-900"
+          onClick={() => setIsImportDialogOpen(true)}
+        >
+          Import CSV
+        </Button>
+        <div className="flex justify-between gap-4 w-full max-w-xl ml-auto">
+          <WeekFilter weeks={weekOptions} />
+          <div className="relative flex-1">
+            <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Search submissions..."
+              className="pl-8 w-full"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+          </div>
         </div>
       </div>
       <Card>
@@ -291,6 +302,21 @@ function SubmissionsFilterAndTable() {
           }}
         />
       )}
+      <ImportSubmissionsDialog
+        isOpen={isImportDialogOpen}
+        onClose={() => setIsImportDialogOpen(false)}
+        onImportComplete={() => {
+          setIsImportDialogOpen(false);
+          // Refresh submissions after import
+          if (selectedWeek && selectedYear) {
+            const params = new URLSearchParams();
+            if (searchQuery) params.append('email', searchQuery);
+            params.append('week', String(selectedWeek));
+            params.append('year', String(selectedYear));
+            fetchSubmissions(params);
+          }
+        }}
+      />
     </>
   );
 } 
