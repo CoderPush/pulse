@@ -34,6 +34,17 @@ interface FastestLeaderboardEntry {
   isCurrentUser?: boolean;
 }
 
+// Configuration for excluded weeks (change system from Google Sheets to App)
+const EXCLUDED_WEEKS = [
+  { year: 2025, week_number: 16 }, // Exclude week 16 of 2025
+  // Add more exclusions as needed
+];
+
+// Helper to check if a week is excluded
+function isWeekExcluded(year: number, week_number: number) {
+  return EXCLUDED_WEEKS.some(w => w.year === year && w.week_number === week_number);
+}
+
 // Helper to capitalize every word
 function toTitleCase(str: string): string {
   return str.replace(/\w\S*/g, (txt) => txt.charAt(0).toUpperCase() + txt.slice(1).toLowerCase());
@@ -96,7 +107,24 @@ export async function GET(request: Request) {
   }
 
   // Use getMostRecentThursdayWeek for current week
-  const currentWeek = getMostRecentThursdayWeek();
+  let currentWeek = getMostRecentThursdayWeek();
+
+  // If the current week is excluded, set currentWeek to the most recent non-excluded week
+  if (isWeekExcluded(currentYear, currentWeek)) {
+    // Find the latest week in allWeeks that is not excluded and less than or equal to the original currentWeek
+    const nonExcludedWeeks = allWeeks
+      .filter(w => w.year === currentYear && w.week_number <= currentWeek && !isWeekExcluded(w.year, w.week_number))
+      .map(w => w.week_number);
+    if (nonExcludedWeeks.length > 0) {
+      currentWeek = Math.max(...nonExcludedWeeks);
+    }
+  }
+
+  // Filter out excluded weeks from allWeeks for streak calculation
+  // This ensures that excluded weeks (e.g., holidays, maintenance) do not break streaks
+  const filteredWeeks = allWeeks.filter(
+    w => !isWeekExcluded(w.year, w.week_number)
+  );
 
   if (type === 'fastest') {
     // Get all submissions for the current week
@@ -145,7 +173,7 @@ export async function GET(request: Request) {
   // Calculate streaks for each user
   const leaderboard: StreakLeaderboardEntry[] = users.map((user: User) => {
     const userSubs = submissions.filter(s => s.user_id === user.id);
-    const streak = calculateMaxStreak(userSubs, allWeeks, currentWeek);
+    const streak = calculateMaxStreak(userSubs, filteredWeeks, currentWeek);
     return {
       id: user.id,
       name: getDisplayName(user),
