@@ -17,6 +17,16 @@ import SubmissionComments from '@/components/SubmissionComments'
 const getCurrentYear = () => new Date().getFullYear();
 const getCurrentWeek = () => getMostRecentThursdayWeek();
 
+// Configuration for excluded weeks (should match API logic)
+const EXCLUDED_WEEKS = [
+  { year: 2025, week_number: 16 }, // Exclude week 16 of 2025
+  // Add more exclusions as needed
+];
+
+function isWeekExcluded(year: number, week_number: number) {
+  return EXCLUDED_WEEKS.some(w => w.year === year && w.week_number === week_number);
+}
+
 function calculateStreak(
   submissions: { week_number: number }[],
   allWeeks: { week_number: number }[],
@@ -96,8 +106,11 @@ export default async function HistoryPage({
     submissionMap.set(sub.week_number, sub);
   });
 
+  // Filter out excluded weeks from allWeeks for streak calculation
+  const filteredWeeks = (allWeeks || []).filter(w => !isWeekExcluded(w.year, w.week_number));
+
   // Prepare week options for the filter
-  const weekOptions = (allWeeks || [])
+  const weekOptions = filteredWeeks
     .filter(w => w.week_number <= currentWeek || w.year < currentYear)
     .map(w => ({
       value: `${w.year}-${w.week_number}`,
@@ -121,16 +134,17 @@ export default async function HistoryPage({
   const submission = submissionMap.get(selectedWeek);
 
   // Calculate streak
-  const streak = calculateStreak(submissions || [], allWeeks || [], currentWeek);
+  const streak = calculateStreak(submissions || [], filteredWeeks, currentWeek);
 
   return (
     <div className="max-w-4xl mx-auto space-y-6">
       {/* Weeks Streak Section */}
       <StreakCard
         streak={streak}
-        allWeeks={(allWeeks || []).filter(w => w.week_number >= 17)}
+        allWeeks={filteredWeeks.filter(w => w.week_number >= 9)}
         submissions={submissions || []}
         currentWeek={currentWeek}
+        currentYear={currentYear}
       />
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
