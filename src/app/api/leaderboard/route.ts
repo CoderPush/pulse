@@ -98,6 +98,11 @@ export async function GET(request: Request) {
   // Use getMostRecentThursdayWeek for current week
   const currentWeek = getMostRecentThursdayWeek();
 
+  // Filter out week 16 of the current year from allWeeks for streak calculation
+  const filteredWeeks = allWeeks.filter(
+    w => !(w.year === currentYear && w.week_number === 16)
+  );
+
   if (type === 'fastest') {
     // Get all submissions for the current week
     const { data: submissions, error: submissionsError } = await supabase
@@ -145,7 +150,7 @@ export async function GET(request: Request) {
   // Calculate streaks for each user
   const leaderboard: StreakLeaderboardEntry[] = users.map((user: User) => {
     const userSubs = submissions.filter(s => s.user_id === user.id);
-    const streak = calculateMaxStreak(userSubs, allWeeks, currentWeek);
+    const streak = calculateMaxStreak(userSubs, filteredWeeks, currentWeek);
     return {
       id: user.id,
       name: getDisplayName(user),
