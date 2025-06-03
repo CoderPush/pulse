@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/utils/supabase/server';
 import { getMostRecentThursdayWeek } from '@/lib/utils/date';
+import { isWeekExcluded } from '@/utils/streak';
 
 interface User {
   id: string;
@@ -32,17 +33,6 @@ interface FastestLeaderboardEntry {
   id: string;
   name: string;
   isCurrentUser?: boolean;
-}
-
-// Configuration for excluded weeks (change system from Google Sheets to App)
-const EXCLUDED_WEEKS = [
-  { year: 2025, week_number: 16 }, // Exclude week 16 of 2025
-  // Add more exclusions as needed
-];
-
-// Helper to check if a week is excluded
-function isWeekExcluded(year: number, week_number: number) {
-  return EXCLUDED_WEEKS.some(w => w.year === year && w.week_number === week_number);
 }
 
 // Helper to capitalize every word

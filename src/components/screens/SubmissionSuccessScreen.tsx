@@ -70,6 +70,9 @@ export default function SubmissionSuccessScreen({ user, currentWeek }: Submissio
   const completionRate = Math.round((submittedWeeks / totalWeeks) * 100);
   const consecutiveWeeks = calculateConsecutiveWeeks(submissionStatus);
 
+  const DOTS_PER_ROW = 8;
+  const weekChunks = chunkArray(submissionStatus, DOTS_PER_ROW);
+
   return (
     <div className="bg-white rounded-xl shadow-lg w-full max-w-md h-full flex flex-col relative overflow-hidden p-8">
       <AnimatePresence>
@@ -179,8 +182,7 @@ export default function SubmissionSuccessScreen({ user, currentWeek }: Submissio
           transition={{ delay: 0.5 }}
           className="mb-8"
         >
-          <div className="flex justify-between items-center mb-2">
-            <span className="text-sm text-gray-600">Your completion rate</span>
+          <div className="flex justify-end items-center mb-2">
             <motion.span 
               initial={{ scale: 0.5 }}
               animate={{ scale: 1 }}
@@ -207,86 +209,100 @@ export default function SubmissionSuccessScreen({ user, currentWeek }: Submissio
           transition={{ delay: 0.7 }}
           className="relative mb-8"
         >
-          <div className="absolute top-3 left-0 right-0 h-0.5 bg-gray-200"></div>
-          <div className="flex justify-between relative">
-            {submissionStatus.map(({ week, submitted }, index) => (
-              <motion.div 
-                key={week}
-                initial={{ scale: 0 }}
-                animate={{ scale: 1 }}
-                transition={{ delay: 0.8 + index * 0.1 }}
-                className="flex flex-col items-center"
-              >
-                <motion.div 
-                  whileHover={{ scale: 1.2, rotate: 360 }}
-                  transition={{ duration: 0.3 }}
-                  className={`w-6 h-6 rounded-full mb-2 flex items-center justify-center ${
-                    submitted ? 'bg-gradient-to-br from-green-400 to-green-500' : 
-                    week === currentWeek ? 'bg-gradient-to-br from-blue-500 to-blue-600 ring-4 ring-blue-200' : 
-                    'bg-gray-300'
-                  }`}
+          <div className="flex flex-col gap-2 relative">
+            {weekChunks.map((chunk, rowIdx) => (
+              <div className="mb-2" key={rowIdx}>
+                {/* Dots and line */}
+                <div className="relative h-6">
+                  <div className="absolute left-0 right-0 h-0.5 bg-gray-200 z-0" style={{ top: '50%' }}></div>
+                  <div
+                    className={`grid relative z-10`}
+                    style={{
+                      gridTemplateColumns: `repeat(${DOTS_PER_ROW}, minmax(0, 1fr))`,
+                    }}
+                  >
+                    {chunk.map(({ week, submitted }, index) => (
+                      <div className="flex items-center justify-center w-6 mx-auto" key={week}>
+                        <motion.div 
+                          initial={{ scale: 0 }}
+                          animate={{ scale: 1 }}
+                          transition={{ delay: 0.8 + (rowIdx * DOTS_PER_ROW + index) * 0.1 }}
+                          className="flex items-center justify-center w-6"
+                        >
+                          <motion.div 
+                            whileHover={{ scale: 1.2, rotate: 360 }}
+                            transition={{ duration: 0.3 }}
+                            className={`w-6 h-6 rounded-full flex items-center justify-center ${
+                              submitted ? 'bg-gradient-to-br from-green-400 to-green-500' : 
+                              week === currentWeek ? 'bg-gradient-to-br from-blue-500 to-blue-600 ring-4 ring-blue-200' : 
+                              'bg-gray-300'
+                            }`}
+                          >
+                            {submitted && (
+                              <motion.div
+                                initial={{ scale: 0 }}
+                                animate={{ scale: 1 }}
+                                transition={{ delay: 1 + (rowIdx * DOTS_PER_ROW + index) * 0.1 }}
+                              >
+                                <Sparkles className="w-3 h-3 text-white" />
+                              </motion.div>
+                            )}
+                          </motion.div>
+                        </motion.div>
+                      </div>
+                    ))}
+                    {/* Fill empty cells for last row to keep spacing */}
+                    {rowIdx === weekChunks.length - 1 &&
+                      Array.from({ length: DOTS_PER_ROW - chunk.length }).map((_, i) => (
+                        <div key={`empty-${i}`} />
+                      ))}
+                  </div>
+                </div>
+                {/* Week numbers */}
+                <div
+                  className="grid mt-1"
+                  style={{
+                    gridTemplateColumns: `repeat(${DOTS_PER_ROW}, minmax(0, 1fr))`,
+                  }}
                 >
-                  {submitted && (
-                    <motion.div
-                      initial={{ scale: 0 }}
-                      animate={{ scale: 1 }}
-                      transition={{ delay: 1 + index * 0.1 }}
-                    >
-                      <Sparkles className="w-3 h-3 text-white" />
-                    </motion.div>
-                  )}
-                </motion.div>
-                <span className="text-xs text-gray-600">Week {week}</span>
-              </motion.div>
+                  {chunk.map(({ week }) => (
+                    <span key={week} className="text-xs text-gray-600 w-6 text-center mx-auto">{week}</span>
+                  ))}
+                  {/* Fill empty cells for last row to keep spacing */}
+                  {rowIdx === weekChunks.length - 1 &&
+                    Array.from({ length: DOTS_PER_ROW - chunk.length }).map((_, i) => (
+                      <span key={`empty-label-${i}`} />
+                    ))}
+                </div>
+              </div>
             ))}
           </div>
         </motion.div>
 
         {/* Stats */}
-        <motion.div 
+        <motion.div
           initial={{ y: 20, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           transition={{ delay: 0.9 }}
-          className="grid grid-cols-2 gap-4 mb-8"
+          className="mb-8"
         >
-          <motion.div 
-            whileHover={{ scale: 1.05, rotate: 2 }}
-            className="bg-gradient-to-br from-blue-50 to-blue-100 p-4 rounded-lg text-center shadow-sm"
-          >
-            <motion.div 
-              initial={{ rotate: -10 }}
-              animate={{ rotate: 10 }}
-              transition={{ 
-                repeat: Infinity,
-                repeatType: "reverse",
-                duration: 1
-              }}
-              className="flex justify-center mb-2"
-            >
-              <Trophy className="w-6 h-6 text-blue-600" />
-            </motion.div>
-            <div className="text-2xl font-bold text-gray-800">{completionRate}%</div>
-            <div className="text-xs text-gray-600">Completion Rate</div>
-          </motion.div>
-          <motion.div 
-            whileHover={{ scale: 1.05, rotate: -2 }}
-            className="bg-gradient-to-br from-blue-50 to-blue-100 p-4 rounded-lg text-center shadow-sm"
-          >
-            <motion.div 
-              initial={{ y: 0 }}
-              animate={{ y: -5 }}
-              transition={{ 
-                repeat: Infinity,
-                repeatType: "reverse",
-                duration: 1
-              }}
-              className="flex justify-center mb-2"
-            >
-              <Calendar className="w-6 h-6 text-blue-600" />
-            </motion.div>
-            <div className="text-2xl font-bold text-gray-800">{consecutiveWeeks}</div>
-            <div className="text-xs text-gray-600">Consecutive Weeks</div>
-          </motion.div>
+          <div className="flex items-center justify-center gap-8 bg-gradient-to-br from-blue-50 to-blue-100 p-4 rounded-lg shadow-sm">
+            <div className="flex flex-col items-center min-w-[100px]">
+              <div className="flex items-center mb-1">
+                <Trophy className="w-5 h-5 text-blue-600 mr-1" />
+                <span className="text-xl font-bold text-gray-800">{completionRate}%</span>
+              </div>
+              <div className="text-xs text-gray-600">Completion</div>
+            </div>
+            <div className="h-8 w-px bg-blue-200 mx-2" />
+            <div className="flex flex-col items-center min-w-[100px]">
+              <div className="flex items-center mb-1">
+                <Calendar className="w-5 h-5 text-blue-600 mr-1" />
+                <span className="text-xl font-bold text-gray-800">{consecutiveWeeks}</span>
+              </div>
+              <div className="text-xs text-gray-600">Consecutive Weeks</div>
+            </div>
+          </div>
         </motion.div>
 
         {/* Enhanced Call-to-Action Button */}
@@ -336,4 +352,13 @@ function calculateConsecutiveWeeks(submissionStatus: SubmissionStatus[]): number
   }
 
   return maxStreak;
+}
+
+// Helper to chunk array
+function chunkArray<T>(arr: T[], size: number): T[][] {
+  const result = [];
+  for (let i = 0; i < arr.length; i += size) {
+    result.push(arr.slice(i, i + size));
+  }
+  return result;
 } 

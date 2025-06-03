@@ -1,22 +1,21 @@
 import { createClient } from '@/utils/supabase/server';
 import { NextResponse } from 'next/server';
+import { START_WEEK, isWeekExcluded } from '@/utils/streak';
 
 interface Submission {
   week_number: number;
 }
 
-// Project started at week 17
-const START_WEEK = 17;
-
 export async function POST(request: Request) {
   try {
     const { userId, currentWeek } = await request.json();
+    const currentYear = new Date().getFullYear();
     
-    // Get weeks from start week to current week
+    // Get weeks from start week to current week, filter out excluded weeks
     const weeks = Array.from(
-      { length: Math.min(5, currentWeek - START_WEEK + 1) }, 
+      { length: currentWeek - START_WEEK + 1 },
       (_, i) => START_WEEK + i
-    );
+    ).filter(week => !isWeekExcluded(currentYear, week));
 
     const supabase = await createClient();
     
@@ -25,7 +24,7 @@ export async function POST(request: Request) {
       .from('submissions')
       .select('week_number')
       .eq('user_id', userId)
-      .eq('year', new Date().getFullYear())
+      .eq('year', currentYear)
       .in('week_number', weeks);
 
     // Create a map of submitted weeks for quick lookup
