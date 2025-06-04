@@ -12,6 +12,7 @@ export default function UserInfoProvider({ user, children }: { user: any; childr
     name,
   };
 
+
   useCopilotReadable({
     value: userSummary,
     description: "The current authenticated user's id and name (name is before @ in email if not set)."

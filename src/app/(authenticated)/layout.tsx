@@ -32,20 +32,23 @@ export default async function AuthenticatedLayout({
   }
 
   // Compute userName for personalized Copilot greeting
-  const userName = user.email ? user.email.split('@')[0] : '';
+  let userName = '';
+  if (user.user_metadata?.name && user.user_metadata.name.trim() !== '') {
+    userName = user.user_metadata.name;
+  } else if (user.email) {
+    userName = user.email.split('@')[0];
+  }
 
   return (
     <CopilotProvider userName={userName}>
-      <UserInfoProvider user={user}>
-        <UserSubmissionsProvider submissions={submissions || []}>
-          <div className="min-h-screen w-full flex flex-col bg-gray-50 dark:bg-gray-900">
-            <NavBar user={user} />
-            <main className="flex-1">
-              {children}
-            </main>
-          </div>
-        </UserSubmissionsProvider>
-      </UserInfoProvider>
+      <div className="min-h-screen w-full flex flex-col bg-gray-50 dark:bg-gray-900">
+        <NavBar user={user} />
+        <UserInfoProvider user={user}>
+          <UserSubmissionsProvider submissions={submissions || []}>
+            <main className="flex-1">{children}</main>
+          </UserSubmissionsProvider>
+        </UserInfoProvider>
+      </div>
     </CopilotProvider>
   )
 } 
