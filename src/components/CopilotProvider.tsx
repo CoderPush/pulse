@@ -7,6 +7,9 @@ import "@copilotkit/react-ui/styles.css";
 const COPILOT_CLOUD_PUBLIC_API_KEY = process.env.NEXT_PUBLIC_COPILOT_CLOUD_PUBLIC_API_KEY;
 
 export default function CopilotProvider({ children, userName }: { children: React.ReactNode, userName: string }) {
+  if (!COPILOT_CLOUD_PUBLIC_API_KEY) {
+    return <>{children}</>;
+  }
   return (
     <CopilotKit publicApiKey={COPILOT_CLOUD_PUBLIC_API_KEY}>
       {children}

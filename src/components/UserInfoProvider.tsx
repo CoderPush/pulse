@@ -1,17 +1,15 @@
 'use client';
 import { useCopilotReadable } from '@copilotkit/react-core';
 import React from 'react';
+import type { User } from '@supabase/supabase-js';
+import { getDisplayName } from '@/lib/auth/user';
 
-export default function UserInfoProvider({ user, children }: { user: any; children: React.ReactNode }) {
-  // Use name if available, otherwise use the part before '@' in email
-  const name = user.name && user.name.trim() !== ''
-    ? user.name
-    : (user.email ? user.email.split('@')[0] : '');
+export default function UserInfoProvider({ user, children }: { user: User; children: React.ReactNode }) {
+  const name = getDisplayName(user);
   const userSummary = {
     id: user.id,
     name,
   };
-
 
   useCopilotReadable({
     value: userSummary,

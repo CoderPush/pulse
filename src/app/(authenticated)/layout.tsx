@@ -4,6 +4,7 @@ import NavBar from '@/components/NavBar'
 import CopilotProvider from '@/components/CopilotProvider';
 import UserSubmissionsProvider from '@/components/UserSubmissionsProvider';
 import UserInfoProvider from '@/components/UserInfoProvider';
+import { getDisplayName } from '@/lib/auth/user';
 
 export default async function AuthenticatedLayout({
   children,
@@ -32,12 +33,7 @@ export default async function AuthenticatedLayout({
   }
 
   // Compute userName for personalized Copilot greeting
-  let userName = '';
-  if (user.user_metadata?.name && user.user_metadata.name.trim() !== '') {
-    userName = user.user_metadata.name;
-  } else if (user.email) {
-    userName = user.email.split('@')[0];
-  }
+  const userName = getDisplayName(user);
 
   return (
     <CopilotProvider userName={userName}>
