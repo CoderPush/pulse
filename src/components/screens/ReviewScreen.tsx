@@ -65,6 +65,13 @@ export default function ReviewScreen({ onBack, formData, onNext, questions = [] 
     }
   };
 
+  // Prepare dynamic questions with answers
+  const dynamicQuestions = questions.filter(
+    q =>
+      !CORE_QUESTION_CATEGORIES.includes(q.category) &&
+      formData.answers?.[q.id] !== undefined
+  );
+
   return (
     <div className="flex flex-col h-full px-6">
       <h2 className="text-2xl font-bold mb-8">Review & Submit</h2>
@@ -155,10 +162,9 @@ export default function ReviewScreen({ onBack, formData, onNext, questions = [] 
         })}
       </div>
       {/* Dynamic Questions */}
-      <div className="bg-gray-50 rounded-lg p-6 mb-8 space-y-6">
-        {questions
-          .filter(q => !CORE_QUESTION_CATEGORIES.includes(q.category))
-          .map((question) => {
+      {dynamicQuestions.length > 0 && (
+        <div className="bg-gray-50 rounded-lg p-6 mb-8 space-y-6">
+          {dynamicQuestions.map((question) => {
             const answer = formData.answers?.[question.id];
             if (!answer) return null;
             return (
@@ -181,7 +187,8 @@ export default function ReviewScreen({ onBack, formData, onNext, questions = [] 
               </div>
             );
           })}
-      </div>
+        </div>
+      )}
       
       <div className="mt-auto flex gap-3">
         <button 
