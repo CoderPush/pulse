@@ -15,6 +15,7 @@ import SuccessScreen from './screens/SuccessScreen';
 import SubmissionSuccessScreen from './screens/SubmissionSuccessScreen';
 import { getISOWeek } from 'date-fns/getISOWeek';
 import MultipleChoiceScreen from './screens/MultipleChoiceScreen';
+import { useCopilotReadable } from '@copilotkit/react-core';
 
 interface WeeklyPulseFormProps {
   user: User;
@@ -51,10 +52,17 @@ export default function WeeklyPulseForm({
     endTime: undefined,
     answers: {}
   });
+
   const [questions, setQuestions] = useState<Question[] | null>(null);
   const [loadingQuestions, setLoadingQuestions] = useState(true);
   
   const totalScreens = 1 + (questions?.length || 0) + 2;
+
+  // Track formData for Copilot readable context
+  useCopilotReadable({
+    description: "The weekly pulse form fields and their current values",
+    value: formData,
+  }, [formData]);
   
   useEffect(() => {
     async function fetchQuestions() {
