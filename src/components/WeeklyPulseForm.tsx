@@ -120,7 +120,8 @@ export default function WeeklyPulseForm({
     } else if (isWeeklyPulseFormDataKey(field)) {
       value = formData[field as keyof WeeklyPulseFormData];
     } else {
-      value = undefined;
+      // Fallback to dynamic answers keyed by question id
+      value = formData.answers?.[question.id];
     }
     if (question.required && (
       value === undefined || value === null || (typeof value === 'string' && !value.trim())
