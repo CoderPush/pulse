@@ -7,15 +7,12 @@ import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import {
-  BarChart3,
-  Bell,
-  Calendar,
   FileText,
   LayoutDashboard,
-  Settings,
   Users,
   ListTodo,
   FolderKanban,
+  FileQuestion,
 } from 'lucide-react';
 
 const sidebarItems = [
@@ -45,25 +42,10 @@ const sidebarItems = [
     icon: FolderKanban,
   },
   {
-    title: 'Analytics',
-    href: '/admin/analytics',
-    icon: BarChart3,
-  },
-  {
-    title: 'Reminders',
-    href: '/admin/reminders',
-    icon: Bell,
-  },
-  {
-    title: 'Calendar',
-    href: '/admin/calendar',
-    icon: Calendar,
-  },
-  {
-    title: 'Settings',
-    href: '/admin/settings',
-    icon: Settings,
-  },
+    title: 'Questions',
+    href: '/admin/questions',
+    icon: FileQuestion,
+  }
 ];
 
 export default function AdminLayout({

@@ -7,6 +7,7 @@ The goal is to allow admins to edit questions, track versions, and always serve 
 
 ## 1. Database Schema
 
+### Questions Table
 Create a `questions` table with the following fields:
 
 | Column      | Type      | Description                                         |
@@ -22,10 +23,23 @@ Create a `questions` table with the following fields:
 | created_at  | timestamp | When this version was created                       |
 | updated_at  | timestamp | When this version was last updated                  |
 
+### Submission Answers Table
+Create a `submission_answers` table to store answers to questions:
+
+| Column         | Type      | Description                                    |
+|----------------|-----------|------------------------------------------------|
+| id             | UUID (PK) | Unique identifier for this answer              |
+| submission_id  | UUID      | Reference to the submission                    |
+| question_id    | UUID      | Reference to the question version              |
+| answer         | text      | The answer to the question                     |
+| created_at     | timestamp | When this answer was created                   |
+| updated_at     | timestamp | When this answer was last updated              |
+
 **Notes:**
 - The first version of a question has `parent_id = id`.
 - Each edit creates a new row with the same `parent_id` and `version = previous_version + 1`.
 - There is **no status field**; only the latest version per `parent_id` is considered active.
+- Answers are linked to specific question versions for historical accuracy.
 
 ---
 
@@ -41,6 +55,12 @@ Create a `questions` table with the following fields:
 - **GET `/api/questions/history/:parent_id`**  
   Returns all versions of a question for audit/history.
 
+- **POST `/api/submissions`**  
+  Creates a new submission with answers to all questions.
+
+- **GET `/api/submissions/:id`**  
+  Returns a submission with its answers and the questions they correspond to.
+
 ---
 
 ## 3. Frontend Changes
@@ -50,6 +70,7 @@ Create a `questions` table with the following fields:
 - Fetch `/api/questions` to get the latest version of each question.
 - Render the form dynamically based on the returned questions list.
 - Each week, the form will always reflect the latest question versions.
+- Store answers in a state object mapping question IDs to answers.
 
 ### b. Admin Page
 
@@ -70,6 +91,13 @@ When editing a question:
    - Updated `title`/`description`/other fields
    - New `created_at`/`updated_at`
 
+When submitting answers:
+1. Get the latest version of each question.
+2. Store answers in `submission_answers` table with:
+   - `submission_id` = the new submission's ID
+   - `question_id` = the specific question version's ID
+   - `answer` = the user's response
+
 ---
 
 ## 5. Example SQL: Fetch Latest Versions
@@ -86,16 +114,26 @@ ORDER BY parent_id, version DESC;
 ## 6. Seed Data
 
 - On first run, insert default questions as version 1 (`parent_id = id`, `version = 1`).
+- Example seed data:
+
+```sql
+INSERT INTO questions (id, parent_id, version, title, description, type, required, category)
+VALUES 
+  (gen_random_uuid(), gen_random_uuid(), 1, 'Primary Project', 'What was your main project this week?', 'text', true, 'projects'),
+  (gen_random_uuid(), gen_random_uuid(), 1, 'Hours Spent', 'How many hours did you spend on this project?', 'number', true, 'projects'),
+  (gen_random_uuid(), gen_random_uuid(), 1, 'Feedback', 'Any feedback for this week?', 'textarea', false, 'feedback');
+```
 
 ---
 
 ## 7. Migration Steps
 
 1. Create the `questions` table as described above.
-2. Seed default questions as version 1.
-3. Update API endpoints to use the new table and versioning logic.
-4. Update frontend to fetch and render questions dynamically.
-5. Update admin page to allow editing and versioning of questions.
+2. Create the `submission_answers` table as described above.
+3. Seed default questions as version 1.
+4. Update API endpoints to use the new tables and versioning logic.
+5. Update frontend to fetch and render questions dynamically.
+6. Update admin page to allow editing and versioning of questions.
 
 ---
 
@@ -104,6 +142,8 @@ ORDER BY parent_id, version DESC;
 - There is **no status field**; only the latest version per `parent_id` is used.
 - All question modifications are tracked as new versions for audit/history.
 - The Weekly Pulse form and admin page should both use the `/api/questions` endpoint for the latest questions.
+- Answers are stored with references to specific question versions for historical accuracy.
+- The system supports different question types (text, number, textarea) and required/optional questions.
 
 ---
 
