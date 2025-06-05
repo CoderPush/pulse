@@ -66,7 +66,11 @@ export default function ReviewScreen({ onBack, formData, onNext, questions = [] 
   };
 
   // Prepare dynamic questions with answers
-  const dynamicQuestions = questions.filter(q => !CORE_QUESTION_CATEGORIES.includes(q.category) && formData.answers?.[q.id]);
+  const dynamicQuestions = questions.filter(
+    q =>
+      !CORE_QUESTION_CATEGORIES.includes(q.category) &&
+      formData.answers?.[q.id] !== undefined
+  );
 
   return (
     <div className="flex flex-col h-full px-6">
