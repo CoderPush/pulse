@@ -111,7 +111,7 @@ export default function WeeklyPulseForm({
     const question = questions?.[questionIndex];
     if (!question) return null;
     // Map question field to formData
-    const field = question.category || question.title || question.id;
+    const field = question.category || question.id;
     let value: unknown;
     if (field === 'primaryProjectHours') {
       value = formData.primaryProject.hours;
@@ -120,7 +120,8 @@ export default function WeeklyPulseForm({
     } else if (isWeeklyPulseFormDataKey(field)) {
       value = formData[field as keyof WeeklyPulseFormData];
     } else {
-      value = undefined;
+      // Fallback to dynamic answers keyed by question id
+      value = formData.answers?.[question.id];
     }
     if (question.required && (
       value === undefined || value === null || (typeof value === 'string' && !value.trim())
