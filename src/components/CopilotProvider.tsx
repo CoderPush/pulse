@@ -17,8 +17,8 @@ export default function CopilotProvider({ children, user, submissions }: { child
   const userName = getDisplayName(user);
   return (
     <CopilotKit publicApiKey={COPILOT_CLOUD_PUBLIC_API_KEY}>
-      {children}
       <CopilotUserProvider user={user} submissions={submissions}>
+        {children}
         <CopilotPopup
           labels={{
             title: "Pulse Copilot",
