@@ -14,8 +14,6 @@ export default async function AuthenticatedLayout({
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
-  console.log('user', user)
-
   if (!user) {
     redirect('/auth/login')
   }
