@@ -14,6 +14,7 @@ import ReviewScreen from './screens/ReviewScreen';
 import SuccessScreen from './screens/SuccessScreen';
 import SubmissionSuccessScreen from './screens/SubmissionSuccessScreen';
 import { getISOWeek } from 'date-fns/getISOWeek';
+import MultipleChoiceScreen from './screens/MultipleChoiceScreen';
 
 interface WeeklyPulseFormProps {
   user: User;
@@ -47,7 +48,8 @@ export default function WeeklyPulseForm({
     hoursReportingImpact: '',
     formCompletionTime: 0,
     startTime: undefined,
-    endTime: undefined
+    endTime: undefined,
+    answers: {}
   });
   const [questions, setQuestions] = useState<Question[] | null>(null);
   const [loadingQuestions, setLoadingQuestions] = useState(true);
@@ -109,7 +111,7 @@ export default function WeeklyPulseForm({
     const question = questions?.[questionIndex];
     if (!question) return null;
     // Map question field to formData
-    const field = question.category || question.title || question.id;
+    const field = question.category || question.id;
     let value: unknown;
     if (field === 'primaryProjectHours') {
       value = formData.primaryProject.hours;
@@ -118,7 +120,8 @@ export default function WeeklyPulseForm({
     } else if (isWeeklyPulseFormDataKey(field)) {
       value = formData[field as keyof WeeklyPulseFormData];
     } else {
-      value = undefined;
+      // Fallback to dynamic answers keyed by question id
+      value = formData.answers?.[question.id];
     }
     if (question.required && (
       value === undefined || value === null || (typeof value === 'string' && !value.trim())
@@ -172,10 +175,68 @@ export default function WeeklyPulseForm({
             fieldName={question.category as keyof WeeklyPulseFormData}
             optional={!question.required}
             maxLength={500}
+            multiline={true}
           />
         );
       }
-      // Optionally, render null or a fallback if the category is not a valid field
+      // Dynamic question fallback: render by type
+      if (!question.category) {
+        switch (question.type) {
+          case 'text':
+            return (
+              <TextInputScreen
+                {...screenCommonProps}
+                title={question.title}
+                description={question.description}
+                placeholder={question.description || question.title}
+                fieldName={question.id as string}
+                optional={!question.required}
+                maxLength={500}
+                isDynamic
+              />
+            );
+          case 'number':
+            return (
+              <TextInputScreen
+                {...screenCommonProps}
+                title={question.title}
+                description={question.description}
+                placeholder={question.description || question.title}
+                fieldName={question.id}
+                optional={!question.required}
+                type="number"
+                isDynamic
+              />
+            );
+          case 'textarea':
+            return (
+              <TextInputScreen
+                {...screenCommonProps}
+                title={question.title}
+                description={question.description}
+                placeholder={question.description || question.title}
+                fieldName={question.id as string}
+                optional={!question.required}
+                multiline
+                isDynamic
+              />
+            );
+          case 'multiple_choice':
+          case 'checkbox':
+            return (
+              <MultipleChoiceScreen
+                question={question}
+                formData={formData}
+                setFormData={setFormData}
+                onNext={handleNext}
+                onBack={handleBack}
+                error={error}
+              />
+            );
+          default:
+            return <div>Unsupported question type</div>;
+        }
+      }
       return null;
     }
     if (currentScreen === totalScreens - 2) {

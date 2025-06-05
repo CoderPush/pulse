@@ -48,6 +48,7 @@ export interface WeeklyPulseFormData {
   formCompletionTime: number;
   startTime?: string;
   endTime?: string;
+  answers?: Record<string, string | string[]>;
 }
 
 export interface ScreenProps {
@@ -74,4 +75,6 @@ export interface Question {
   created_at?: string;
   updated_at?: string;
   display_order?: number;
+  is_active?: boolean;
+  choices?: string[];
 } 

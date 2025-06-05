@@ -15,6 +15,17 @@ import StreakCard from './StreakCard'
 import SubmissionComments from '@/components/SubmissionComments'
 import { START_WEEK, isWeekExcluded } from '@/utils/streak'
 
+type SubmissionAnswerWithQuestion = {
+  id: string;
+  question_id: string;
+  answer: string | string[];
+  question_title: string;
+  question_description: string;
+  question_type: string;
+  question_required: boolean;
+  question_category: string;
+};
+
 const getCurrentYear = () => new Date().getFullYear();
 const getCurrentWeek = () => getMostRecentThursdayWeek();
 
@@ -123,6 +134,15 @@ export default async function HistoryPage({
   // Find the week and submission
   const week = weekOptions.find(w => w.year === selectedYear && w.week_number === selectedWeek);
   const submission = submissionMap.get(selectedWeek);
+
+  // Fetch dynamic answers for the selected submission using the RPC
+  let dynamicAnswers: SubmissionAnswerWithQuestion[] = [];
+  if (submission) {
+    const { data: answers, error } = await supabase.rpc('get_submission_answers', { submission_id: submission.id });
+    if (!error && answers) {
+      dynamicAnswers = answers as SubmissionAnswerWithQuestion[];
+    }
+  }
 
   // Calculate streak
   const streak = calculateStreak(submissions || [], filteredWeeks, currentWeek);
@@ -265,6 +285,31 @@ export default async function HistoryPage({
                     </div>
                   )}
                 </div>
+
+                {/* Dynamic Questions & Answers */}
+                {dynamicAnswers.length > 0 && (
+                  <div>
+                    {dynamicAnswers.map((a) => (
+                      <div key={a.question_id}>
+                        <h4 className="font-semibold text-sm mb-2 text-primary">{a.question_title}</h4>
+                        {Array.isArray(a.answer) ? (
+                          <div className="flex flex-wrap gap-2 bg-muted/30 rounded-lg p-3">
+                            {a.answer.map((val: string, idx: number) => (
+                              <span
+                                key={idx}
+                                className="inline-block bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-xs font-medium border border-blue-200"
+                              >
+                                {val}
+                              </span>
+                            ))}
+                          </div>
+                        ) : (
+                          <div className="bg-muted/30 rounded-lg p-3 text-sm whitespace-pre-line">{a.answer}</div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
 
                 {submission && submission.id && (
                   <SubmissionComments submissionId={submission.id} currentUserId={user.id} />
