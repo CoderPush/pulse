@@ -27,6 +27,7 @@ export default async function AuthenticatedLayout({
     console.error('Error fetching submissions:', error);
   }
 
+
   return (
     <div className="min-h-screen w-full flex flex-col bg-gray-50 dark:bg-gray-900">
       <NavBar user={user} />
@@ -37,4 +38,4 @@ export default async function AuthenticatedLayout({
       </CopilotProvider>
     </div>
   )
-} 
+};

@@ -15,7 +15,7 @@ import SuccessScreen from './screens/SuccessScreen';
 import SubmissionSuccessScreen from './screens/SubmissionSuccessScreen';
 import { getISOWeek } from 'date-fns/getISOWeek';
 import MultipleChoiceScreen from './screens/MultipleChoiceScreen';
-import { useCopilotReadable } from '@copilotkit/react-core';
+import { useCopilotReadable, useCopilotAction } from '@copilotkit/react-core';
 
 interface WeeklyPulseFormProps {
   user: User;
@@ -63,6 +63,210 @@ export default function WeeklyPulseForm({
     description: "The weekly pulse form fields and their current values",
     value: formData,
   }, [formData]);
+
+  // Make user information available to the AI
+  useCopilotReadable({
+    description: "The current user information",
+    value: {
+      id: user?.id,
+      email: user?.email,
+      name: user?.email?.split('@')[0] || 'User',
+    }
+  }, [user]);
+
+  // Make available projects readable by the AI
+  useCopilotReadable({
+    description: "Available projects that can be selected",
+    value: projects
+  }, [projects]);
+
+  // Make questions readable by the AI
+  useCopilotReadable({
+    description: "Weekly pulse form questions",
+    value: questions
+  }, [questions]);
+
+  // Define the AI action to fill the form
+  useCopilotAction({
+    name: "fillWeeklyPulseForm",
+    description: "Fill out the weekly pulse form with the provided information",
+    parameters: [
+      {
+        name: "primaryProject",
+        type: "string",
+        required: true,
+        description: "The name of the primary project the user worked on this week"
+      },
+      {
+        name: "primaryProjectHours",
+        type: "number",
+        required: true,
+        description: "The number of hours spent on the primary project this week"
+      },
+      {
+        name: "manager",
+        type: "string",
+        required: true,
+        description: "The name of the user's manager"
+      },
+      {
+        name: "additionalProjects",
+        type: "object[]",
+        required: false,
+        description: "List of additional projects worked on this week with hours",
+        items: {
+          type: "object",
+          properties: {
+            project: { type: "string" },
+            hours: { type: "number" }
+          }
+        }
+      },
+      {
+        name: "feedback",
+        type: "string",
+        required: false,
+        description: "Feedback about the week's work"
+      },
+      {
+        name: "changesNextWeek",
+        type: "string",
+        required: false,
+        description: "Changes or improvements planned for next week"
+      },
+      {
+        name: "milestones",
+        type: "string",
+        required: false,
+        description: "Key milestones achieved this week"
+      },
+      {
+        name: "otherFeedback",
+        type: "string",
+        required: false,
+        description: "Any other feedback the user wants to provide"
+      },
+      {
+        name: "hoursReportingImpact",
+        type: "string",
+        required: false,
+        description: "Impact of hours reporting on the user's work"
+      },
+      {
+        name: "dynamicAnswers",
+        type: "object",
+        required: false,
+        description: "Answers to dynamic questions by question ID"
+      }
+    ],
+    handler: async (action) => {
+      // Update form data with AI-provided values
+      const updatedFormData = { ...formData };
+      
+      // Set primary project
+      if (action.primaryProject) {
+        updatedFormData.primaryProject.name = action.primaryProject;
+      }
+      
+      // Set primary project hours
+      if (action.primaryProjectHours !== undefined) {
+        updatedFormData.primaryProject.hours = action.primaryProjectHours;
+      }
+      
+      // Set manager
+      if (action.manager) {
+        updatedFormData.manager = action.manager;
+      }
+      
+      // Set additional projects
+      if (action.additionalProjects && Array.isArray(action.additionalProjects)) {
+        updatedFormData.additionalProjects = action.additionalProjects;
+      }
+      
+      // Set text fields
+      if (action.feedback) updatedFormData.feedback = action.feedback;
+      if (action.changesNextWeek) updatedFormData.changesNextWeek = action.changesNextWeek;
+      if (action.milestones) updatedFormData.milestones = action.milestones;
+      if (action.otherFeedback) updatedFormData.otherFeedback = action.otherFeedback;
+      if (action.hoursReportingImpact) updatedFormData.hoursReportingImpact = action.hoursReportingImpact;
+      
+      // Handle dynamic answers
+      if (action.dynamicAnswers && typeof action.dynamicAnswers === 'object') {
+        // Ensure we're working with the correct types for the answers
+        const typedAnswers: Record<string, string | string[]> = {};
+        
+        // Process each key in dynamicAnswers
+        Object.entries(action.dynamicAnswers).forEach(([key, value]) => {
+          // Handle string values
+          if (typeof value === 'string') {
+            typedAnswers[key] = value;
+          } 
+          // Handle array values
+          else if (Array.isArray(value)) {
+            // Ensure all items in the array are strings
+            typedAnswers[key] = value.map(item => String(item));
+          }
+          // Handle other values by converting to string
+          else if (value !== null && value !== undefined) {
+            typedAnswers[key] = String(value);
+          }
+        });
+        
+        // Update the form data with properly typed answers
+        updatedFormData.answers = {
+          ...updatedFormData.answers,
+          ...typedAnswers
+        };
+      }
+      
+      // Update the form state
+      setFormData(updatedFormData);
+      
+      return { success: true, message: "Form updated successfully" };
+    },
+  });
+
+  // Add navigation action for AI to move between screens
+  useCopilotAction({
+    name: "navigateFormScreen",
+    description: "Navigate to a specific screen in the form or move forward/backward",
+    parameters: [
+      {
+        name: "direction",
+        type: "string",
+        required: true,
+        description: "Direction to navigate: 'next', 'back', or 'specific'"
+      },
+      {
+        name: "screenIndex",
+        type: "number",
+        required: false,
+        description: "Specific screen index to navigate to (0-based, only used with direction='specific')"
+      }
+    ],
+    handler: async (action) => {
+      if (action.direction === 'next') {
+        handleNext();
+        return { success: true, message: "Moved to next screen" };
+      } else if (action.direction === 'back') {
+        handleBack();
+        return { success: true, message: "Moved to previous screen" };
+      } else if (action.direction === 'specific' && action.screenIndex !== undefined) {
+        // Validate the screen index is within bounds
+        if (action.screenIndex >= 0 && action.screenIndex < totalScreens) {
+          setCurrentScreen(action.screenIndex);
+          // Update progress if needed
+          if (action.screenIndex > 0 && action.screenIndex < totalScreens - 2) {
+            setProgress(((action.screenIndex) / (totalScreens - 2)) * 100);
+          }
+          return { success: true, message: `Navigated to screen ${action.screenIndex}` };
+        } else {
+          return { success: false, message: `Invalid screen index: ${action.screenIndex}. Must be between 0 and ${totalScreens - 1}` };
+        }
+      }
+      return { success: false, message: "Invalid navigation parameters" };
+    },
+  });
   
   useEffect(() => {
     async function fetchQuestions() {

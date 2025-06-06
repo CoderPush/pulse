@@ -7,6 +7,7 @@ import CopilotUserProvider from './CopilotUserProvider';
 import type { User } from '@supabase/supabase-js';
 import type { WeeklyPulseSubmission } from '@/types/weekly-pulse';
 import { getDisplayName } from '@/lib/auth/user';
+import { createFullPrompt } from "@/lib/prompt";
 
 const COPILOT_CLOUD_PUBLIC_API_KEY = process.env.NEXT_PUBLIC_COPILOT_CLOUD_PUBLIC_API_KEY;
 
@@ -20,6 +21,7 @@ export default function CopilotProvider({ children, user, submissions }: { child
       <CopilotUserProvider user={user} submissions={submissions}>
         {children}
         <CopilotPopup
+          instructions={createFullPrompt(submissions, user)}
           labels={{
             title: "Pulse Copilot",
             initial: `👋 Hello ${userName}! Can I help you with your weekly pulse?`,
