@@ -19,9 +19,10 @@
     "test:e2e:codegen": "playwright codegen"
   },
   "dependencies": {
-    "@copilotkit/react-core": "^1.8.13",
-    "@copilotkit/react-textarea": "^1.8.13",
-    "@copilotkit/react-ui": "^1.8.13",
+    "@copilotkit/react-core": "^1.8.14",
+    "@copilotkit/react-textarea": "^1.8.14",
+    "@copilotkit/react-ui": "^1.8.14",
+    "@copilotkit/runtime": "1.8.14",
     "@next/third-parties": "^15.3.1",
     "@radix-ui/react-avatar": "^1.1.7",
     "@radix-ui/react-checkbox": "^1.2.3",
