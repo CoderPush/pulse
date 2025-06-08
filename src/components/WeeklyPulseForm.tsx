@@ -60,7 +60,7 @@ export default function WeeklyPulseForm({
   const totalScreens = 1 + (questions?.length || 0) + 2;
 
   // Create a mapping between question categories and screen numbers
-  const categoryToScreenMap = useMemo(() => {
+  const screenNameToScreenNumberMapping = useMemo(() => {
     if (!questions) return {};
     
     const mapping: Record<string, number> = {
@@ -103,8 +103,8 @@ export default function WeeklyPulseForm({
   // Add Screen Mapping for Copilot readable context
   useCopilotReadable({
     description: "Mapping of screen's name to screen's number",
-    value: categoryToScreenMap,
-  }, [categoryToScreenMap]);
+    value: screenNameToScreenNumberMapping,
+  }, [screenNameToScreenNumberMapping]);
   
   // Make user information available to the AI
   useCopilotReadable({
@@ -280,11 +280,11 @@ export default function WeeklyPulseForm({
       } 
       
       if (action.screenName 
-        && categoryToScreenMap[action.screenName] 
-        && categoryToScreenMap[action.screenName] < totalScreens - 2) {
-        handleNext(categoryToScreenMap[action.screenName]);
+        && screenNameToScreenNumberMapping[action.screenName] 
+        && screenNameToScreenNumberMapping[action.screenName] < totalScreens - 2) {
+        handleNext(screenNameToScreenNumberMapping[action.screenName]);
       }
-      
+
       setFormData(updatedFormData);
       return { success: true, message: `Action completed successfully` };
     },
@@ -305,9 +305,9 @@ export default function WeeklyPulseForm({
   //   handler: async (action) => {
   //     console.log(action)
   //     const screenName = action.screenName;
-  //     if (screenName && categoryToScreenMap[screenName]) {
-  //       if(categoryToScreenMap[screenName] < totalScreens - 2) handleNext(categoryToScreenMap[screenName]);
-  //       const screen = categoryToScreenMap[screenName];
+  //     if (screenName && screenNameToScreenNumberMapping[screenName]) {
+  //       if(screenNameToScreenNumberMapping[screenName] < totalScreens - 2) handleNext(screenNameToScreenNumberMapping[screenName]);
+  //       const screen = screenNameToScreenNumberMapping[screenName];
   //       return { success: true, message: `Navigated to screen ${screen}` };
   //     }
   //     return {
