@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { WeeklyPulseFormData, Question } from '@/types/weekly-pulse';
 import { User } from '@supabase/supabase-js';
 import WelcomeScreen from './screens/WelcomeScreen';
@@ -56,16 +56,56 @@ export default function WeeklyPulseForm({
 
   const [questions, setQuestions] = useState<Question[] | null>(null);
   const [loadingQuestions, setLoadingQuestions] = useState(true);
-  
-  const totalScreens = 1 + (questions?.length || 0) + 2;
-  const reviewScreenNum = 1 + (questions?.length || 0)
 
+  const totalScreens = 1 + (questions?.length || 0) + 2;
+
+  // Create a mapping between question categories and screen numbers
+  const categoryToScreenMap = useMemo(() => {
+    if (!questions) return {};
+    
+    const mapping: Record<string, number> = {
+      'welcome': 0,
+      'review': questions.length + 1,
+      'success': questions.length + 2
+    };
+    
+    questions.forEach((question, index) => {
+      const category = question.category || question.id;
+      mapping[category] = index + 1;
+    });
+    
+    return mapping;
+  }, [questions]);
+
+  // Make the questions to complete form readable by the AI
+  useCopilotReadable(
+  {
+    description: "Questions to Help User Complete The Weekly Pulse Form",
+    value: questions
+      ? questions
+          .map(
+            (q) =>
+              `- ${q.title} (${q.type}${q.required ? ", required" : ""}): ${
+                q.description
+              }${q.choices ? `\n  Options: ${q.choices.join(", ")}` : ""}`
+          )
+          .join("\n")
+      : "",
+  },
+  [questions]
+);
   // Track formData for Copilot readable context
   useCopilotReadable({
     description: "The weekly pulse form fields and their current values",
     value: formData,
   }, [formData]);
 
+  // Add Screen Mapping for Copilot readable context
+  useCopilotReadable({
+    description: "Mapping of screen's name to screen's number",
+    value: categoryToScreenMap,
+  }, [categoryToScreenMap]);
+  
   // Make user information available to the AI
   useCopilotReadable({
     description: "The current user information",
@@ -82,112 +122,40 @@ export default function WeeklyPulseForm({
     value: projects
   }, [projects]);
 
-  // Make the guide to complete form readable by the AI
-  useCopilotReadable({
-    description: "Weekly pulse form questions",
-    value: createWeeklyPulseFormAssistanceGuidePrompt(questions || [], user)
-  }, [questions, user]);
-
-  // Define the AI action to start filling the form
+  // Define all AI actions for the weekly pulse form
   useCopilotAction({
-    name: "startToFillForm",
-    description: "Start filling out the weekly pulse form by advancing from the welcome screen",
-    parameters: [
-      {
-        name: "startForm",
-        type: "boolean",
-        required: true,
-        description: "Set to true to start filling out the form"
-      }
-    ],
-    handler: async (action) => {
-      if(currentScreen === 0) handleNext();
-      return { success: true, message: "Started filling out the form" };
-    },
-  });
-
-  // Define the AI action to set primary project
-  useCopilotAction({
-    name: "setPrimaryProject",
-    description: "Set the primary project the user worked on this week",
+    name: "weeklyPulseFormAction",
+    description: "Actions for completing the weekly pulse form",
     parameters: [
       {
         name: "projectName",
         type: "string",
-        required: true,
+        required: false,
         description: "The name of the primary project the user worked on this week"
-      }
-    ],
-    handler: async (action) => {
-      const updatedFormData = { ...formData };
-      updatedFormData.primaryProject.name = action.projectName;
-      setFormData(updatedFormData);
-      if(currentScreen < reviewScreenNum) handleNext();
-      return { success: true, message: "Primary project set successfully" };
-    },
-  });
-
-  // Define the AI action to set primary project hours
-  useCopilotAction({
-    name: "setPrimaryProjectHours",
-    description: "Set the number of hours spent on the primary project this week",
-    parameters: [
+      },
       {
         name: "hours",
         type: "number",
-        required: true,
+        required: false,
         description: "The number of hours spent on the primary project this week"
-      }
-    ],
-    handler: async (action) => {
-      const updatedFormData = { ...formData };
-      updatedFormData.primaryProject.hours = action.hours;
-      setFormData(updatedFormData);
-      if(currentScreen < reviewScreenNum) handleNext();
-      return { success: true, message: "Primary project hours set successfully" };
-    },
-  });
-
-  // Define the AI action to set manager
-  useCopilotAction({
-    name: "setManager",
-    description: "Set the user's manager name",
-    parameters: [
+      },
       {
         name: "managerName",
         type: "string",
-        required: true,
-        description: "The name of the user's manager"
+        required: false,
+        description: "The email of the user's manager such as john@coderpush.com"
       },
       {
         name: "knowsManager",
         type: "boolean",
         required: false,
         description: "Whether the user knows their manager's name"
-      }
-    ],
-    handler: async (action) => {
-      const updatedFormData = { ...formData };
-      updatedFormData.manager = action.knowsManager === false ? "I don't know" : action.managerName;
-      setFormData(updatedFormData);
-      
-      // Use setTimeout to ensure state update completes before navigation
-      setTimeout(() => {
-        if(currentScreen < reviewScreenNum) handleNext();
-      }, 30);
-    },
-  });
-
-  // Define the AI action to set additional projects
-  useCopilotAction({
-    name: "setAdditionalProjects",
-    description: "Set additional projects worked on this week",
-    parameters: [
+      },
       {
         name: "projects",
         type: "object[]",
-        required: true,
-        description: "List of additional projects worked on this week with hours.",
+        required: false,
+        description: "List of additional projects worked on this week with hours",
         items: {
           type: "object",
           properties: {
@@ -200,168 +168,154 @@ export default function WeeklyPulseForm({
         name: "noAdditionalProject",
         type: "boolean",
         required: false,
-        description: "Whether the user has additional projects to report"      
-      }
-    ],
-    handler: async (action) => {
-      const updatedFormData = { ...formData };
-      updatedFormData.additionalProjects = action.noAdditionalProject ? action.projects : [];
-      setFormData(updatedFormData);
-      if(currentScreen < reviewScreenNum) handleNext();
-      return { success: true, message: "Additional projects set successfully" };
-    },
-  });
-
-  // Define the AI action to set feedback
-  useCopilotAction({
-    name: "setFeedback",
-    description: "Set feedback about the week's work",
-    parameters: [
+        description: "Whether the user has additional projects to report"
+      },
       {
         name: "feedback",
         type: "string",
-        required: true,
+        required: false,
         description: "Feedback about the week's work"
-      }
-    ],
-    handler: async (action) => {
-      const updatedFormData = { ...formData };
-      updatedFormData.feedback = action.feedback;
-      setFormData(updatedFormData);
-      if(currentScreen < reviewScreenNum) handleNext();
-      return { success: true, message: "Feedback set successfully" };
-    },
-  });
-
-  // Define the AI action to set changes for next week
-  useCopilotAction({
-    name: "setChangesNextWeek",
-    description: "Set changes or improvements planned for next week",
-    parameters: [
+      },
       {
         name: "changes",
         type: "string",
-        required: true,
+        required: false,
         description: "Changes or improvements planned for next week"
-      }
-    ],
-    handler: async (action) => {
-      const updatedFormData = { ...formData };
-      updatedFormData.changesNextWeek = action.changes;
-      setFormData(updatedFormData);
-      if(currentScreen < reviewScreenNum) handleNext();
-      return { success: true, message: "Changes for next week set successfully" };
-    },
-  });
-
-  // Define the AI action to set milestones
-  useCopilotAction({
-    name: "setMilestones",
-    description: "Set key milestones achieved this week",
-    parameters: [
+      },
       {
         name: "milestones",
         type: "string",
-        required: true,
+        required: false,
         description: "Key milestones achieved this week"
-      }
-    ],
-    handler: async (action) => {
-      const updatedFormData = { ...formData };
-      updatedFormData.milestones = action.milestones;
-      setFormData(updatedFormData);
-      if(currentScreen < reviewScreenNum) handleNext();
-      return { success: true, message: "Milestones set successfully" };
-    },
-  });
-
-  // Define the AI action to set other feedback
-  useCopilotAction({
-    name: "setOtherFeedback",
-    description: "Set any other feedback the user wants to provide",
-    parameters: [
-      {
-        name: "feedback",
-        type: "string",
-        required: true,
-        description: "Any other feedback the user wants to provide"
-      }
-    ],
-    handler: async (action) => {
-      const updatedFormData = { ...formData };
-      updatedFormData.otherFeedback = action.feedback;
-      setFormData(updatedFormData);
-      if(currentScreen < reviewScreenNum) handleNext();
-      return { success: true, message: "Other feedback set successfully" };
-    },
-  });
-
-  // Define the AI action to set hours reporting impact
-  useCopilotAction({
-    name: "setHoursReportingImpact",
-    description: "Set impact of hours reporting on the user's work",
-    parameters: [
+      },
       {
         name: "impact",
         type: "string",
-        required: true,
+        required: false,
         description: "Impact of hours reporting on the user's work"
-      }
-    ],
-    handler: async (action) => {
-      const updatedFormData = { ...formData };
-      updatedFormData.hoursReportingImpact = action.impact;
-      setFormData(updatedFormData);
-      if(currentScreen < reviewScreenNum) handleNext();
-      return { success: true, message: "Hours reporting impact set successfully" };
-    },
-  });
-
-  // Define the AI action to set dynamic answers
-  useCopilotAction({
-    name: "setDynamicAnswers",
-    description: "Set answers to dynamic questions by question ID",
-    parameters: [
+      },
       {
         name: "answers",
         type: "object",
-        required: true,
+        required: false,
         description: "Answers to dynamic questions by question ID"
+      },
+      {
+        name: "screenName",
+        type: "string",
+        required: true,
+        description: "The name of screen to that corresponds to the current question"
       }
     ],
     handler: async (action) => {
+      console.log(action)
       const updatedFormData = { ...formData };
       
-      // Ensure we're working with the correct types for the answers
-      const typedAnswers: Record<string, string | string[]> = {};
+      if (action.projectName !== undefined) {
+        updatedFormData.primaryProject.name = action.projectName;
+      }
+
+      if (action.hours !== undefined) {
+        updatedFormData.primaryProject.hours = action.hours;
+      }
+
+      if (action.knowsManager === false) {
+        updatedFormData.manager = "I don't know";
+      }
+
+      if (action.managerName !== undefined) {
+        updatedFormData.manager = action.managerName;
+      }
+
+      if (action.projects !== undefined) {
+        updatedFormData.additionalProjects = action.noAdditionalProject ? [] : action.projects;
+      }
+
+      if (action.feedback !== undefined) {
+        updatedFormData.feedback = action.feedback;
+      }
+
+      if (action.changes !== undefined) {
+        updatedFormData.changesNextWeek = action.changes;
+      }
+
+      if (action.milestones !== undefined) {
+        updatedFormData.milestones = action.milestones;
+      }
+
+      if (action.feedback !== undefined) {
+        updatedFormData.otherFeedback = action.feedback;
+      }
+
+      if (action.impact !== undefined) {
+        updatedFormData.hoursReportingImpact = action.impact;
+      }
+
+      if (action.answers) {
+        // Ensure we're working with the correct types for the answers
+        const typedAnswers: Record<string, string | string[]> = {};
+        
+        // Process each key in answers
+        Object.entries(action.answers).forEach(([key, value]) => {
+          // Handle string values
+          if (typeof value === 'string') {
+            typedAnswers[key] = value;
+          }
+          // Handle array values 
+          else if (Array.isArray(value)) {
+            // Ensure all items in the array are strings
+            typedAnswers[key] = value.map(item => String(item));
+          }
+          // Handle other values by converting to string
+          else if (value !== null && value !== undefined) {
+            typedAnswers[key] = String(value);
+          }
+        });
+        
+        // Update the form data with properly typed answers
+        updatedFormData.answers = {
+          ...updatedFormData.answers,
+          ...typedAnswers
+        };
+      } 
       
-      // Process each key in answers
-      Object.entries(action.answers).forEach(([key, value]) => {
-        // Handle string values
-        if (typeof value === 'string') {
-          typedAnswers[key] = value;
-        } 
-        // Handle array values
-        else if (Array.isArray(value)) {
-          // Ensure all items in the array are strings
-          typedAnswers[key] = value.map(item => String(item));
-        }
-        // Handle other values by converting to string
-        else if (value !== null && value !== undefined) {
-          typedAnswers[key] = String(value);
-        }
-      });
+      if (action.screenName 
+        && categoryToScreenMap[action.screenName] 
+        && categoryToScreenMap[action.screenName] < totalScreens - 2) {
+        handleNext(categoryToScreenMap[action.screenName]);
+      }
       
-      // Update the form data with properly typed answers
-      updatedFormData.answers = {
-        ...updatedFormData.answers,
-        ...typedAnswers
-      };
-      if(currentScreen < reviewScreenNum) handleNext();
       setFormData(updatedFormData);
-      return { success: true, message: "Dynamic answers set successfully" };
+      return { success: true, message: `Action completed successfully` };
     },
   });
+
+  // Create a copilot action to navigate to right screen
+  // useCopilotAction({
+  //   name: "navigateToScreenAction",
+  //   description: "Actions for navigating to a specific screen in the form which corresponds to the current question",
+  //   parameters: [
+  //     {
+  //       name: "screenName",
+  //       type: "string",
+  //       required: true,
+  //       description: "The name of screen to that corresponds to the current question"
+  //     }
+  //   ],
+  //   handler: async (action) => {
+  //     console.log(action)
+  //     const screenName = action.screenName;
+  //     if (screenName && categoryToScreenMap[screenName]) {
+  //       if(categoryToScreenMap[screenName] < totalScreens - 2) handleNext(categoryToScreenMap[screenName]);
+  //       const screen = categoryToScreenMap[screenName];
+  //       return { success: true, message: `Navigated to screen ${screen}` };
+  //     }
+  //     return {
+  //       success: false,
+  //       message: `Screen ${screenName} not found`
+  //     }
+  //   },
+  // });
 
   useEffect(() => {
     async function fetchQuestions() {
@@ -379,24 +333,25 @@ export default function WeeklyPulseForm({
     fetchQuestions();
   }, []);
   
-  const handleNext = () => {
+  const handleNext = (targetScreen?: number) => {
     setError(null); // Clear any previous errors
     if (currentScreen === 0 && !formData.startTime) {
       setFormData((prev) => ({ ...prev, startTime: new Date().toISOString() }));
     }
-    // const validationError = validateCurrentScreen();
-    // if (validationError) {
-    //   setError(validationError);
-    //   return;
-    // }
+    const validationError = validateCurrentScreen();
+    if (validationError) {
+      setError(validationError);
+      return;
+    }
     if (currentScreen < totalScreens - 1) {
-      setCurrentScreen(currentScreen + 1);
-      if (currentScreen > 0 && currentScreen < totalScreens - 2) {
-        setProgress(((currentScreen + 1) / (totalScreens - 2)) * 100);
+      let nextScreen = currentScreen + 1
+      if (targetScreen && targetScreen < totalScreens) nextScreen = targetScreen
+      setCurrentScreen(nextScreen);
+      if (nextScreen > 0 && nextScreen < totalScreens - 2) {
+        setProgress(((nextScreen) / (totalScreens - 2)) * 100);
       }
     }
-  };
-  
+  };  
   const handleBack = () => {
     setError(null); // Clear any previous errors
     if (currentScreen > 0) {
