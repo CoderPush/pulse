@@ -519,4 +519,190 @@ When a template's questions are changed (added, removed, or updated):
 - In the future, you may choose to link new weekly periods to `submission_periods` for unified dashboards and analytics.
 - This is optional and can be planned as a long-term alignment step.
 
+---
+
+## [Update: Recurring Schedules, Reminder Time, and Dynamic Period Creation]
+
+### 1. Why This Update?
+To support flexible recurring schedules (e.g., "only send 4 days a week"), custom reminder times, and dynamic admin updates, we recommend the following additions to the schema and operational flow.
+
+---
+
+### 2. New Table: recurring_schedules
+
+This table stores the recurrence pattern and reminder configuration for each template. The cron job will use this table to generate `submission_periods` for the upcoming week.
+
+```sql
+CREATE TABLE IF NOT EXISTS recurring_schedules (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    template_id UUID REFERENCES templates(id) ON DELETE CASCADE,
+    days_of_week TEXT[] NOT NULL, -- e.g., ['Mon','Tue','Thu','Fri']
+    reminder_time TIME NOT NULL,
+    start_date DATE NOT NULL,
+    end_date DATE
+);
+```
+
+- **days_of_week:** Array of days (e.g., ['Mon','Tue','Thu','Fri'])
+- **reminder_time:** Default reminder time for the schedule
+- **start_date/end_date:** When the recurrence starts/ends
+
+---
+
+### 3. Add reminder_time to submission_periods
+
+To allow for custom reminders per period:
+
+```sql
+ALTER TABLE submission_periods ADD COLUMN IF NOT EXISTS reminder_time TIME;
+```
+
+---
+
+### 4. Operational Flow: Dynamic Period Creation with Cron Job
+
+- When an admin creates or updates a recurring follow-up, store the schedule in `recurring_schedules`.
+- **Do not** pre-create all `submission_periods` for all future days.
+- Instead, run a **cron job** (e.g., every Sunday) that:
+  - Reads all active `recurring_schedules`.
+  - For each, creates a `submission_periods` row for each day in the next week that matches the `days_of_week` array.
+  - Assigns users as needed.
+- If the admin updates the schedule (e.g., changes from 5 days to 4 days), update the `days_of_week` in `recurring_schedules`. The next cron run will use the new config.
+
+---
+
+### 5. Example: Supporting "Only Send 4 Days a Week"
+
+- Admin sets up a daily follow-up for Mon, Tue, Thu, Fri at 09:00.
+- This is saved in `recurring_schedules`.
+- The cron job creates `submission_periods` for those days only.
+- If the admin later changes to a different set of days, the next week's periods will reflect the new days.
+
+---
+
+### 6. Summary Table: What to Add
+
+| Table                | Field                | Purpose                                  |
+|----------------------|----------------------|------------------------------------------|
+| submission_periods   | reminder_time (TIME) | When to send reminders for this period   |
+| templates            | is_active (BOOL)     | (Optional) Soft delete/disable           |
+| recurring_schedules  | days_of_week (TEXT[])| Store which days to create periods       |
+| recurring_schedules  | reminder_time (TIME) | Store default reminder time              |
+| recurring_schedules  | start_date, end_date | When recurrence starts/ends              |
+
+---
+
+### 7. Migration SQL Example
+
+```sql
+ALTER TABLE submission_periods ADD COLUMN IF NOT EXISTS reminder_time TIME;
+
+CREATE TABLE IF NOT EXISTS recurring_schedules (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    template_id UUID REFERENCES templates(id) ON DELETE CASCADE,
+    days_of_week TEXT[] NOT NULL, -- e.g., ['Mon','Tue','Thu','Fri']
+    reminder_time TIME NOT NULL,
+    start_date DATE NOT NULL,
+    end_date DATE
+);
+```
+
+---
+
+### 8. Cron Job Logic (Pseudocode)
+
+```js
+for each recurring_schedule where is_active:
+  for each day in next week:
+    if day_of_week in days_of_week:
+      create submission_period (if not exists)
+      assign users as needed
+```
+
+---
+
+### 9. Conclusion
+- This approach supports flexible recurring schedules, custom reminder times, and dynamic admin updates.
+- The cron job ensures periods are created just-in-time, reflecting the latest admin configuration.
+- The schema remains clean and scalable for future needs.
+
+---
+
+[End of update]
+
+# [Original content continues below]
+
+---
+
+## [Update: Reminder Feature for Daily/Weekly/Ad-hoc Submissions]
+
+### 1. Overview
+To ensure users complete their assigned forms, the system supports automated email reminders. Reminders are sent only to users who have not yet submitted for a given reporting period, at the configured reminder time.
+
+---
+
+### 2. Reminder Logic
+- At each `reminder_time` (e.g., 09:00), a scheduled cron job (e.g., Vercel Cron) runs.
+- For each `submission_period` where the current date matches `start_date` and the current time matches `reminder_time`:
+  - Find all users assigned to that period (`submission_period_users`).
+  - For each user, check if they have already submitted (row in `submissions` for that `submission_period_id` and `user_id`).
+  - **Send a reminder email only to users who have NOT submitted.**
+
+---
+
+### 3. Example SQL to Find Users Who Need a Reminder
+
+```sql
+SELECT
+  spu.user_id,
+  sp.id AS submission_period_id,
+  sp.reminder_time,
+  sp.start_date,
+  t.name AS template_name
+FROM
+  submission_periods sp
+JOIN
+  submission_period_users spu ON spu.submission_period_id = sp.id
+JOIN
+  templates t ON sp.template_id = t.id
+LEFT JOIN
+  submissions s ON s.submission_period_id = sp.id AND s.user_id = spu.user_id
+WHERE
+  sp.start_date::date = CURRENT_DATE
+  AND sp.reminder_time = CURRENT_TIME::time(0)
+  AND s.id IS NULL;
+```
+
+---
+
+### 4. Cron Job Scheduling
+- Run the cron job every 5–10 minutes (or as needed for your precision).
+- For each run, check for `submission_periods` with a `reminder_time` matching the current time window.
+- Send reminders only to users who have not submitted.
+
+---
+
+### 5. Missed Submission Reminders (Optional)
+- At the end of each day, run a separate job to remind users who never submitted for that day.
+- Use similar logic, but check for periods that have ended and users who still have not submitted.
+
+---
+
+### 6. Best Practices
+- Store a log of sent reminders (optional, for audit and to avoid duplicates).
+- Make the cron job timezone-aware if you have users in different regions.
+- Use Supabase or your backend to query the data, and Vercel serverless function to send emails.
+
+---
+
+### 7. Example Reminder Flow
+1. Cron job runs at 09:00.
+2. Finds all `submission_periods` with `reminder_time = 09:00` and `start_date = today`.
+3. For each period, finds all assigned users who have not submitted.
+4. Sends reminder emails to those users.
+
+---
+
+[End of reminder feature update]
+
 --- 

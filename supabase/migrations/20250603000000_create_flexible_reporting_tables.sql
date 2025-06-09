@@ -24,6 +24,7 @@ CREATE TABLE IF NOT EXISTS submission_periods (
     template_id UUID REFERENCES templates(id) ON DELETE CASCADE,
     event_name text,
     event_description text,
+    reminder_time TIME, -- When to send reminders for this period
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     CHECK (start_date < end_date)
 );
