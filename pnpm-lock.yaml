@@ -23,6 +23,9 @@ importers:
       '@langchain/aws':
         specifier: ^0.1.10
         version: 0.1.10(@langchain/core@0.3.57(openai@4.104.0(ws@8.18.1)(zod@3.25.50)))
+      '@langchain/core':
+        specifier: ^0.3.57
+        version: 0.3.57(openai@4.104.0(ws@8.18.1)(zod@3.25.50))
       '@next/third-parties':
         specifier: ^15.3.1
         version: 15.3.1(next@15.3.1(@babel/core@7.27.1)(@playwright/test@1.52.0)(react-dom@19.1.0(react@19.1.0))(react@19.1.0))(react@19.1.0)
@@ -98,6 +101,9 @@ importers:
       jsonwebtoken:
         specifier: ^9.0.2
         version: 9.0.2
+      langchain:
+        specifier: ^0.3.27
+        version: 0.3.27(@langchain/aws@0.1.10(@langchain/core@0.3.57(openai@4.104.0(ws@8.18.1)(zod@3.25.50))))(@langchain/core@0.3.57(openai@4.104.0(ws@8.18.1)(zod@3.25.50)))(axios@1.9.0)(openai@4.104.0(ws@8.18.1)(zod@3.25.50))(ws@8.18.1)
       lucide-react:
         specifier: ^0.503.0
         version: 0.503.0(react@19.1.0)

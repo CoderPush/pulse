@@ -15,8 +15,7 @@ import SuccessScreen from './screens/SuccessScreen';
 import SubmissionSuccessScreen from './screens/SubmissionSuccessScreen';
 import { getISOWeek } from 'date-fns/getISOWeek';
 import MultipleChoiceScreen from './screens/MultipleChoiceScreen';
-import { useCopilotReadable, useCopilotAction } from '@copilotkit/react-core';
-import { createWeeklyPulseFormAssistanceGuidePrompt } from '@/lib/prompt';
+import { useCopilotReadable, useCopilotAction, useCopilotAdditionalInstructions } from '@copilotkit/react-core';
 
 interface WeeklyPulseFormProps {
   user: User;
@@ -77,6 +76,38 @@ export default function WeeklyPulseForm({
     return mapping;
   }, [questions]);
 
+  useCopilotAdditionalInstructions({ instructions:
+    screenNameToScreenNumberMapping ? `
+    The following tools are available for interacting with the Weekly Pulse Form:
+
+    1. navigateToScreenAction:
+      Used to navigate between form screens. Parameters:
+      - screenName: string - Name of screen to navigate to. The avaible screens are ${Object.keys(screenNameToScreenNumberMapping).join(', ')}
+      MUST BE CALLED WHENEVER ASKING USER NEW QUESTION and WHEN DISPLAYING SUMMARY OF THE SUBMISSION TO USER
+      NOTIFY THE USER WHEN YOU NAVIGATE TO A NEW SCREEN
+
+    2. weeklyPulseFormAction:
+      Used to update form data fields. Parameters:
+      - primaryProject: string - Primary project name
+      - primaryProjectHours: number - Hours worked on primary project 
+      - managerName: string - Manager's email (e.g. john@coderpush.com)
+      - knowsManager: boolean - Whether user knows their manager
+      - additionalProjects: Array<{project: string, hours: number}> - Additional projects
+      - noAdditionalProject: boolean - Whether user has other projects
+      - changesNextWeek: string - Planned changes for next week
+      - otherFeedback: string - Week's work feedback
+      - hoursReportingImpact: string - Impact of hours reporting
+      MUST BE CALLED AFTER USER ANSWERS QUESTION
+
+    Example usage:
+    1. Navigate to manager screen:
+    navigateToScreenAction({screenName: "manager"})
+
+    2. Update primary project:
+    weeklyPulseFormAction({primaryProject: "Project A", primaryProjectHours: 40})
+    ` : ""
+  }, [screenNameToScreenNumberMapping]);
+
   // Make the questions to complete form readable by the AI
   useCopilotReadable(
   {
@@ -128,13 +159,13 @@ export default function WeeklyPulseForm({
     description: "Actions for completing the weekly pulse form",
     parameters: [
       {
-        name: "projectName",
+        name: "primaryProject",
         type: "string",
         required: false,
         description: "The name of the primary project the user worked on this week"
       },
       {
-        name: "hours",
+        name: "primaryProjectHours",
         type: "number",
         required: false,
         description: "The number of hours spent on the primary project this week"
@@ -143,7 +174,7 @@ export default function WeeklyPulseForm({
         name: "managerName",
         type: "string",
         required: false,
-        description: "The email of the user's manager such as john@coderpush.com"
+        description: "The email of the user's manager such as john_doe@coderpush.com"
       },
       {
         name: "knowsManager",
@@ -152,17 +183,22 @@ export default function WeeklyPulseForm({
         description: "Whether the user knows their manager's name"
       },
       {
-        name: "projects",
+        name: "additionalProjects",
         type: "object[]",
         required: false,
         description: "List of additional projects worked on this week with hours",
-        items: {
-          type: "object",
-          properties: {
-            project: { type: "string" },
-            hours: { type: "number" }
-          }
-        }
+        attributes: [
+          {
+            name: "project",
+            type: "string",
+            description: "The project name"
+          },
+          {
+            name: "hours", 
+            type: "number",
+            description: "Number of hours worked on the project"
+          }        
+        ]
       },
       {
         name: "noAdditionalProject",
@@ -171,52 +207,33 @@ export default function WeeklyPulseForm({
         description: "Whether the user has additional projects to report"
       },
       {
-        name: "feedback",
-        type: "string",
-        required: false,
-        description: "Feedback about the week's work"
-      },
-      {
-        name: "changes",
+        name: "changesNextWeek",
         type: "string",
         required: false,
         description: "Changes or improvements planned for next week"
       },
       {
-        name: "milestones",
+        name: "otherFeedback",
         type: "string",
         required: false,
-        description: "Key milestones achieved this week"
+        description: "Feedback about the week's work"
       },
       {
-        name: "impact",
+        name: "hoursReportingImpact",
         type: "string",
         required: false,
         description: "Impact of hours reporting on the user's work"
-      },
-      {
-        name: "answers",
-        type: "object",
-        required: false,
-        description: "Answers to dynamic questions by question ID"
-      },
-      {
-        name: "screenName",
-        type: "string",
-        required: true,
-        description: "The name of screen to that corresponds to the current question"
       }
     ],
     handler: async (action) => {
-      console.log(action)
       const updatedFormData = { ...formData };
       
-      if (action.projectName !== undefined) {
-        updatedFormData.primaryProject.name = action.projectName;
+      if (action.primaryProject !== undefined) {
+        updatedFormData.primaryProject.name = action.primaryProject;
       }
 
-      if (action.hours !== undefined) {
-        updatedFormData.primaryProject.hours = action.hours;
+      if (action.primaryProjectHours !== undefined) {
+        updatedFormData.primaryProject.hours = action.primaryProjectHours;
       }
 
       if (action.knowsManager === false) {
@@ -227,95 +244,52 @@ export default function WeeklyPulseForm({
         updatedFormData.manager = action.managerName;
       }
 
-      if (action.projects !== undefined) {
-        updatedFormData.additionalProjects = action.noAdditionalProject ? [] : action.projects;
+      if (action.additionalProjects !== undefined) {
+        updatedFormData.additionalProjects = action.noAdditionalProject ? [] : action.additionalProjects;
       }
 
-      if (action.feedback !== undefined) {
-        updatedFormData.feedback = action.feedback;
+      if (action.changesNextWeek !== undefined) {
+        updatedFormData.changesNextWeek = action.changesNextWeek;
       }
 
-      if (action.changes !== undefined) {
-        updatedFormData.changesNextWeek = action.changes;
+      if (action.otherFeedback !== undefined) {
+        updatedFormData.otherFeedback = action.otherFeedback;
       }
 
-      if (action.milestones !== undefined) {
-        updatedFormData.milestones = action.milestones;
+      if (action.hoursReportingImpact !== undefined) {
+        updatedFormData.hoursReportingImpact = action.hoursReportingImpact;
       }
-
-      if (action.feedback !== undefined) {
-        updatedFormData.otherFeedback = action.feedback;
-      }
-
-      if (action.impact !== undefined) {
-        updatedFormData.hoursReportingImpact = action.impact;
-      }
-
-      if (action.answers) {
-        // Ensure we're working with the correct types for the answers
-        const typedAnswers: Record<string, string | string[]> = {};
         
-        // Process each key in answers
-        Object.entries(action.answers).forEach(([key, value]) => {
-          // Handle string values
-          if (typeof value === 'string') {
-            typedAnswers[key] = value;
-          }
-          // Handle array values 
-          else if (Array.isArray(value)) {
-            // Ensure all items in the array are strings
-            typedAnswers[key] = value.map(item => String(item));
-          }
-          // Handle other values by converting to string
-          else if (value !== null && value !== undefined) {
-            typedAnswers[key] = String(value);
-          }
-        });
-        
-        // Update the form data with properly typed answers
-        updatedFormData.answers = {
-          ...updatedFormData.answers,
-          ...typedAnswers
-        };
-      } 
-      
-      if (action.screenName 
-        && screenNameToScreenNumberMapping[action.screenName] 
-        && screenNameToScreenNumberMapping[action.screenName] < totalScreens - 2) {
-        handleNext(screenNameToScreenNumberMapping[action.screenName]);
-      }
-
       setFormData(updatedFormData);
       return { success: true, message: `Action completed successfully` };
     },
-  });
+  }, [formData, setFormData]);
 
   // Create a copilot action to navigate to right screen
-  // useCopilotAction({
-  //   name: "navigateToScreenAction",
-  //   description: "Actions for navigating to a specific screen in the form which corresponds to the current question",
-  //   parameters: [
-  //     {
-  //       name: "screenName",
-  //       type: "string",
-  //       required: true,
-  //       description: "The name of screen to that corresponds to the current question"
-  //     }
-  //   ],
-  //   handler: async (action) => {
-  //     console.log(action)
-  //     const screenName = action.screenName;
-  //     if (screenName && screenNameToScreenNumberMapping[screenName]) {
-  //       if(screenNameToScreenNumberMapping[screenName] < totalScreens - 2) handleNext(screenNameToScreenNumberMapping[screenName]);
-  //       const screen = screenNameToScreenNumberMapping[screenName];
-  //       return { success: true, message: `Navigated to screen ${screen}` };
-  //     }
-  //     return {
-  //       success: false,
-  //       message: `Screen ${screenName} not found`
-  //     }
-  //   },
-  // });
+  useCopilotAction({
+    name: "navigateToScreenAction",
+    description: "Actions for navigating to a specific screen in the form which corresponds to the current question.",
+    parameters: [
+      {
+        name: "screenName",
+        type: "string",
+        required: true,
+        description: "The name of screen to that corresponds to the current question"
+      }
+    ],
+    handler: async (action) => {
+      const screenName = action.screenName;
+      if (screenName && screenNameToScreenNumberMapping[screenName]!= undefined) {
+        if(screenNameToScreenNumberMapping[screenName] < totalScreens - 2) handleNext(screenNameToScreenNumberMapping[screenName]);
+        const screen = screenNameToScreenNumberMapping[screenName];
+        return { success: true, message: `Navigated to screen ${screen}` };
+      }
+      return {
+        success: false,
+        message: `Screen ${screenName} not found`
+      }
+    },
+  });
 
   useEffect(() => {
     async function fetchQuestions() {

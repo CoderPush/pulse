@@ -24,7 +24,39 @@ const model = new ChatBedrockConverse({
 
 const serviceAdapter = new LangChainAdapter({
     chainFn: async ({ messages, tools }) => {
-        return model.bindTools(tools).invoke(messages);
+        // Filter out duplicate tool messages from input
+        const seenToolCallIds = new Set();
+        // Fix empty content in AIMessages by adding a content block with non-blank text
+        const processedMessages = messages.map(msg => {
+            if (msg.getType() === "ai" && (!msg.content || msg.content.length === 0)) {
+                msg.content = [{ type: "text", text: '\u200B' }];
+            } else if (msg.getType() === "ai" && Array.isArray(msg.content)) {
+                // Check for blank text in existing content blocks
+                msg.content = msg.content.map(block => {
+                    if (block.type === "text" && (!block.text || block.text.trim() === "")) {
+                        return { ...block, text: '\u200B' };
+                    }
+                    return block;
+                });
+            }
+            return msg;
+        });
+
+        const filteredMessages = processedMessages.filter(msg => {
+            // Check if it's a tool message by looking at its properties instead of using instanceof
+            if (msg.getType() === "tool") {
+                const toolCallId = (msg as any).tool_call_id;
+                if (seenToolCallIds.has(toolCallId)) {
+                    return false;
+                }
+                seenToolCallIds.add(toolCallId);
+            }
+            return true;
+        });
+
+        const response = await model.bindTools(tools).stream(filteredMessages);
+        return response;
+
     }
 });
 
