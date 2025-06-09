@@ -32,6 +32,7 @@ CREATE TABLE IF NOT EXISTS public.submission_periods (
     period_type text NOT NULL, -- 'daily', 'ad-hoc', etc.
     start_date timestamp with time zone NOT NULL,
     end_date timestamp with time zone NOT NULL,
+    template_id UUID REFERENCES templates(id),
     event_name text, -- Optional: for ad-hoc events
     event_description text, -- Optional: for ad-hoc events
     created_at timestamp with time zone DEFAULT now() NOT NULL
@@ -338,5 +339,93 @@ CREATE TABLE submission_period_users (
 ### Summary
 - The schema already supports robust reminder logic for daily and missed submissions.
 - Backend logic (cron job or scheduled function) can use these tables to send reminders and track them efficiently.
+
+---
+
+## 13. Usage Pattern: Reusing Templates for Different Groups and Times
+
+### Key Concepts
+- **Template:** Defines the structure/questions of a form (e.g., "Daily Check-in").
+- **Submission Period:** Represents a specific instance of a form to be filled (e.g., "Daily Check-in for 2024-07-01").
+- **User Assignment:** Links users to a specific submission period (not directly to the template).
+
+### How to Use
+- To use the same template for different groups of users at different times:
+  1. **Create a submission period** (e.g., for today) and link it to the template.
+  2. **Assign users** (e.g., A and B) to this submission period.
+  3. Later, **create another submission period** (e.g., for tomorrow or another ad-hoc date) using the same template.
+  4. **Assign a different set of users** (e.g., C and D) to this new submission period.
+- **You do NOT need to create a new template for each group of users.**
+- **You do NOT assign users directly to the template.**
+- **You assign users to a submission period that uses the template.**
+
+### Example
+
+| submission_periods | id | template_id | period_type | start_date   | end_date     |
+|-------------------|----|-------------|-------------|-------------|-------------|
+|                   | 1  | daily_checkin_template | ad-hoc      | 2024-07-01  | 2024-07-01  |
+|                   | 2  | daily_checkin_template | ad-hoc      | 2024-07-02  | 2024-07-02  |
+
+| submission_period_users | id | submission_period_id | user_id |
+|------------------------|----|---------------------|---------|
+|                        | 1  | 1                   | A       |
+|                        | 2  | 1                   | B       |
+|                        | 3  | 2                   | C       |
+|                        | 4  | 2                   | D       |
+
+- On 2024-07-01, users A and B are assigned to fill out the "Daily Check-in" form.
+- On 2024-07-02, users C and D are assigned to fill out the same "Daily Check-in" form.
+- The template is reused, and each submission period can have its own group of users.
+
+### Summary
+- **Templates** define the questions.
+- **Submission periods** are the "instances" of a check-in (date, context, etc.).
+- **Users** are assigned to submission periods, not directly to templates.
+- This allows you to use the same template for any group of users, any number of times, without duplication.
+
+---
+
+## 14. Summary of New Tables for Flexible Reporting
+
+### 1. submission_periods
+- Represents each reporting window (e.g., a specific day for a daily check-in, or an ad-hoc event).
+- **Key columns:**
+  - `id`
+  - `period_type` (e.g., 'daily', 'ad-hoc')
+  - `start_date`, `end_date`
+  - `template_id` (links to the template used for this period)
+  - `event_name`, `event_description` (optional, for ad-hoc)
+  - `created_at`
+
+### 2. templates
+- Defines the structure/questions of a form (e.g., "Daily Check-in").
+- **Key columns:**
+  - `id`
+  - `name`
+  - `description`
+
+### 3. template_questions
+- Associates questions (by version) with templates, allowing for flexible ordering and reuse.
+- **Key columns:**
+  - `template_id`
+  - `question_id`
+  - `display_order`
+
+### 4. submission_period_users
+- Assigns users to a specific submission period (not directly to templates).
+- **Key columns:**
+  - `id`
+  - `submission_period_id`
+  - `user_id`
+  - `template_id`
+  - `assigned_at`
+
+---
+
+### How They Work Together
+- **Templates** define the questions.
+- **Submission periods** are the "instances" of a check-in (date, context, etc.), each linked to a template.
+- **Users** are assigned to submission periods via `submission_period_users`.
+- **template_questions** allows you to reuse and order questions in any template.
 
 --- 
