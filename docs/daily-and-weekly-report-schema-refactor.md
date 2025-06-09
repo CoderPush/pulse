@@ -428,4 +428,95 @@ CREATE TABLE submission_period_users (
 - **Users** are assigned to submission periods via `submission_period_users`.
 - **template_questions** allows you to reuse and order questions in any template.
 
+---
+
+## 15. Implementation Plan: Steps to Roll Out Flexible Reporting
+
+### 1. Database Migration
+- Create new tables: `submission_periods`, `templates`, `template_questions`, `submission_period_users`.
+- Add necessary foreign key constraints and indexes for performance.
+- (Optional) Add columns for reminders, event names, etc.
+
+### 2. Backend API Changes
+- Implement endpoints to:
+  - Create, update, and fetch templates and their questions.
+  - Create and manage submission periods (including recurring logic for daily/weekly).
+  - Assign users to submission periods.
+  - Record and fetch submissions and answers for each period.
+  - Track and fetch reminder logs.
+
+### 3. Admin UI
+- Build UI for:
+  - Creating and editing templates (add/remove questions, set order).
+  - Creating and managing submission periods (date, template, etc.).
+  - Assigning users to periods (with search/filter for users).
+  - Viewing submission status (who has/has not filled for each period).
+  - Managing reminders (view logs, trigger manual reminders if needed).
+
+### 4. User Dashboard
+- Show users their assigned forms for each period.
+- Allow users to fill and submit answers for each assigned period.
+- Show submission history and status.
+
+### 5. Reminder Logic
+- Implement scheduled jobs (e.g., cron or serverless functions) to:
+  - Send daily reminders to users who have not filled their assigned forms.
+  - Send missed submission reminders for previous days.
+  - Log all reminders in `reminder_logs`.
+
+### 6. Testing and Rollout
+- Write tests for all new database logic and API endpoints.
+- Test admin and user flows end-to-end.
+- Roll out to a staging environment for internal testing.
+- Gradually enable for production users, monitoring for issues.
+
+### 7. Documentation and Training
+- Update user and admin documentation to explain new features and workflows.
+- Train admins on how to create templates, assign users, and track responses.
+
+---
+
+## 16. Additional Best Practices & Considerations
+
+### 1. Submission Conflict Prevention
+To ensure data integrity, add a unique constraint to the `submissions` table:
+
+```sql
+ALTER TABLE submissions
+ADD CONSTRAINT unique_submission_per_user_per_period
+UNIQUE (submission_period_id, user_id);
+```
+This prevents duplicate submissions by the same user for the same period.
+
+---
+
+### 2. Template Evolution Handling
+When a template's questions are changed (added, removed, or updated):
+- **Best Practice:** Lock the set of questions for each submission period once it is created (or when the first user submits).
+- This ensures all users for that period answer the same set of questions, and historical data remains consistent.
+- If you want to allow live updates, clearly indicate in the UI which periods are affected and consider versioning the template-question assignments.
+
+---
+
+### 3. Admin UX Flow (Recommended)
+**Suggested steps for the admin interface:**
+1. **Create/Edit Template:**  
+   - Add/remove questions, set order, save as a reusable template.
+2. **Create Submission Period:**  
+   - Select template, set date(s), configure reminders.
+3. **Assign Users:**  
+   - Select users for the period (search, filter, bulk add).
+4. **Track Responses:**  
+   - Dashboard shows assigned users, who has/has not submitted, and allows sending reminders.
+5. **View History:**  
+   - See past periods, responses, and template/question versions used.
+
+
+---
+
+### 4. Gradual Weekly Integration (Future Consideration)
+- For now, weekly pulse data remains in the old structure.
+- In the future, you may choose to link new weekly periods to `submission_periods` for unified dashboards and analytics.
+- This is optional and can be planned as a long-term alignment step.
+
 --- 
