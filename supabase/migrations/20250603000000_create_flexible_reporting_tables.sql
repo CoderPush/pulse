@@ -24,7 +24,8 @@ CREATE TABLE IF NOT EXISTS submission_periods (
     template_id UUID REFERENCES templates(id) ON DELETE CASCADE,
     event_name text,
     event_description text,
-    created_at timestamp with time zone DEFAULT now() NOT NULL
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    CHECK (start_date < end_date)
 );
 
 -- 4. Submission period users table
@@ -32,7 +33,6 @@ CREATE TABLE IF NOT EXISTS submission_period_users (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     submission_period_id INTEGER REFERENCES submission_periods(id) ON DELETE CASCADE,
     user_id UUID REFERENCES users(id) ON DELETE CASCADE,
-    template_id UUID REFERENCES templates(id) ON DELETE CASCADE,
     assigned_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
