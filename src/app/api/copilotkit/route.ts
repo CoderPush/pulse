@@ -54,8 +54,6 @@ const serviceAdapter = new LangChainAdapter({
             return true;
         });
 
-return true;
-        });
 
         try {
             const response = await model.bindTools(tools).stream(filteredMessages);
@@ -66,16 +64,14 @@ return true;
         }
 
     }
+    // stream: true,
 });
-        return response;
 
-    }
-});
 
 export const POST = async (req: Request) => {
     if (!BEDROCK_AWS_SECRET_ACCESS_KEY || !BEDROCK_AWS_ACCESS_KEY_ID) {
         return NextResponse.json(
-            { error: 'AWS Bedrock credentials not configured' },
+            { error: 'AWS Bedrock configuration incomplete. Please set BEDROCK_AWS_ACCESS_KEY_ID, BEDROCK_AWS_SECRET_ACCESS_KEY, and BEDROCK_MODEL_ID.' },
             { status: 500 }
         );
     }

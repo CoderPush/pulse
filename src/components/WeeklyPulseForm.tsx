@@ -162,9 +162,6 @@ export default function WeeklyPulseForm({
     value: previousSubmission
   }, [previousSubmission]);
 
-  console.log(screenNameToScreenNumberMapping)
-  console.log(previousSubmission)
-
   // Define all AI actions for the weekly pulse form
   useCopilotAction({
     name: "weeklyPulseFormAction",
@@ -332,20 +329,14 @@ export default function WeeklyPulseForm({
       return;
     }
 
-    if (targetScreen && targetScreen < totalScreens - 1) {
-      setCurrentScreen(targetScreen);
-      if (targetScreen > 0 && targetScreen < totalScreens - 2) {
-        setProgress(((targetScreen) / (totalScreens - 2)) * 100);
-      }
-      return;
-    }
-  
-
-    if ((currentScreen < totalScreens - 1)) {
-      let nextScreen = currentScreen + 1
+    const nextScreen = targetScreen && targetScreen < totalScreens - 1 
+      ? targetScreen 
+      : currentScreen + 1;
+    
+    if (nextScreen < totalScreens - 1) {
       setCurrentScreen(nextScreen);
       if (nextScreen > 0 && nextScreen < totalScreens - 2) {
-        setProgress(((nextScreen) / (totalScreens - 2)) * 100);
+        setProgress((nextScreen / (totalScreens - 2)) * 100);
       }
     }
 
