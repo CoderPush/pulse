@@ -45,6 +45,7 @@ const serviceAdapter = new LangChainAdapter({
         const filteredMessages = processedMessages.filter(msg => {
             // Check if it's a tool message by looking at its properties instead of using instanceof
             if (msg.getType() === "tool") {
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any        
                 const toolCallId = (msg as any).tool_call_id;
                 if (seenToolCallIds.has(toolCallId)) {
                     return false;
