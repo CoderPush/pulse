@@ -54,7 +54,19 @@ const serviceAdapter = new LangChainAdapter({
             return true;
         });
 
-        const response = await model.bindTools(tools).stream(filteredMessages);
+return true;
+        });
+
+        try {
+            const response = await model.bindTools(tools).stream(filteredMessages);
+            return response;
+        } catch (error) {
+            console.error('Error during model streaming:', error);
+            throw new Error('Failed to process the request');
+        }
+
+    }
+});
         return response;
 
     }
