@@ -72,7 +72,7 @@ export default async function HomePage({ searchParams }: HomeProps) {
           currentYear={currentYear}
           hasSubmittedThisWeek={!!existingSubmission}
           projects={projects || []}
-        />
+          previousSubmission={submissions?.[0]}        />
       </div>
     </CopilotProvider>
   )

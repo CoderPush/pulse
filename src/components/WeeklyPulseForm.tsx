@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
-import { WeeklyPulseFormData, Question } from '@/types/weekly-pulse';
+import { WeeklyPulseFormData, Question, WeeklyPulseSubmission } from '@/types/weekly-pulse';
 import { User } from '@supabase/supabase-js';
 import WelcomeScreen from './screens/WelcomeScreen';
 import ProjectSelectionScreen from './screens/ProjectSelectionScreen';
@@ -23,6 +23,7 @@ interface WeeklyPulseFormProps {
   currentYear?: number;
   hasSubmittedThisWeek?: boolean;
   projects: Array<{ id: string; name: string }>;
+  previousSubmission?: WeeklyPulseSubmission;
 }
 
 export default function WeeklyPulseForm({
@@ -31,6 +32,7 @@ export default function WeeklyPulseForm({
   currentYear,
   hasSubmittedThisWeek = false,
   projects = [],
+  previousSubmission,
 }: WeeklyPulseFormProps) {
   const [currentScreen, setCurrentScreen] = useState(0);
   const [progress, setProgress] = useState(0);
@@ -83,7 +85,8 @@ export default function WeeklyPulseForm({
     1. navigateToScreenAction:
       Used to navigate between form screens. Parameters:
       - screenName: string - Name of screen to navigate to. The avaible screens are ${Object.keys(screenNameToScreenNumberMapping).join(', ')}
-      MUST BE CALLED WHENEVER ASKING USER NEW QUESTION and WHEN DISPLAYING SUMMARY OF THE SUBMISSION TO USER
+      MUST BE CALLED WHENEVER ASKING USER NEW QUESTION 
+      MUST NAVIAGE TO 'review' SCREEN WHENEVER DISPLAYING SUMMARY OF THE SUBMISSION TO USER
       NOTIFY THE USER WHEN YOU NAVIGATE TO A NEW SCREEN
 
     2. weeklyPulseFormAction:
@@ -152,6 +155,15 @@ export default function WeeklyPulseForm({
     description: "Available projects that can be selected",
     value: projects
   }, [projects]);
+
+  // Make Previous Submission's Data readable by the AI
+  useCopilotReadable({
+    description: "Previous submission's data",
+    value: previousSubmission
+  }, [previousSubmission]);
+
+  console.log(screenNameToScreenNumberMapping)
+  console.log(previousSubmission)
 
   // Define all AI actions for the weekly pulse form
   useCopilotAction({
@@ -280,7 +292,7 @@ export default function WeeklyPulseForm({
     handler: async (action) => {
       const screenName = action.screenName;
       if (screenName && screenNameToScreenNumberMapping[screenName]!= undefined) {
-        if(screenNameToScreenNumberMapping[screenName] < totalScreens - 2) handleNext(screenNameToScreenNumberMapping[screenName]);
+        if(screenNameToScreenNumberMapping[screenName] < totalScreens - 1) handleNext(screenNameToScreenNumberMapping[screenName]);
         const screen = screenNameToScreenNumberMapping[screenName];
         return { success: true, message: `Navigated to screen ${screen}` };
       }
@@ -317,14 +329,24 @@ export default function WeeklyPulseForm({
       setError(validationError);
       return;
     }
-    if (currentScreen < totalScreens - 1) {
+
+    if (targetScreen && targetScreen < totalScreens - 1) {
+      setCurrentScreen(targetScreen);
+      if (targetScreen > 0 && targetScreen < totalScreens - 2) {
+        setProgress(((targetScreen) / (totalScreens - 2)) * 100);
+      }
+      return;
+    }
+  
+
+    if ((currentScreen < totalScreens - 1)) {
       let nextScreen = currentScreen + 1
-      if (targetScreen && targetScreen < totalScreens) nextScreen = targetScreen
       setCurrentScreen(nextScreen);
       if (nextScreen > 0 && nextScreen < totalScreens - 2) {
         setProgress(((nextScreen) / (totalScreens - 2)) * 100);
       }
     }
+
   };  
   const handleBack = () => {
     setError(null); // Clear any previous errors
