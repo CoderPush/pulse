@@ -256,8 +256,10 @@ export default function WeeklyPulseForm({
         updatedFormData.manager = action.managerName;
       }
 
-      if (action.additionalProjects !== undefined) {
-        updatedFormData.additionalProjects = action.noAdditionalProject ? [] : action.additionalProjects;
+      if (action.noAdditionalProject) {
+        updatedFormData.additionalProjects = [];
+      } else if (action.additionalProjects !== undefined) {
+        updatedFormData.additionalProjects = action.additionalProjects;
       }
 
       if (action.changesNextWeek !== undefined) {
