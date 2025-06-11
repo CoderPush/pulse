@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { User, History, Trophy, Share, HeartPulse, CalendarDays } from 'lucide-react'
+import { User, Trophy, Share, HeartPulse, CalendarDays } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 export type SidebarItem = {

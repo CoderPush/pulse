@@ -706,3 +706,15 @@ WHERE
 [End of reminder feature update]
 
 --- 
+
+
+Recommended Flow:
+Step 1 (Questions):
+Create all questions.
+Create the template (with name, description, etc.).
+Link the questions to the template (insert into template_questions).
+Store the template ID for use in later steps.
+Step 2 (Participants):
+Assign users to the template/period.
+Step 3 (Frequency/Schedule):
+Set up recurring schedules, reminders, etc.

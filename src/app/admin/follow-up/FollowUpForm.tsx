@@ -1,17 +1,22 @@
 'use client';
+
 import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
-import { Plus, User, Calendar } from 'lucide-react';
+import { createQuestionsAction } from './create/actions';
+import { FollowUpQuestionsStep } from './components/FollowUpQuestionsStep';
+import { FollowUpParticipantsStep } from './components/FollowUpParticipantsStep';
+import { FollowUpFrequencyStep } from './components/FollowUpFrequencyStep';
 
+// --- TYPE DEFINITIONS ---
 export type FollowUpQuestion = {
   id: number;
   text: string;
-  short: string;
   type: string;
+  choices?: string[];
+  description?: string;
+  required?: boolean;
 };
 
 export type FollowUpFormValues = {
@@ -22,16 +27,18 @@ export type FollowUpFormValues = {
   frequency: string;
   days: string[];
   reminderTime: string;
+  templateId?: string | null;
 };
 
 export type FollowUpFormProps = {
   initialValues: FollowUpFormValues;
-  allUsers: { id: string; name: string }[];
+  allUsers: { id: string; email: string; name?: string }[];
   mode?: 'create' | 'edit';
   onSubmit: (values: FollowUpFormValues) => void;
   onCancel?: () => void;
 };
 
+// --- MAIN FORM CONTAINER ---
 export function FollowUpForm({ initialValues, allUsers, mode = 'create', onSubmit, onCancel }: FollowUpFormProps) {
   const [tab, setTab] = useState('questions');
   const [name, setName] = useState(initialValues.name);
@@ -41,138 +48,132 @@ export function FollowUpForm({ initialValues, allUsers, mode = 'create', onSubmi
   const [frequency, setFrequency] = useState(initialValues.frequency);
   const [days, setDays] = useState<string[]>(initialValues.days);
   const [reminderTime, setReminderTime] = useState(initialValues.reminderTime);
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [templateId, setTemplateId] = useState<string | null>(null);
 
-  const handleQuestionChange = (idx: number, field: string, value: string) => {
-    setQuestions(qs => qs.map((q, i) => i === idx ? { ...q, [field]: value } : q));
+  // Client-side validation
+  function validate() {
+    setError(null);
+    if (!name.trim()) return 'Template name is required.';
+    if (questions.some(q => !q.text.trim())) return 'All question titles must be non-empty.';
+    if (new Set(questions.map(q => q.text.trim().toLowerCase())).size !== questions.length) return 'Question titles must be unique.';
+    for (const q of questions) {
+      if ((q.type === 'multiple_choice' || q.type === 'checkbox') && (!q.choices || q.choices.length === 0 || q.choices.some(c => !c.trim()))) {
+        return `Choices are required for question: "${q.text}"`;
+      }
+    }
+    return null;
+  }
+
+  // Step 1: Questions Next
+  const handleQuestionsNext = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const validationError = validate();
+    if (validationError) {
+      setError(validationError);
+      return;
+    }
+    setLoading(true);
+    const result = await createQuestionsAction(questions, name, description);
+    setLoading(false);
+    if (result.success && result.templateId) {
+      setTemplateId(result.templateId);
+      setTab('participants');
+    } else {
+      setError(result.error || 'An unknown error occurred while saving questions.');
+    }
   };
-  const addQuestion = () => setQuestions(qs => [...qs, { id: Date.now(), text: '', short: '', type: 'open-ended' }]);
-  const removeQuestion = (idx: number) => setQuestions(qs => qs.filter((_, i) => i !== idx));
-  const toggleUser = (id: string) => {
-    setUsers(u => u.includes(id) ? u.filter(uid => uid !== id) : [...u, id]);
+  
+  // Step 2: Participants Next
+  const handleParticipantsNext = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (users.length === 0) {
+      setError('You must select at least one participant.');
+      return;
+    }
+    setError(null);
+    setTab('frequency');
   };
 
+  // Step 3: Final Submit
   const handleFormSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    onSubmit({ name, description, questions, users, frequency, days, reminderTime });
+    // Final validation check
+    const validationError = validate();
+    if (validationError) {
+      setError(validationError);
+      setTab('questions'); // Go back to the questions tab if there's an error
+      return;
+    }
+    if (users.length === 0) {
+      setError('You must select at least one participant.');
+      setTab('participants'); // Go back to participants if none selected
+      return;
+    }
+    if (!templateId) {
+      setError('Something went wrong, template was not created. Please go back to the questions step.');
+      setTab('questions');
+      return;
+    }
+    setError(null);
+    onSubmit({ name, description, questions, users, frequency, days, reminderTime, templateId });
   };
 
   return (
-    <div className="max-w-2xl mx-auto py-8">
+    <div className="max-w-4xl mx-auto py-8">
       <Card>
         <CardHeader>
-          <CardTitle>{mode === 'edit' ? 'Edit Follow-up' : 'Create New Follow-up'}</CardTitle>
+          <div className="flex justify-between items-center">
+            <CardTitle>{mode === 'edit' ? 'Edit Follow-up' : 'Create New Follow-up'}</CardTitle>
+            {onCancel && <Button type="button" variant="ghost" onClick={onCancel}>Cancel</Button>}
+          </div>
+          {error && <div className="text-red-600 font-medium mt-2 p-3 bg-red-50 border border-red-200 rounded-md">{error}</div>}
         </CardHeader>
         <CardContent>
           <Tabs value={tab} onValueChange={setTab} className="space-y-6">
-            <TabsList className="mb-4">
-              <TabsTrigger value="questions">Questions</TabsTrigger>
-              <TabsTrigger value="participants">Participants</TabsTrigger>
-              <TabsTrigger value="frequency">Frequency</TabsTrigger>
+            <TabsList className="mb-4 grid w-full grid-cols-3">
+              <TabsTrigger value="questions">1. Questions</TabsTrigger>
+              <TabsTrigger value="participants">2. Participants</TabsTrigger>
+              <TabsTrigger value="frequency">3. Frequency & Schedule</TabsTrigger>
             </TabsList>
+            
             <TabsContent value="questions">
-              <form className="space-y-6" onSubmit={e => { e.preventDefault(); setTab('participants'); }}>
-                <div>
-                  <label className="block mb-1 font-medium">Name</label>
-                  <Input value={name} onChange={e => setName(e.target.value)} required />
-                </div>
-                <div>
-                  <label className="block mb-1 font-medium">Description</label>
-                  <Textarea value={description} onChange={e => setDescription(e.target.value)} rows={2} />
-                </div>
-                <div className="space-y-4">
-                  <div className="font-semibold mb-2">Questions</div>
-                  {questions.map((q, idx) => (
-                    <div key={q.id} className="border rounded p-3 mb-2 bg-muted/30">
-                      <div className="flex gap-2 items-center mb-2">
-                        <span className="font-medium">Question {idx + 1}</span>
-                        <Button type="button" size="sm" variant="ghost" onClick={() => removeQuestion(idx)} disabled={questions.length === 1}>Remove</Button>
-                      </div>
-                      <Textarea
-                        className="mb-2"
-                        value={q.text}
-                        onChange={e => handleQuestionChange(idx, 'text', e.target.value)}
-                        placeholder="Enter question text"
-                        rows={2}
-                        required
-                      />
-                      <Input
-                        className="mb-2"
-                        value={q.short}
-                        onChange={e => handleQuestionChange(idx, 'short', e.target.value)}
-                        placeholder="Short question (for reports)"
-                      />
-                      <select
-                        className="border rounded px-2 py-1"
-                        value={q.type}
-                        onChange={e => handleQuestionChange(idx, 'type', e.target.value)}
-                      >
-                        <option value="open-ended">Open-ended</option>
-                        <option value="number">Number</option>
-                        <option value="choice">Multiple Choice</option>
-                      </select>
-                    </div>
-                  ))}
-                  <Button type="button" variant="outline" onClick={addQuestion} className="mt-2"><Plus className="w-4 h-4 mr-1" /> Add Question</Button>
-                </div>
-                <div className="flex justify-end">
-                  <Button type="submit">Next: Participants</Button>
-                </div>
-              </form>
+              <FollowUpQuestionsStep
+                name={name}
+                setName={setName}
+                description={description}
+                setDescription={setDescription}
+                questions={questions}
+                setQuestions={setQuestions}
+                error={error}
+                loading={loading}
+                onNext={handleQuestionsNext}
+              />
             </TabsContent>
+            
             <TabsContent value="participants">
-              <form className="space-y-6" onSubmit={e => { e.preventDefault(); setTab('frequency'); }}>
-                <div>
-                  <label className="block mb-1 font-medium flex items-center gap-2"><User className="w-4 h-4" /> Assign Users</label>
-                  <div className="flex flex-wrap gap-2">
-                    {allUsers.map(u => (
-                      <Button
-                        key={u.id}
-                        type="button"
-                        variant={users.includes(u.id) ? 'default' : 'outline'}
-                        onClick={() => toggleUser(u.id)}
-                        className={users.includes(u.id) ? 'bg-blue-600 text-white' : ''}
-                      >
-                        {u.name}
-                      </Button>
-                    ))}
-                  </div>
-                </div>
-                <div className="flex justify-between">
-                  <Button type="button" variant="outline" onClick={() => setTab('questions')}>Back</Button>
-                  <Button type="submit">Next: Frequency</Button>
-                </div>
-              </form>
+              <FollowUpParticipantsStep
+                users={users}
+                setUsers={setUsers}
+                allUsers={allUsers}
+                onNext={handleParticipantsNext}
+                onBack={() => setTab('questions')}
+              />
             </TabsContent>
+            
             <TabsContent value="frequency">
-              <form className="space-y-6" onSubmit={handleFormSubmit}>
-                <div>
-                  <label className="block mb-1 font-medium flex items-center gap-2"><Calendar className="w-4 h-4" /> Frequency</label>
-                  <select className="border rounded px-2 py-1 mb-2" value={frequency} onChange={e => setFrequency(e.target.value)}>
-                    <option value="daily">Daily</option>
-                    <option value="weekly">Weekly</option>
-                    <option value="ad-hoc">Ad-hoc</option>
-                  </select>
-                  {frequency !== 'ad-hoc' && (
-                    <div className="flex gap-2 mb-2">
-                      {["Mon","Tue","Wed","Thu","Fri","Sat","Sun"].map(day => (
-                        <label key={day} className="flex items-center gap-1">
-                          <input type="checkbox" checked={days.includes(day)} onChange={() => setDays(d => d.includes(day) ? d.filter(x => x !== day) : [...d, day])} />
-                          {day}
-                        </label>
-                      ))}
-                    </div>
-                  )}
-                  <div>
-                    <label className="block mb-1 font-medium">Reminder Time</label>
-                    <Input type="time" value={reminderTime} onChange={e => setReminderTime(e.target.value)} />
-                  </div>
-                </div>
-                <div className="flex justify-between gap-2">
-                  <Button type="button" variant="outline" onClick={() => setTab('participants')}>Back</Button>
-                  <Button type="submit">{mode === 'edit' ? 'Save' : 'Finish'}</Button>
-                  {onCancel && <Button type="button" variant="ghost" onClick={onCancel}>Cancel</Button>}
-                </div>
-              </form>
+              <FollowUpFrequencyStep
+                frequency={frequency}
+                setFrequency={setFrequency}
+                days={days}
+                setDays={setDays}
+                reminderTime={reminderTime}
+                setReminderTime={setReminderTime}
+                onSubmit={handleFormSubmit}
+                onBack={() => setTab('participants')}
+                mode={mode}
+              />
             </TabsContent>
           </Tabs>
         </CardContent>
