@@ -491,7 +491,7 @@ export default function WeeklyPulseForm({
       return null;
     }
     if (currentScreen === totalScreens - 2) {
-      return <ReviewScreen {...screenCommonProps} questions={questions || []} />;
+      return <ReviewScreen {...screenCommonProps} questions={questions || []} totalScreens={totalScreens} setCurrentScreen={setCurrentScreen} />;
     }
     if (currentScreen === totalScreens - 1) {
       return <SuccessScreen />;
