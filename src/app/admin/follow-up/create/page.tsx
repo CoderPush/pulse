@@ -8,8 +8,8 @@ const emptyValues: FollowUpFormValues = {
   name: '',
   description: '',
   questions: [{
-    id: 1,
-    text: '',
+    id: '1',
+    title: '',
     type: 'text',
     description: '',
     required: false,

@@ -1,7 +1,7 @@
 'use server';
 
 import { createClient } from '@/utils/supabase/server';
-import { FollowUp, FollowUpQuestion } from '@/types/followup';
+import { FollowUpQuestion } from '@/types/followup';
 import { FollowUpFormValues } from '../FollowUpForm';
 import { z } from 'zod';
 
@@ -13,11 +13,16 @@ const FollowUpSchema = z.object({
   reminderTime: z.string().optional(),
 });
 
+// Define types for Supabase responses where needed
+interface SubmissionPeriod {
+  id: string;
+}
+
 export async function createFollowUpAction(values: FollowUpFormValues) {
   const parsed = FollowUpSchema.safeParse(values);
 
   if (!parsed.success) {
-    return { success: false, error: parsed.error.errors.map((e: { message: any; }) => e.message).join(', ') };
+    return { success: false, error: parsed.error.errors.map((e: import('zod').ZodIssue) => e.message).join(', ') };
   }
   
   const { templateId, users, frequency, days, reminderTime } = parsed.data;
@@ -30,27 +35,75 @@ export async function createFollowUpAction(values: FollowUpFormValues) {
   }
 
   try {
-    // 1. Create Recurring Schedule (if not ad-hoc)
     if (frequency !== 'ad-hoc') {
+      // 1. Create Recurring Schedule
       const { error: scheduleError } = await supabase.from('recurring_schedules').insert({
         template_id: templateId,
         days_of_week: days || [],
         reminder_time: reminderTime || '09:00',
         start_date: new Date().toISOString().split('T')[0],
+        user_ids: users,
       });
       if (scheduleError) throw new Error(`Failed to create schedule: ${scheduleError.message}`);
+
+      // 2. Create submission_periods for all remaining days in this week (for selected days)
+      const today = new Date();
+      const daysOfWeek = days || [];
+      for (let i = 0; i < 7 - today.getDay(); i++) {
+        const date = new Date(today);
+        date.setDate(today.getDate() + i);
+        date.setHours(0, 0, 0, 0);
+        const dayStr = date.toLocaleDateString('en-US', { weekday: 'short' });
+        if (!daysOfWeek.includes(dayStr)) continue;
+        const dateStr = date.toISOString().slice(0, 10); // YYYY-MM-DD
+        const endDate = new Date(date);
+        endDate.setDate(endDate.getDate() + 1);
+        const endDateStr = endDate.toISOString().slice(0, 10);
+        // Check if period already exists (should not, but for safety)
+        const { data: existing }: { data: SubmissionPeriod | null } = await supabase
+          .from('submission_periods')
+          .select('id')
+          .eq('template_id', templateId)
+          .eq('start_date', dateStr)
+          .maybeSingle();
+        if (existing) continue;
+        // Create period
+        const { data: periodData, error: periodError }: { data: SubmissionPeriod | null, error: { message: string } | null } = await supabase
+          .from('submission_periods')
+          .insert({
+            template_id: templateId,
+            period_type: frequency,
+            start_date: dateStr,
+            end_date: endDateStr,
+            reminder_time: reminderTime || null,
+          })
+          .select('id')
+          .single();
+        if (periodError || !periodData) {
+          console.error('Failed to create period', periodError);
+          continue;
+        }
+        // Assign users
+        const userAssignments = users.map((userId: string) => ({
+          submission_period_id: periodData.id,
+          user_id: userId,
+        }));
+        if (userAssignments.length > 0) {
+          const { error: assignError }: { error: { message: string } | null } = await supabase.from('submission_period_users').insert(userAssignments);
+          if (assignError) {
+            console.error('Failed to assign users', assignError);
+          }
+        }
+      }
+      // Return success (skip the old single-period logic)
+      return { success: true, message: 'Follow-up and periods for this week created successfully.' };
     }
 
-    // 2. Create the first Submission Period
+    // Only handle ad-hoc here; recurring handled above
+    // 2. Create the first Submission Period for ad-hoc
     const now = new Date();
     const endDate = new Date(now);
-    if (frequency === 'daily') {
-      endDate.setDate(now.getDate() + 1);
-    } else if (frequency === 'weekly') {
-      endDate.setDate(now.getDate() + 7);
-    } else { // ad-hoc
-      endDate.setDate(now.getDate() + 365); // Give a long deadline for ad-hoc
-    }
+    endDate.setDate(now.getDate() + 365); // Give a long deadline for ad-hoc
 
     const { data: periodData, error: periodError } = await supabase
       .from('submission_periods')
@@ -122,7 +175,7 @@ export async function createQuestionsAction(questions: FollowUpQuestion[], name:
     const questionIds = [];
     for (let i = 0; i < questions.length; i++) {
       const q = questions[i];
-      const { data: questionData, error: questionError } = await supabase.rpc('insert_first_question', {
+      const { data: questionData, error: questionError }: { data: { id: string } | null, error: { message: string } | null } = await supabase.rpc('insert_first_question', {
         q_title: q.title,
         q_description: q.description || '',
         q_type: q.type,

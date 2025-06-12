@@ -8,16 +8,7 @@ import { createQuestionsAction } from './create/actions';
 import { FollowUpQuestionsStep } from './components/FollowUpQuestionsStep';
 import { FollowUpParticipantsStep } from './components/FollowUpParticipantsStep';
 import { FollowUpFrequencyStep } from './components/FollowUpFrequencyStep';
-
-// --- TYPE DEFINITIONS ---
-export type FollowUpQuestion = {
-  id: number;
-  text: string;
-  type: string;
-  choices?: string[];
-  description?: string;
-  required?: boolean;
-};
+import { FollowUpQuestion } from '@/types/followup';
 
 export type FollowUpFormValues = {
   name: string;
@@ -56,11 +47,11 @@ export function FollowUpForm({ initialValues, allUsers, mode = 'create', onSubmi
   function validate() {
     setError(null);
     if (!name.trim()) return 'Template name is required.';
-    if (questions.some(q => !q.text.trim())) return 'All question titles must be non-empty.';
-    if (new Set(questions.map(q => q.text.trim().toLowerCase())).size !== questions.length) return 'Question titles must be unique.';
+    if (questions.some(q => !q.title.trim())) return 'All question titles must be non-empty.';
+    if (new Set(questions.map(q => q.title.trim().toLowerCase())).size !== questions.length) return 'Question titles must be unique.';
     for (const q of questions) {
       if ((q.type === 'multiple_choice' || q.type === 'checkbox') && (!q.choices || q.choices.length === 0 || q.choices.some(c => !c.trim()))) {
-        return `Choices are required for question: "${q.text}"`;
+        return `Choices are required for question: "${q.title}"`;
       }
     }
     return null;

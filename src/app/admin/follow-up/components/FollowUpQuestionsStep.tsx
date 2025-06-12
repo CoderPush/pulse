@@ -27,7 +27,7 @@ export function FollowUpQuestionsStep({
   loading: boolean;
   onNext: (e: React.FormEvent<HTMLFormElement>) => void;
 }) {
-  const handleQuestionChange = (idx: number, field: string, value: any) => {
+  const handleQuestionChange = (idx: number, field: string, value: string | boolean) => {
     setQuestions(qs => qs.map((q, i) => (i === idx ? { ...q, [field]: value } : q)));
   };
   const addQuestion = () => {
