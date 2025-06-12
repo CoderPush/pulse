@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { ShieldAlert } from "lucide-react";
 
-const companyDomain = process.env.NEXT_PUBLIC_COMPANY_EMAIL_DOMAIN || '@coderpush.com';
+const companyDomain = process.env.NEXT_PUBLIC_COMPANY_EMAIL_DOMAIN || 'coderpush.com';
 
 export default function InvalidDomainPage() {
   return (

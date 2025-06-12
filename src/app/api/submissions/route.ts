@@ -121,7 +121,8 @@ export async function POST(request: Request) {
     // Auto-share with manager if manager is a coderpush.com email
     try {
       const managerEmail = submission.manager?.trim().toLowerCase();
-      if (managerEmail && managerEmail.endsWith('@coderpush.com')) {
+      const companyDomain = process.env.NEXT_PUBLIC_COMPANY_EMAIL_DOMAIN || 'coderpush.com';
+      if (managerEmail && managerEmail.endsWith(`@${companyDomain}`)) {
         const { data: managerUser } = await supabase
           .from('users')
           .select('id')

@@ -37,8 +37,9 @@ test.describe('Authentication', () => {
     const googleButton = page.getByRole('button', { name: /Sign in with Google/i });
     await expect(googleButton).toBeVisible();
 
-    // Check for the footer note about @coderpush.com email
-    await expect(page.getByText('Please login with your @coderpush.com email.', { exact: false })).toBeVisible();
+    // Check for the footer note matching company domain email
+    const companyDomain = process.env.NEXT_PUBLIC_COMPANY_EMAIL_DOMAIN || 'coderpush.com';
+    await expect(page.getByText(`Please login with your @${companyDomain} email.`, { exact: false })).toBeVisible();
   });
 });
 
