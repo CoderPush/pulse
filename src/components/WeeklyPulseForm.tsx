@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { WeeklyPulseFormData, Question } from '@/types/weekly-pulse';
+import { useState, useEffect, useMemo } from 'react';
+import { WeeklyPulseFormData, Question, WeeklyPulseSubmission } from '@/types/weekly-pulse';
 import { User } from '@supabase/supabase-js';
 import WelcomeScreen from './screens/WelcomeScreen';
 import ProjectSelectionScreen from './screens/ProjectSelectionScreen';
@@ -15,6 +15,7 @@ import SuccessScreen from './screens/SuccessScreen';
 import SubmissionSuccessScreen from './screens/SubmissionSuccessScreen';
 import { getISOWeek } from 'date-fns/getISOWeek';
 import MultipleChoiceScreen from './screens/MultipleChoiceScreen';
+import { useCopilotReadable, useCopilotAction, useCopilotAdditionalInstructions } from '@copilotkit/react-core';
 
 interface WeeklyPulseFormProps {
   user: User;
@@ -22,6 +23,7 @@ interface WeeklyPulseFormProps {
   currentYear?: number;
   hasSubmittedThisWeek?: boolean;
   projects: Array<{ id: string; name: string }>;
+  previousSubmission?: WeeklyPulseSubmission;
 }
 
 export default function WeeklyPulseForm({
@@ -30,6 +32,7 @@ export default function WeeklyPulseForm({
   currentYear,
   hasSubmittedThisWeek = false,
   projects = [],
+  previousSubmission,
 }: WeeklyPulseFormProps) {
   const [currentScreen, setCurrentScreen] = useState(0);
   const [progress, setProgress] = useState(0);
@@ -51,11 +54,254 @@ export default function WeeklyPulseForm({
     endTime: undefined,
     answers: {}
   });
+
   const [questions, setQuestions] = useState<Question[] | null>(null);
   const [loadingQuestions, setLoadingQuestions] = useState(true);
-  
+
   const totalScreens = 1 + (questions?.length || 0) + 2;
+
+  // Create a mapping between question categories and screen numbers
+  const screenNameToScreenNumberMapping = useMemo(() => {
+    if (!questions) return {};
+    
+    const mapping: Record<string, number> = {
+      'welcome': 0,
+      'review': questions.length + 1,
+      'success': questions.length + 2
+    };
+    
+    questions.forEach((question, index) => {
+      const category = question.category || question.id;
+      mapping[category] = index + 1;
+    });
+    
+    return mapping;
+  }, [questions]);
+
+  useCopilotAdditionalInstructions({ instructions:
+    screenNameToScreenNumberMapping ? `
+    The following tools are available for interacting with the Weekly Pulse Form:
+
+    1. navigateToScreenAction:
+      Used to navigate between form screens. Parameters:
+      - screenName: string - Name of screen to navigate to. The avaible screens are ${Object.keys(screenNameToScreenNumberMapping).join(', ')}
+      MUST BE CALLED WHENEVER ASKING USER NEW QUESTION 
+      MUST NAVIAGE TO 'review' SCREEN WHENEVER DISPLAYING SUMMARY OF THE SUBMISSION TO USER
+      NOTIFY THE USER WHEN YOU NAVIGATE TO A NEW SCREEN
+
+    2. weeklyPulseFormAction:
+      Used to update form data fields. Parameters:
+      - primaryProject: string - Primary project name
+      - primaryProjectHours: number - Hours worked on primary project 
+      - managerName: string - Manager's email (e.g. john@coderpush.com)
+      - knowsManager: boolean - Whether user knows their manager
+      - additionalProjects: Array<{project: string, hours: number}> - Additional projects
+      - noAdditionalProject: boolean - Whether user has other projects
+      - changesNextWeek: string - Planned changes for next week
+      - otherFeedback: string - Week's work feedback
+      - hoursReportingImpact: string - Impact of hours reporting
+      MUST BE CALLED AFTER USER ANSWERS QUESTION
+
+    Example usage:
+    1. Navigate to manager screen:
+    navigateToScreenAction({screenName: "manager"})
+
+    2. Update primary project:
+    weeklyPulseFormAction({primaryProject: "Project A", primaryProjectHours: 40})
+    ` : ""
+  }, [screenNameToScreenNumberMapping]);
+
+  // Make the questions to complete form readable by the AI
+  useCopilotReadable(
+  {
+    description: "Questions to Help User Complete The Weekly Pulse Form",
+    value: questions
+      ? questions
+          .map(
+            (q) =>
+              `- ${q.title} (${q.type}${q.required ? ", required" : ""}): ${
+                q.description
+              }${q.choices ? `\n  Options: ${q.choices.join(", ")}` : ""}`
+          )
+          .join("\n")
+      : "",
+  },
+  [questions]
+);
+  // Track formData for Copilot readable context
+  useCopilotReadable({
+    description: "The weekly pulse form fields and their current values",
+    value: formData,
+  }, [formData]);
+
+  // Add Screen Mapping for Copilot readable context
+  useCopilotReadable({
+    description: "Mapping of screen's name to screen's number",
+    value: screenNameToScreenNumberMapping,
+  }, [screenNameToScreenNumberMapping]);
   
+  // Make user information available to the AI
+  useCopilotReadable({
+    description: "The current user information",
+    value: {
+      id: user?.id,
+      email: user?.email,
+      name: user?.email?.split('@')[0] || 'User',
+    }
+  }, [user]);
+
+  // Make available projects readable by the AI
+  useCopilotReadable({
+    description: "Available projects that can be selected",
+    value: projects
+  }, [projects]);
+
+  // Make Previous Submission's Data readable by the AI
+  useCopilotReadable({
+    description: "Previous submission's data",
+    value: previousSubmission
+  }, [previousSubmission]);
+
+  // Define all AI actions for the weekly pulse form
+  useCopilotAction({
+    name: "weeklyPulseFormAction",
+    description: "Actions for completing the weekly pulse form",
+    parameters: [
+      {
+        name: "primaryProject",
+        type: "string",
+        required: false,
+        description: "The name of the primary project the user worked on this week"
+      },
+      {
+        name: "primaryProjectHours",
+        type: "number",
+        required: false,
+        description: "The number of hours spent on the primary project this week"
+      },
+      {
+        name: "managerName",
+        type: "string",
+        required: false,
+        description: "The email of the user's manager such as john_doe@coderpush.com"
+      },
+      {
+        name: "knowsManager",
+        type: "boolean",
+        required: false,
+        description: "Whether the user knows their manager's name"
+      },
+      {
+        name: "additionalProjects",
+        type: "object[]",
+        required: false,
+        description: "List of additional projects worked on this week with hours",
+        attributes: [
+          {
+            name: "project",
+            type: "string",
+            description: "The project name"
+          },
+          {
+            name: "hours", 
+            type: "number",
+            description: "Number of hours worked on the project"
+          }        
+        ]
+      },
+      {
+        name: "noAdditionalProject",
+        type: "boolean",
+        required: false,
+        description: "Whether the user has additional projects to report"
+      },
+      {
+        name: "changesNextWeek",
+        type: "string",
+        required: false,
+        description: "Changes or improvements planned for next week"
+      },
+      {
+        name: "otherFeedback",
+        type: "string",
+        required: false,
+        description: "Feedback about the week's work"
+      },
+      {
+        name: "hoursReportingImpact",
+        type: "string",
+        required: false,
+        description: "Impact of hours reporting on the user's work"
+      }
+    ],
+    handler: async (action) => {
+      const updatedFormData = { ...formData };
+      
+      if (action.primaryProject !== undefined) {
+        updatedFormData.primaryProject.name = action.primaryProject;
+      }
+
+      if (action.primaryProjectHours !== undefined) {
+        updatedFormData.primaryProject.hours = action.primaryProjectHours;
+      }
+
+      if (action.knowsManager === false) {
+        updatedFormData.manager = "I don't know";
+      }
+
+      if (action.managerName !== undefined) {
+        updatedFormData.manager = action.managerName;
+      }
+
+      if (action.noAdditionalProject) {
+        updatedFormData.additionalProjects = [];
+      } else if (action.additionalProjects !== undefined) {
+        updatedFormData.additionalProjects = action.additionalProjects;
+      }
+
+      if (action.changesNextWeek !== undefined) {
+        updatedFormData.changesNextWeek = action.changesNextWeek;
+      }
+
+      if (action.otherFeedback !== undefined) {
+        updatedFormData.otherFeedback = action.otherFeedback;
+      }
+
+      if (action.hoursReportingImpact !== undefined) {
+        updatedFormData.hoursReportingImpact = action.hoursReportingImpact;
+      }
+        
+      setFormData(updatedFormData);
+      return { success: true, message: `Action completed successfully` };
+    },
+  }, [formData, setFormData]);
+
+  // Create a copilot action to navigate to right screen
+  useCopilotAction({
+    name: "navigateToScreenAction",
+    description: "Actions for navigating to a specific screen in the form which corresponds to the current question.",
+    parameters: [
+      {
+        name: "screenName",
+        type: "string",
+        required: true,
+        description: "The name of screen to that corresponds to the current question"
+      }
+    ],
+    handler: async (action) => {
+      const screenName = action.screenName;
+      if (screenName && screenNameToScreenNumberMapping[screenName]!= undefined) {
+        if(screenNameToScreenNumberMapping[screenName] < totalScreens - 1) handleNext(screenNameToScreenNumberMapping[screenName]);
+        const screen = screenNameToScreenNumberMapping[screenName];
+        return { success: true, message: `Navigated to screen ${screen}` };
+      }
+      return {
+        success: false,
+        message: `Screen ${screenName} not found`
+      }
+    },
+  });
+
   useEffect(() => {
     async function fetchQuestions() {
       setLoadingQuestions(true);
@@ -72,7 +318,7 @@ export default function WeeklyPulseForm({
     fetchQuestions();
   }, []);
   
-  const handleNext = () => {
+  const handleNext = (targetScreen?: number) => {
     setError(null); // Clear any previous errors
     if (currentScreen === 0 && !formData.startTime) {
       setFormData((prev) => ({ ...prev, startTime: new Date().toISOString() }));
@@ -82,14 +328,19 @@ export default function WeeklyPulseForm({
       setError(validationError);
       return;
     }
-    if (currentScreen < totalScreens - 1) {
-      setCurrentScreen(currentScreen + 1);
-      if (currentScreen > 0 && currentScreen < totalScreens - 2) {
-        setProgress(((currentScreen + 1) / (totalScreens - 2)) * 100);
+
+    const nextScreen = targetScreen && targetScreen < totalScreens - 1 
+      ? targetScreen 
+      : currentScreen + 1;
+    
+    if (nextScreen < totalScreens - 1) {
+      setCurrentScreen(nextScreen);
+      if (nextScreen > 0 && nextScreen < totalScreens - 2) {
+        setProgress((nextScreen / (totalScreens - 2)) * 100);
       }
     }
-  };
-  
+
+  };  
   const handleBack = () => {
     setError(null); // Clear any previous errors
     if (currentScreen > 0) {
@@ -240,7 +491,7 @@ export default function WeeklyPulseForm({
       return null;
     }
     if (currentScreen === totalScreens - 2) {
-      return <ReviewScreen {...screenCommonProps} questions={questions || []} />;
+      return <ReviewScreen {...screenCommonProps} questions={questions || []} totalScreens={totalScreens} setCurrentScreen={setCurrentScreen} />;
     }
     if (currentScreen === totalScreens - 1) {
       return <SuccessScreen />;

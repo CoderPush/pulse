@@ -125,7 +125,7 @@ export default function AdditionalProjectsScreen({ onNext, onBack, formData, set
       
       <div className="flex-1 overflow-y-auto space-y-4 pr-2 -mr-2 mb-4">
         {/* Display existing additional projects */}
-        {formData.additionalProjects.length > 0 && (
+        {formData.additionalProjects?.length > 0 && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{delay: 0.2}}>
             <h3 className="text-md font-semibold text-gray-700 mb-2">Added Projects</h3>
             <AnimatePresence>
@@ -162,7 +162,7 @@ export default function AdditionalProjectsScreen({ onNext, onBack, formData, set
             {projects
               .filter(project => 
                 project.name !== formData.primaryProject.name && 
-                !formData.additionalProjects.some(p => p.project === project.name)
+                !formData.additionalProjects?.some(p => p.project === project.name)
               )
               .map((project) => (
               <div key={project.id} className="flex flex-col gap-2">

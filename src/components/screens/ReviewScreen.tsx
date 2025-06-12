@@ -16,7 +16,7 @@ const CORE_QUESTION_CATEGORIES = [
   'hoursReportingImpact',
 ];
 
-export default function ReviewScreen({ onBack, formData, onNext, questions = [] }: ScreenProps & { questions?: Question[] }) {
+export default function ReviewScreen({ onBack, formData, questions = [], totalScreens, setCurrentScreen }: ScreenProps & { questions?: Question[], totalScreens: number, setCurrentScreen: (screen: number) => void }) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -56,7 +56,8 @@ export default function ReviewScreen({ onBack, formData, onNext, questions = [] 
         throw new Error(data.error || 'Failed to submit form');
       }
 
-      onNext();
+      // Only this action can navigate to the Success screen
+      setCurrentScreen(totalScreens - 1);
     } catch (error) {
       console.error('Error submitting:', error);
       setError(error instanceof Error ? error.message : 'Failed to submit form');
