@@ -65,7 +65,7 @@ test('Weekly Pulse E2E: submit form and verify post-submission state', async ({ 
     const token2 = await getAutoLoginToken(page, TEST_EMAIL);
     await page.goto(`/api/auth/auto-login?token=${token2}`);
     await expect(page.getByRole('heading', { name: /You're on fire! 🔥/i })).toBeVisible();
-    await expect(page.getByRole('button', { name: /View My Submission History/i })).toBeVisible();
+    await expect(page.getByRole('button', { name: /View Your Pulses/i })).toBeVisible();
     await expect(page.getByRole('button', { name: /Start Weekly Pulse/i })).toHaveCount(0);
     await expect(page.getByRole('heading', { name: /What project did you spend most of your time on/i })).toHaveCount(0);
   });

@@ -64,7 +64,7 @@ pnpm test:e2e:debug        # Run E2E tests in debug mode
 
 ### Key Business Logic
 - **Week calculations**: ISO week numbers with `date-fns` for consistency
-- **Auto-sharing**: Submissions auto-shared with managers for `@coderpush.com` emails
+- **Auto-sharing**: Submissions auto-shared with managers for NEXT_PUBLIC_COMPANY_EMAIL_DOMAIN emails
 - **Streak calculation**: Configurable start week with exclusions for holidays
 - **Late submission detection**: Based on submission window timing
 
