@@ -1,6 +1,7 @@
 import createClient from '@/utils/supabase/api';
 import { NextResponse, NextRequest } from 'next/server';
 import { WeeklyPulseFormData } from '@/types/weekly-pulse';
+import { getCompanyDomain } from '@/utils/companyDomain';
 
 export async function POST(request: Request) {
   try {
@@ -121,7 +122,7 @@ export async function POST(request: Request) {
     // Auto-share with manager if manager is a coderpush.com email
     try {
       const managerEmail = submission.manager?.trim().toLowerCase();
-      const companyDomain = process.env.NEXT_PUBLIC_COMPANY_EMAIL_DOMAIN || 'coderpush.com';
+      const companyDomain = getCompanyDomain();
       if (managerEmail && managerEmail.endsWith(`@${companyDomain}`)) {
         const { data: managerUser } = await supabase
           .from('users')

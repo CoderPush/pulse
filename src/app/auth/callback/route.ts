@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 // The client you created from the Server-Side Auth instructions
 import { createClient} from '@/utils/supabase/server'
+import { getCompanyDomain } from '@/utils/companyDomain'
 
 export async function GET(request: NextRequest) {
   const { searchParams, origin } = new URL(request.url)
@@ -17,7 +18,7 @@ export async function GET(request: NextRequest) {
       const email = user?.email
 
       // Check if the email is from your company domain
-      const companyDomain = process.env.NEXT_PUBLIC_COMPANY_EMAIL_DOMAIN || 'coderpush.com';
+      const companyDomain = getCompanyDomain()
       if (!email || !email.endsWith(companyDomain)) {
         // Sign out the user
         await supabase.auth.signOut()

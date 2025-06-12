@@ -2,6 +2,7 @@
 
 import GoogleSignInButton from '@/components/GoogleSignInButton';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
+import { getCompanyDomain } from '@/utils/companyDomain';
 
 // Playful mascot SVG (calendar with a smile)
 function Mascot() {
@@ -19,7 +20,7 @@ function Mascot() {
 }
 
 export default function LoginPage() {
-  const companyDomain = process.env.NEXT_PUBLIC_COMPANY_EMAIL_DOMAIN;
+  const companyDomain = getCompanyDomain();
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-100 via-indigo-100 to-purple-100">
       <Card className="w-full max-w-md mx-4 bg-white/70 backdrop-blur-md border border-white/30 shadow-2xl rounded-2xl animate-fade-in">

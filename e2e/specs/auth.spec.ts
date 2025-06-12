@@ -1,5 +1,6 @@
 import { test, expect } from '@playwright/test';
 import { autoLogin, createTestUser } from '../fixtures/auth';
+import { getCompanyDomain } from '@/utils/companyDomain';
 
 test.describe('Authentication', () => {
   test.beforeEach(async ({ page }) => {
@@ -38,7 +39,7 @@ test.describe('Authentication', () => {
     await expect(googleButton).toBeVisible();
 
     // Check for the footer note matching company domain email
-    const companyDomain = process.env.NEXT_PUBLIC_COMPANY_EMAIL_DOMAIN || 'coderpush.com';
+    const companyDomain = getCompanyDomain();
     await expect(page.getByText(`Please login with your @${companyDomain} email.`, { exact: false })).toBeVisible();
   });
 });
