@@ -64,7 +64,7 @@ export default async function HomePage({ searchParams }: HomeProps) {
   }
 
   return (
-    <CopilotProvider user={user} submissions={submissions || []} instructions={createWeeklyPulseFormAssistanceGuidePrompt()}>
+    <CopilotProvider user={user} instructions={createWeeklyPulseFormAssistanceGuidePrompt()}>
       <div className="w-full px-4">
         <WeeklyPulseForm 
           user={user} 

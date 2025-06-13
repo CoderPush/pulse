@@ -30,12 +30,12 @@ const getGreeting = (userName: string) => {
 }
 
 
-export default function CopilotProvider({ children, user, submissions, instructions }: { children?: React.ReactNode, user: User, submissions: WeeklyPulseSubmission[], instructions: string }) {
+export default function CopilotProvider({ children, user, instructions }: { children?: React.ReactNode, user: User, instructions: string }) {
   const userName = DOMPurify.sanitize(getDisplayName(user));
 
   return (
     <CopilotKit runtimeUrl="/api/copilotkit">
-      <CopilotUserProvider user={user} submissions={submissions}>
+      <CopilotUserProvider user={user}>
         {children}
         <CopilotPopup
           instructions={instructions}
