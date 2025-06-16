@@ -3,8 +3,9 @@ import { Alert, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { ShieldAlert } from "lucide-react";
+import { getCompanyDomain } from '@/utils/companyDomain';
 
-const companyDomain = process.env.COMPANY_EMAIL_DOMAIN || '@coderpush.com';
+const companyDomain = getCompanyDomain();
 
 export default function InvalidDomainPage() {
   return (
