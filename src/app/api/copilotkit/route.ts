@@ -5,10 +5,13 @@ import {
     copilotRuntimeNextJSAppRouterEndpoint
 } from '@copilotkit/runtime';
 import { ChatBedrockConverse } from "@langchain/aws";
+import { BaseMessage } from '@langchain/core/messages';
+import { traceable } from "langsmith/traceable";
 
 const BEDROCK_AWS_SECRET_ACCESS_KEY = process.env.BEDROCK_AWS_SECRET_ACCESS_KEY;
 const BEDROCK_AWS_ACCESS_KEY_ID = process.env.BEDROCK_AWS_ACCESS_KEY_ID;
 const BEDROCK_MODEL_ID = process.env.BEDROCK_MODEL_ID;
+const LANGSMITH_PROJECT = process.env.LANGSMITH_PROJECT;
 
 const runtime = new CopilotRuntime();
 
@@ -23,7 +26,7 @@ const model = new ChatBedrockConverse({
 });
 
 const serviceAdapter = new LangChainAdapter({
-    chainFn: async ({ messages, tools }) => {
+    chainFn: async ({ messages, tools, threadId }) => {
         // Filter out duplicate tool messages from input
         const seenToolCallIds = new Set();
         // Fix empty content in AIMessages by adding a content block with non-blank text
@@ -57,15 +60,23 @@ const serviceAdapter = new LangChainAdapter({
 
 
         try {
-            const response = await model.bindTools(tools).stream(filteredMessages);
-            return response;
+            const streamMsg = traceable(
+                async function streamMessages(messages: Array<BaseMessage>) {
+                    return await model.bindTools(tools).stream(messages)
+                },
+                {
+                    run_type: "llm",
+                    name: "CopilotKit LLM Call",
+                    project_name: LANGSMITH_PROJECT,
+                    metadata: { thread_id: threadId },
+                }
+            );
+            return await streamMsg(filteredMessages);
         } catch (error) {
             console.error('Error during model streaming:', error);
             throw new Error('Failed to process the request');
         }
-
     }
-    // stream: true,
 });
 
 
