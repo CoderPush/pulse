@@ -19,29 +19,38 @@ export interface Submission {
 
 interface DailyPulseCalendarProps {
   monthDays: Date[];
-  periodByDate: Record<string, SubmissionPeriod | undefined>;
+  periodByDate: Record<string, SubmissionPeriod[]>;
   monthSubmissions: Submission[];
   todayUTC: string;
 }
 
-// Helper to determine the status for a given day
-function getDayStatus({ date, key, period, monthSubmissions, todayUTC }: {
+// Helper to determine the status for a given day with multiple periods
+function getDayStatus({ date, key, periods, monthSubmissions, todayUTC }: {
   date: Date;
   key: string;
-  period: SubmissionPeriod | undefined;
+  periods: SubmissionPeriod[];
   monthSubmissions: Submission[];
   todayUTC: string;
 }): 'submitted' | 'missed' | 'not_assigned' | 'not_submitted' {
-  if (!period) return 'not_assigned';
-  const submission = monthSubmissions.find(
-    (s) =>
-      s.submission_period_id === period.id &&
-      new Date(s.submitted_at).toISOString().slice(0, 10) === key
-  );
-  const isToday = key === todayUTC;
-  if (submission) return 'submitted';
-  if (date < new Date(todayUTC)) return 'missed';
-  if (isToday) return 'not_submitted';
+  if (!periods || periods.length === 0) return 'not_assigned';
+  let hasMissed = false;
+  let hasNotSubmitted = false;
+  let allSubmitted = true;
+  for (const period of periods) {
+    const submission = monthSubmissions.find(
+      (s) =>
+        s.submission_period_id === period.id &&
+        new Date(s.submitted_at).toISOString().slice(0, 10) === key
+    );
+    const isToday = key === todayUTC;
+    if (submission) continue;
+    allSubmitted = false;
+    if (date < new Date(todayUTC)) hasMissed = true;
+    else if (isToday || date >= new Date(todayUTC)) hasNotSubmitted = true;
+  }
+  if (allSubmitted) return 'submitted';
+  if (hasMissed) return 'missed';
+  if (hasNotSubmitted) return 'not_submitted';
   return 'not_assigned';
 }
 
@@ -64,8 +73,8 @@ const DailyPulseCalendar: React.FC<DailyPulseCalendarProps> = ({ monthDays, peri
           {monthDays.map((date) => {
             const day = date.getDate();
             const key = date.toISOString().slice(0, 10);
-            const period = periodByDate[key];
-            const status = getDayStatus({ date, key, period, monthSubmissions, todayUTC });
+            const periods = periodByDate[key] || [];
+            const status = getDayStatus({ date, key, periods, monthSubmissions, todayUTC });
             const isToday = key === todayUTC;
             return (
               <div

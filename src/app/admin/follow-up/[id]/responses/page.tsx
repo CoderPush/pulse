@@ -15,7 +15,7 @@ type Answer = { question_id: string; answer: string; };
 type Participant = { id: string; name: string | null; email: string | null; avatar: string; };
 type Submission = { user_id: string; submitted_at: string; answers: Answer[] | null; };
 type FollowUpData = { id: string; name: string; questions: Question[] | null; participants: Participant[] | null; submissions: Submission[] | null; };
-type Period = { id: number; label: string; start_date: string; };
+type Period = { id: number; label: string; start_date: string; end_date?: string; };
 
 export default function FollowUpResponsesPage() {
   const params = useParams();
@@ -43,7 +43,13 @@ export default function FollowUpResponsesPage() {
       }
       if (data && data.length > 0) {
         setPeriods(data);
-        setSelectedPeriod(data[0].id);
+        const todayStr = new Date().toISOString().slice(0, 10);
+        const todayPeriod = data.find(
+          (p: { start_date: string; end_date?: string | null }) =>
+            todayStr >= p.start_date.slice(0, 10) &&
+            (!p.end_date || todayStr <= p.end_date.slice(0, 10))
+        );
+        setSelectedPeriod(todayPeriod ? todayPeriod.id : data[0].id);
       }
     };
     fetchPeriods();

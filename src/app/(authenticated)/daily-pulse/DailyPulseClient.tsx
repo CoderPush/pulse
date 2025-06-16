@@ -28,6 +28,18 @@ interface Question {
   choices?: string[];
 }
 
+// Add DailyPeriodForm type for todayPeriods state
+interface DailyPeriodForm {
+  period: SubmissionPeriod;
+  template: Template | null;
+  questions: Question[];
+  submission: Submission | null;
+  form: Record<string, string | string[]>;
+  submitted: boolean;
+  submitting: boolean;
+  submitError: string | null;
+}
+
 function DailyPulseQuestionField({ q, value, onChange, submitting }: {
   q: Question;
   value: string | string[] | undefined;
@@ -106,15 +118,10 @@ function DailyPulseQuestionField({ q, value, onChange, submitting }: {
 export default function DailyPulseClient({ user }: { user: { id: string } }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [period, setPeriod] = useState<SubmissionPeriod | null>(null);
-  const [template, setTemplate] = useState<Template | null>(null);
-  const [questions, setQuestions] = useState<Question[]>([]);
-  const [form, setForm] = useState<Record<string, string | string[]>>({});
-  const [submitted, setSubmitted] = useState(false);
-  const [submitting, setSubmitting] = useState(false);
-  const [submitError, setSubmitError] = useState<string | null>(null);
+  const [todayPeriods, setTodayPeriods] = useState<DailyPeriodForm[]>([]); // Array of { period, template, questions, submission, form, submitted, submitting, submitError }
   const [monthPeriods, setMonthPeriods] = useState<SubmissionPeriod[]>([]);
   const [monthSubmissions, setMonthSubmissions] = useState<Submission[]>([]);
+  const [monthTemplates, setMonthTemplates] = useState<Record<string, Template>>({});
 
   useEffect(() => {
     const fetchData = async () => {
@@ -122,54 +129,60 @@ export default function DailyPulseClient({ user }: { user: { id: string } }) {
       setError(null);
       const supabase = createClient();
       const today = new Date();
-      // 2. Find today's assigned daily period for the user
       const nowStr = new Date().toISOString();
-      const { data: periodUser, error: periodError } = await supabase
+      // 1. Fetch all periods for today
+      const { data: periodUsers, error: periodError } = await supabase
         .from('submission_period_users')
         .select('*, submission_periods!inner(*)')
         .eq('user_id', user.id)
         .eq('submission_periods.period_type', 'daily')
         .lte('submission_periods.start_date', nowStr)
-        .gte('submission_periods.end_date', nowStr)
-        .single();
-      if (periodError || !periodUser) {
-        setPeriod(null);
+        .gte('submission_periods.end_date', nowStr);
+      if (periodError) {
+        setError(periodError.message);
         setLoading(false);
         return;
       }
-      setPeriod(periodUser.submission_periods);
-      // 3. Fetch template
-      let templateData = null;
-      if (periodUser && periodUser.submission_periods) {
-        const { data } = await supabase
+      // 2. For each period, fetch template, questions, and submission
+      const periodForms = await Promise.all((periodUsers || []).map(async (pu: { submission_periods: SubmissionPeriod }) => {
+        const period = pu.submission_periods;
+        // Fetch template
+        const { data: template } = await supabase
           .from('templates')
           .select('id, name, description')
-          .eq('id', periodUser.submission_periods.template_id)
+          .eq('id', period.template_id)
           .single();
-        templateData = data;
-        setTemplate(data);
-      }
-      // 4. Fetch questions
-      if (templateData) {
-        const { data: questionsData } = await supabase
-          .from('template_questions')
-          .select('question_id, questions(*)')
-          .eq('template_id', templateData.id)
-          .order('display_order', { ascending: true });
-        setQuestions((questionsData || []).flatMap((row: { questions: Question[] }) => row.questions));
-      }
-      // 5. Fetch submission
-      if (periodUser && periodUser.submission_periods) {
+        // Fetch questions
+        let questions: Question[] = [];
+        if (template) {
+          const { data: questionsData } = await supabase
+            .from('template_questions')
+            .select('question_id, questions(*)')
+            .eq('template_id', template.id)
+            .order('display_order', { ascending: true });
+          questions = (questionsData || []).flatMap((row: { questions: Question[] }) => row.questions);
+        }
+        // Fetch submission
         const { data: submissionData } = await supabase
           .from('submissions')
           .select('*')
           .eq('user_id', user.id)
-          .eq('submission_period_id', periodUser.submission_periods.id)
+          .eq('submission_period_id', period.id)
           .eq('type', 'daily')
           .maybeSingle();
-        setSubmitted(!!submissionData);
-      }
-      // 6. Fetch all periods for the current month
+        return {
+          period,
+          template,
+          questions,
+          submission: submissionData,
+          form: {},
+          submitted: !!submissionData,
+          submitting: false,
+          submitError: null,
+        };
+      }));
+      setTodayPeriods(periodForms);
+      // 3. Fetch all periods for the current month (for calendar/history)
       const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
       const monthEnd = new Date(today.getFullYear(), today.getMonth() + 1, 0, 23, 59, 59);
       const monthStartStr = monthStart.toISOString();
@@ -183,7 +196,20 @@ export default function DailyPulseClient({ user }: { user: { id: string } }) {
         .lte('submission_periods.end_date', monthEndStr);
       const periods = (allPeriodUsers || []).map((pu: { submission_periods: SubmissionPeriod }) => pu.submission_periods);
       setMonthPeriods(periods);
-      // 7. Fetch all submissions for those periods
+      // Fetch all templates for these periods
+      const templateIds = Array.from(new Set(periods.map((p: SubmissionPeriod) => p.template_id)));
+      const templateMap: Record<string, Template> = {};
+      if (templateIds.length > 0) {
+        const { data: templatesData } = await supabase
+          .from('templates')
+          .select('id, name, description')
+          .in('id', templateIds);
+        (templatesData || []).forEach((t: Template) => {
+          templateMap[t.id] = t;
+        });
+      }
+      setMonthTemplates(templateMap);
+      // 4. Fetch all submissions for those periods
       const periodIds = periods.map((p: SubmissionPeriod) => p.id);
       let allSubmissions: Submission[] = [];
       if (periodIds.length > 0) {
@@ -201,26 +227,28 @@ export default function DailyPulseClient({ user }: { user: { id: string } }) {
     fetchData();
   }, [user.id]);
 
-  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+  // Handler for submitting a form for a specific period
+  async function handleSubmit(idx: number, e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    setSubmitting(true);
-    setSubmitError(null);
+    setTodayPeriods(prev => prev.map((f, i) => i === idx ? { ...f, submitting: true, submitError: null } : f));
     const supabase = createClient();
+    const form = todayPeriods[idx].form;
+    const period = todayPeriods[idx].period;
+    const questions = todayPeriods[idx].questions;
     try {
       // 1. Insert submission
       const { data: submission, error: submissionError } = await supabase
         .from('submissions')
         .insert({
           user_id: user.id,
-          submission_period_id: period ? period.id : undefined,
+          submission_period_id: period.id,
           submitted_at: new Date().toISOString(),
           type: 'daily',
         })
         .select()
         .single();
       if (submissionError || !submission) {
-        setSubmitError('Failed to submit check-in. Please try again.');
-        setSubmitting(false);
+        setTodayPeriods(prev => prev.map((f, i) => i === idx ? { ...f, submitting: false, submitError: 'Failed to submit check-in. Please try again.' } : f));
         return;
       }
       // 2. Insert answers
@@ -233,16 +261,37 @@ export default function DailyPulseClient({ user }: { user: { id: string } }) {
         .from('submission_answers')
         .insert(answers);
       if (answersError) {
-        setSubmitError('Failed to save answers. Please try again.');
-        setSubmitting(false);
+        setTodayPeriods(prev => prev.map((f, i) => i === idx ? { ...f, submitting: false, submitError: 'Failed to save answers. Please try again.' } : f));
         return;
       }
-      setSubmitted(true);
+      setTodayPeriods(prev => prev.map((f, i) => i === idx ? { ...f, submitted: true, submitting: false } : f));
     } catch {
-      setSubmitError('Something went wrong. Please try again.');
-    } finally {
-      setSubmitting(false);
+      setTodayPeriods(prev => prev.map((f, i) => i === idx ? { ...f, submitting: false, submitError: 'Something went wrong. Please try again.' } : f));
     }
+  }
+
+  // Handler for form field change
+  function handleChange(idx: number, e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) {
+    const { name, value, type } = e.target;
+    let checked = false;
+    if (type === 'checkbox' && 'checked' in e.target) {
+      checked = (e.target as HTMLInputElement).checked;
+    }
+    setTodayPeriods(prev => prev.map((f, i) => {
+      if (i !== idx) return f;
+      const newForm = { ...f.form };
+      if (type === 'checkbox') {
+        const prevArr = Array.isArray(newForm[name]) ? newForm[name] as string[] : [];
+        if (checked) {
+          newForm[name] = [...prevArr, value];
+        } else {
+          newForm[name] = prevArr.filter((v: string) => v !== value);
+        }
+      } else {
+        newForm[name] = value;
+      }
+      return { ...f, form: newForm };
+    }));
   }
 
   // Calendar/History helpers
@@ -260,9 +309,9 @@ export default function DailyPulseClient({ user }: { user: { id: string } }) {
     return days;
   }
   const monthDays = useMemo(() => getMonthDays(currentYear, currentMonth), [currentMonth, currentYear]);
-  // Map UTC date string (YYYY-MM-DD) to period and submission
+  // Map UTC date string (YYYY-MM-DD) to array of periods
   const periodByDate = useMemo(() => {
-    const map: Record<string, SubmissionPeriod | undefined> = {};
+    const map: Record<string, SubmissionPeriod[]> = {};
     for (const p of monthPeriods) {
       const start = new Date(p.start_date);
       const end = new Date(p.end_date);
@@ -272,7 +321,8 @@ export default function DailyPulseClient({ user }: { user: { id: string } }) {
         d.setUTCDate(d.getUTCDate() + 1)
       ) {
         const key = d.toISOString().slice(0, 10); // UTC
-        map[key] = p;
+        if (!map[key]) map[key] = [];
+        map[key].push(p);
       }
     }
     return map;
@@ -289,7 +339,7 @@ export default function DailyPulseClient({ user }: { user: { id: string } }) {
   if (error) {
     return <div className="max-w-3xl mx-auto py-8 text-center text-red-500">{error}</div>;
   }
-  if (!period) {
+  if (!todayPeriods.length) {
     return (
       <div className="max-w-2xl mx-auto py-16 flex flex-col items-center justify-center text-center">
         <div className="bg-blue-50 rounded-3xl shadow-xl px-8 py-12 flex flex-col items-center w-full animate-fade-in">
@@ -334,54 +384,46 @@ export default function DailyPulseClient({ user }: { user: { id: string } }) {
         <div>
           <div className="text-2xl font-extrabold text-gray-900 flex items-center gap-2">
             <CalendarDays className="w-6 h-6 text-green-600" />
-            {template?.name || 'Daily Pulse'}
+            Daily Pulse
           </div>
         </div>
       </div>
-      {/* Daily Check-in Fill Form */}
-      {!submitted && (
-        <Card className="mb-8 border-green-400 shadow-lg">
+      {/* Daily Check-in Fill Forms */}
+      {todayPeriods.map((f, idx) => (
+        <Card key={f.period.id} className="mb-8 border-green-400 shadow-lg">
           <CardContent className="py-6">
-            {submitError && (
-              <div className="mb-4 text-red-500 text-sm font-semibold text-center">{submitError}</div>
+            {f.submitError && (
+              <div className="mb-4 text-red-500 text-sm font-semibold text-center">{f.submitError}</div>
             )}
             <div className="mb-4 flex items-center gap-3">
-              <span className="text-lg font-bold text-green-700">You haven&apos;t filled your Daily Check-in yet!</span>
-              <Badge className="bg-yellow-400 text-white flex items-center gap-1"><span>⏰</span>Not Submitted</Badge>
+              <span className="text-lg font-bold text-green-700">{f.template?.name || 'Daily Check-in'} {!f.submitted && 'needs your response!'}</span>
+              {!f.submitted && <Badge className="bg-yellow-400 text-white flex items-center gap-1"><span>⏰</span>Not Submitted</Badge>}
+              {f.submitted && <Badge className="bg-green-500 text-white flex items-center gap-1"><span>✅</span>Submitted</Badge>}
             </div>
-            <form className="space-y-4" onSubmit={handleSubmit}>
-              {questions.map((q: Question) => (
-                <div key={q.id}>
-                  <label className="block text-sm font-medium mb-1 text-gray-700">{q.title}</label>
-                  <DailyPulseQuestionField
-                    q={q}
-                    value={form[q.id]}
-                    submitting={submitting}
-                    onChange={e => {
-                      // Support both native and custom events
-                      if ('target' in e && e.target.type === 'checkbox') {
-                        setForm({ ...form, [q.id]: Array.isArray(e.target.value) ? e.target.value : [e.target.value] });
-                      } else if ('target' in e) {
-                        setForm({ ...form, [q.id]: e.target.value });
-                      }
-                    }}
-                  />
-                </div>
-              ))}
-              <Button type="submit" className="bg-green-500 hover:bg-green-600 text-white w-full mt-2" disabled={submitting}>
-                {submitting ? 'Submitting...' : 'Submit Daily Check-in'}
-              </Button>
-            </form>
+            {!f.submitted && (
+              <form className="space-y-4" onSubmit={e => handleSubmit(idx, e)}>
+                {f.questions.map((q: Question) => (
+                  <div key={q.id}>
+                    <label className="block text-sm font-medium mb-1 text-gray-700">{q.title}</label>
+                    <DailyPulseQuestionField
+                      q={q}
+                      value={f.form[q.id]}
+                      submitting={f.submitting}
+                      onChange={e => handleChange(idx, e as React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>)}
+                    />
+                  </div>
+                ))}
+                <Button type="submit" className="bg-green-500 hover:bg-green-600 text-white w-full mt-2" disabled={f.submitting}>
+                  {f.submitting ? 'Submitting...' : 'Submit Daily Check-in'}
+                </Button>
+              </form>
+            )}
+            {f.submitted && (
+              <div className="text-green-700 font-semibold text-center py-4">✅ Daily Check-in submitted! Have a great day!</div>
+            )}
           </CardContent>
         </Card>
-      )}
-      {submitted && (
-        <Card className="mb-8 border-green-400 shadow-lg">
-          <CardContent className="py-6 flex items-center gap-3">
-            <span className="text-lg font-bold text-green-700">✅ Daily Check-in submitted! Have a great day!</span>
-          </CardContent>
-        </Card>
-      )}
+      ))}
       {/* Calendar View */}
       <DailyPulseCalendar
         monthDays={monthDays}
@@ -395,8 +437,8 @@ export default function DailyPulseClient({ user }: { user: { id: string } }) {
         periodByDate={periodByDate}
         monthSubmissions={monthSubmissions}
         todayUTC={todayUTC}
-        template={template || { id: '', name: '', description: '' }}
-        questions={questions}
+        templateMap={monthTemplates}
+        questions={todayPeriods[0]?.questions || []}
       />
     </div>
   );
