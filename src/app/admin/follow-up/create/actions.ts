@@ -48,16 +48,18 @@ export async function createFollowUpAction(values: FollowUpFormValues) {
 
       // 2. Create submission_periods for all remaining days in this week (for selected days)
       const today = new Date();
+      // Use UTC for all date calculations
+      const startOfTodayUTC = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate()));
       const daysOfWeek = days || [];
-      for (let i = 0; i < 7 - today.getDay(); i++) {
-        const date = new Date(today);
-        date.setDate(today.getDate() + i);
-        date.setHours(0, 0, 0, 0);
-        const dayStr = date.toLocaleDateString('en-US', { weekday: 'short' });
+      for (let i = 0; i < 7 - startOfTodayUTC.getUTCDay(); i++) {
+        const date = new Date(startOfTodayUTC);
+        date.setUTCDate(startOfTodayUTC.getUTCDate() + i);
+        date.setUTCHours(0, 0, 0, 0);
+        const dayStr = date.toLocaleDateString('en-US', { weekday: 'short', timeZone: 'UTC' });
         if (!daysOfWeek.includes(dayStr)) continue;
         const dateStr = date.toISOString().slice(0, 10); // YYYY-MM-DD
         const endDate = new Date(date);
-        endDate.setDate(endDate.getDate() + 1);
+        endDate.setUTCDate(endDate.getUTCDate() + 1);
         const endDateStr = endDate.toISOString().slice(0, 10);
         // Check if period already exists (should not, but for safety)
         const { data: existing }: { data: SubmissionPeriod | null } = await supabase

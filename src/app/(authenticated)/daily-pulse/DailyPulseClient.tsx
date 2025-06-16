@@ -28,13 +28,88 @@ interface Question {
   choices?: string[];
 }
 
+function DailyPulseQuestionField({ q, value, onChange, submitting }: {
+  q: Question;
+  value: string | string[] | undefined;
+  onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement> | { target: { name: string; value: string | string[]; type: string; checked?: boolean } }) => void;
+  submitting: boolean;
+}) {
+  if (q.type === 'textarea') {
+    return (
+      <Textarea
+        name={q.id}
+        value={typeof value === 'string' ? value : ''}
+        onChange={onChange}
+        required={q.required}
+        placeholder={q.description}
+        disabled={submitting}
+      />
+    );
+  } else if (q.type === 'multiple_choice' && q.choices) {
+    return (
+      <div className="flex flex-col gap-2">
+        {q.choices.map((choice) => (
+          <label key={choice} className="flex items-center gap-2">
+            <input
+              type="radio"
+              name={q.id}
+              value={choice}
+              checked={value === choice}
+              onChange={onChange}
+              required={q.required}
+              disabled={submitting}
+            />
+            {choice}
+          </label>
+        ))}
+      </div>
+    );
+  } else if (q.type === 'checkbox' && q.choices) {
+    return (
+      <div className="flex flex-col gap-2">
+        {q.choices.map((choice) => (
+          <label key={choice} className="flex items-center gap-2">
+            <input
+              type="checkbox"
+              name={q.id}
+              value={choice}
+              checked={Array.isArray(value) ? value.includes(choice) : false}
+              onChange={e => {
+                const prev = Array.isArray(value) ? value : [];
+                if (e.target.checked) {
+                  onChange({ target: { name: q.id, value: [...prev, choice], type: 'checkbox', checked: true } });
+                } else {
+                  onChange({ target: { name: q.id, value: prev.filter((c: string) => c !== choice), type: 'checkbox', checked: false } });
+                }
+              }}
+              disabled={submitting}
+            />
+            {choice}
+          </label>
+        ))}
+      </div>
+    );
+  } else {
+    return (
+      <Input
+        name={q.id}
+        value={typeof value === 'string' ? value : ''}
+        onChange={onChange}
+        required={q.required}
+        placeholder={q.description}
+        disabled={submitting}
+      />
+    );
+  }
+}
+
 export default function DailyPulseClient({ user }: { user: { id: string } }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [period, setPeriod] = useState<SubmissionPeriod | null>(null);
   const [template, setTemplate] = useState<Template | null>(null);
   const [questions, setQuestions] = useState<Question[]>([]);
-  const [form, setForm] = useState<Record<string, string>>({});
+  const [form, setForm] = useState<Record<string, string | string[]>>({});
   const [submitted, setSubmitted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
@@ -126,9 +201,6 @@ export default function DailyPulseClient({ user }: { user: { id: string } }) {
     fetchData();
   }, [user.id]);
 
-  function handleChange(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) {
-    setForm({ ...form, [e.target.name]: e.target.value });
-  }
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setSubmitting(true);
@@ -196,7 +268,7 @@ export default function DailyPulseClient({ user }: { user: { id: string } }) {
       const end = new Date(p.end_date);
       for (
         let d = new Date(start);
-        d <= end;
+        d < end;
         d.setUTCDate(d.getUTCDate() + 1)
       ) {
         const key = d.toISOString().slice(0, 10); // UTC
@@ -281,11 +353,19 @@ export default function DailyPulseClient({ user }: { user: { id: string } }) {
               {questions.map((q: Question) => (
                 <div key={q.id}>
                   <label className="block text-sm font-medium mb-1 text-gray-700">{q.title}</label>
-                  {q.type === 'textarea' ? (
-                    <Textarea name={q.id} value={form[q.id] || ''} onChange={handleChange} required={q.required} placeholder={q.description} disabled={submitting} />
-                  ) : (
-                    <Input name={q.id} value={form[q.id] || ''} onChange={handleChange} required={q.required} placeholder={q.description} disabled={submitting} />
-                  )}
+                  <DailyPulseQuestionField
+                    q={q}
+                    value={form[q.id]}
+                    submitting={submitting}
+                    onChange={e => {
+                      // Support both native and custom events
+                      if ('target' in e && e.target.type === 'checkbox') {
+                        setForm({ ...form, [q.id]: Array.isArray(e.target.value) ? e.target.value : [e.target.value] });
+                      } else if ('target' in e) {
+                        setForm({ ...form, [q.id]: e.target.value });
+                      }
+                    }}
+                  />
                 </div>
               ))}
               <Button type="submit" className="bg-green-500 hover:bg-green-600 text-white w-full mt-2" disabled={submitting}>
@@ -316,6 +396,7 @@ export default function DailyPulseClient({ user }: { user: { id: string } }) {
         monthSubmissions={monthSubmissions}
         todayUTC={todayUTC}
         template={template || { id: '', name: '', description: '' }}
+        questions={questions}
       />
     </div>
   );
