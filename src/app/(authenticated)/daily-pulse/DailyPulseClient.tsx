@@ -143,6 +143,25 @@ export default function DailyPulseClient({ user }: { user: { id: string } }) {
         setLoading(false);
         return;
       }
+      // Gather all template_ids for today
+      const todayTemplateIds = Array.from(new Set((periodUsers || []).map((pu: { submission_periods: SubmissionPeriod }) => pu.submission_periods.template_id)));
+      // Preload all questions for today's templates in one query
+      const questionsByTemplate: Record<string, Question[]> = {};
+      if (todayTemplateIds.length > 0) {
+        const { data: allQuestionsData } = await supabase
+          .from('template_questions')
+          .select('template_id, questions(*)')
+          .in('template_id', todayTemplateIds)
+          .order('display_order', { ascending: true });
+        // Group questions by template_id
+        for (const row of allQuestionsData || []) {
+          if (!row.template_id) continue;
+          if (!questionsByTemplate[row.template_id]) questionsByTemplate[row.template_id] = [];
+          if (row.questions && typeof row.questions === 'object' && !Array.isArray(row.questions)) {
+            questionsByTemplate[row.template_id].push(row.questions);
+          }
+        }
+      }
       // 2. For each period, fetch template, questions, and submission
       const periodForms = await Promise.all((periodUsers || []).map(async (pu: { submission_periods: SubmissionPeriod }) => {
         const period = pu.submission_periods;
@@ -152,16 +171,8 @@ export default function DailyPulseClient({ user }: { user: { id: string } }) {
           .select('id, name, description')
           .eq('id', period.template_id)
           .single();
-        // Fetch questions
-        let questions: Question[] = [];
-        if (template) {
-          const { data: questionsData } = await supabase
-            .from('template_questions')
-            .select('question_id, questions(*)')
-            .eq('template_id', template.id)
-            .order('display_order', { ascending: true });
-          questions = (questionsData || []).flatMap((row: { questions: Question[] }) => row.questions);
-        }
+        // Use preloaded questions
+        const questions: Question[] = questionsByTemplate[period.template_id] || [];
         // Fetch submission
         const { data: submissionData } = await supabase
           .from('submissions')
