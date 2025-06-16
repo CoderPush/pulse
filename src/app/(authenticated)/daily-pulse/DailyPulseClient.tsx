@@ -263,11 +263,18 @@ export default function DailyPulseClient({ user }: { user: { id: string } }) {
         return;
       }
       // 2. Insert answers
-      const answers = questions.map((q: Question) => ({
-        submission_id: submission.id,
-        question_id: q.id,
-        answer: form[q.id] || '',
-      }));
+      const answers = questions.map((q: Question) => {
+        let answer = form[q.id];
+        // If answer is an array (e.g., checkbox), store as JSON string
+        if (Array.isArray(answer)) {
+          answer = JSON.stringify(answer);
+        }
+        return {
+          submission_id: submission.id,
+          question_id: q.id,
+          answer: answer || '',
+        };
+      });
       const { error: answersError } = await supabase
         .from('submission_answers')
         .insert(answers);
@@ -282,27 +289,39 @@ export default function DailyPulseClient({ user }: { user: { id: string } }) {
   }
 
   // Handler for form field change
-  function handleChange(idx: number, e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) {
-    const { name, value, type } = e.target;
-    let checked = false;
-    if (type === 'checkbox' && 'checked' in e.target) {
-      checked = (e.target as HTMLInputElement).checked;
-    }
-    setTodayPeriods(prev => prev.map((f, i) => {
-      if (i !== idx) return f;
-      const newForm = { ...f.form };
-      if (type === 'checkbox') {
-        const prevArr = Array.isArray(newForm[name]) ? newForm[name] as string[] : [];
-        if (checked) {
-          newForm[name] = [...prevArr, value];
+  function handleChange(
+    idx: number,
+    e:
+      | React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+      | { target: { name: string; value: string | string[]; type: string; checked?: boolean } }
+  ) {
+    // Normalize event
+    const { name, value, type, checked } =
+      'target' in e && typeof e.target === 'object'
+        ? {
+            name: e.target.name,
+            value: e.target.value,
+            type: e.target.type,
+            checked: 'checked' in e.target ? (e.target as { checked?: boolean }).checked : undefined,
+          }
+        : { name: '', value: '', type: '', checked: false };
+    setTodayPeriods(prev =>
+      prev.map((f, i) => {
+        if (i !== idx) return f;
+        const newForm = { ...f.form };
+        if (type === 'checkbox') {
+          const prevArr = Array.isArray(newForm[name]) ? (newForm[name] as string[]) : [];
+          if (checked) {
+            newForm[name] = [...prevArr, value as string];
+          } else {
+            newForm[name] = prevArr.filter((v: string) => v !== value);
+          }
         } else {
-          newForm[name] = prevArr.filter((v: string) => v !== value);
+          newForm[name] = value;
         }
-      } else {
-        newForm[name] = value;
-      }
-      return { ...f, form: newForm };
-    }));
+        return { ...f, form: newForm };
+      })
+    );
   }
 
   // Calendar/History helpers
@@ -420,7 +439,7 @@ export default function DailyPulseClient({ user }: { user: { id: string } }) {
                       q={q}
                       value={f.form[q.id]}
                       submitting={f.submitting}
-                      onChange={e => handleChange(idx, e as React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>)}
+                      onChange={e => handleChange(idx, e)}
                     />
                   </div>
                 ))}
