@@ -72,6 +72,7 @@ supabase start
 ```
 
 5. Initialize the database:
+
 ```bash
 supabase db reset
 ```

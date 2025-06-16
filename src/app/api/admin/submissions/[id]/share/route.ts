@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/utils/supabase/server';
 import { sendEmail } from '@/lib/email';
 import { escapeHTML } from '@/lib/utils';
+import { getCompanyDomain } from '@/utils/companyDomain';
 
 export async function POST(
   req: NextRequest,
@@ -62,12 +63,13 @@ export async function POST(
   if (userLookupError || !targetUser) {
     return NextResponse.json({ error: 'User does not exist' }, { status: 404 });
   }
-  // In production, only allow sharing with @coderpush.com emails
+  // In production, only allow sharing with company domain emails
+  const companyDomain = getCompanyDomain();
   if (
     process.env.NODE_ENV === 'production' &&
-    (!targetUser.email || !targetUser.email.endsWith('@coderpush.com'))
+    (!targetUser.email || !targetUser.email.endsWith(`@${companyDomain}`))
   ) {
-    return NextResponse.json({ error: 'Can only share with @coderpush.com emails in production' }, { status: 403 });
+    return NextResponse.json({ error: `Can only share with @${companyDomain} emails in production` }, { status: 403 });
   }
 
   const { error } = await supabase
