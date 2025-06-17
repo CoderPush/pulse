@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState, useMemo, useCallback } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -40,7 +40,7 @@ interface DailyPeriodForm {
   submitError: string | null;
 }
 
-function DailyPulseQuestionField({ q, value, onChange, submitting }: {
+export function DailyPulseQuestionField({ q, value, onChange, submitting }: {
   q: Question;
   value: string | string[] | undefined;
   onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement> | { target: { name: string; value: string | string[]; type: string; checked?: boolean } }) => void;
@@ -122,121 +122,157 @@ export default function DailyPulseClient({ user }: { user: { id: string } }) {
   const [monthPeriods, setMonthPeriods] = useState<SubmissionPeriod[]>([]);
   const [monthSubmissions, setMonthSubmissions] = useState<Submission[]>([]);
   const [monthTemplates, setMonthTemplates] = useState<Record<string, Template>>({});
+  const [questionsByTemplateId, setQuestionsByTemplateId] = useState<Record<string, Question[]>>({});
 
-  useEffect(() => {
-    const fetchData = async () => {
-      setLoading(true);
-      setError(null);
-      const supabase = createClient();
-      const today = new Date();
-      const nowStr = new Date().toISOString();
-      // 1. Fetch all periods for today
-      const { data: periodUsers, error: periodError } = await supabase
-        .from('submission_period_users')
-        .select('*, submission_periods!inner(*)')
-        .eq('user_id', user.id)
-        .eq('submission_periods.period_type', 'daily')
-        .lte('submission_periods.start_date', nowStr)
-        .gte('submission_periods.end_date', nowStr);
-      if (periodError) {
-        setError(periodError.message);
-        setLoading(false);
-        return;
-      }
-      // Gather all template_ids for today
-      const todayTemplateIds = Array.from(new Set((periodUsers || []).map((pu: { submission_periods: SubmissionPeriod }) => pu.submission_periods.template_id)));
-      // Preload all questions for today's templates in one query
-      const questionsByTemplate: Record<string, Question[]> = {};
-      if (todayTemplateIds.length > 0) {
-        const { data: allQuestionsData } = await supabase
-          .from('template_questions')
-          .select('template_id, questions(*)')
-          .in('template_id', todayTemplateIds)
-          .order('display_order', { ascending: true });
-        // Group questions by template_id
-        for (const row of allQuestionsData || []) {
-          if (!row.template_id) continue;
-          if (!questionsByTemplate[row.template_id]) questionsByTemplate[row.template_id] = [];
-          if (row.questions && typeof row.questions === 'object' && !Array.isArray(row.questions)) {
-            questionsByTemplate[row.template_id].push(row.questions);
-          }
+  // Refactored fetchData so it can be called on demand
+  const fetchData = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    const supabase = createClient();
+    const today = new Date();
+    const nowStr = new Date().toISOString();
+    // 1. Fetch all periods for today
+    const { data: periodUsers, error: periodError } = await supabase
+      .from('submission_period_users')
+      .select('*, submission_periods!inner(*)')
+      .eq('user_id', user.id)
+      .eq('submission_periods.period_type', 'daily')
+      .lte('submission_periods.start_date', nowStr)
+      .gte('submission_periods.end_date', nowStr);
+    if (periodError) {
+      setError(periodError.message);
+      setLoading(false);
+      return;
+    }
+    // Gather all template_ids for today
+    const todayTemplateIds = Array.from(new Set((periodUsers || []).map((pu: { submission_periods: SubmissionPeriod }) => pu.submission_periods.template_id)));
+    // Preload all questions for today's templates in one query
+    const questionsByTemplate: Record<string, Question[]> = {};
+    if (todayTemplateIds.length > 0) {
+      const { data: allQuestionsData } = await supabase
+        .from('template_questions')
+        .select('template_id, questions(*)')
+        .in('template_id', todayTemplateIds)
+        .order('display_order', { ascending: true });
+      // Group questions by template_id
+      for (const row of allQuestionsData || []) {
+        if (!row.template_id) continue;
+        if (!questionsByTemplate[row.template_id]) questionsByTemplate[row.template_id] = [];
+        if (row.questions && typeof row.questions === 'object' && !Array.isArray(row.questions)) {
+          questionsByTemplate[row.template_id].push(row.questions);
         }
       }
-      // 2. For each period, fetch template, questions, and submission
-      const periodForms = await Promise.all((periodUsers || []).map(async (pu: { submission_periods: SubmissionPeriod }) => {
-        const period = pu.submission_periods;
-        // Fetch template
-        const { data: template } = await supabase
-          .from('templates')
-          .select('id, name, description')
-          .eq('id', period.template_id)
-          .single();
-        // Use preloaded questions
-        const questions: Question[] = questionsByTemplate[period.template_id] || [];
-        // Fetch submission
-        const { data: submissionData } = await supabase
-          .from('submissions')
-          .select('*')
-          .eq('user_id', user.id)
-          .eq('submission_period_id', period.id)
-          .eq('type', 'daily')
-          .maybeSingle();
-        return {
-          period,
-          template,
-          questions,
-          submission: submissionData,
-          form: {},
-          submitted: !!submissionData,
-          submitting: false,
-          submitError: null,
-        };
-      }));
-      setTodayPeriods(periodForms);
-      // 3. Fetch all periods for the current month (for calendar/history)
-      const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
-      const monthEnd = new Date(today.getFullYear(), today.getMonth() + 1, 0, 23, 59, 59);
-      const monthStartStr = monthStart.toISOString();
-      const monthEndStr = monthEnd.toISOString();
-      const { data: allPeriodUsers } = await supabase
-        .from('submission_period_users')
-        .select('*, submission_periods!inner(*)')
+    }
+    // 2. For each period, fetch template, questions, and submission
+    const periodForms = await Promise.all((periodUsers || []).map(async (pu: { submission_periods: SubmissionPeriod }) => {
+      const period = pu.submission_periods;
+      // Fetch template
+      const { data: template } = await supabase
+        .from('templates')
+        .select('id, name, description')
+        .eq('id', period.template_id)
+        .single();
+      // Use preloaded questions
+      let questions: Question[] = questionsByTemplate[period.template_id] || [];
+      // Deduplicate questions by id
+      const seen = new Set();
+      questions = questions.filter(q => {
+        if (seen.has(q.id)) return false;
+        seen.add(q.id);
+        return true;
+      });
+      // Fetch submission
+      const { data: submissionData } = await supabase
+        .from('submissions')
+        .select('*')
         .eq('user_id', user.id)
-        .eq('submission_periods.period_type', 'daily')
-        .gte('submission_periods.start_date', monthStartStr)
-        .lte('submission_periods.end_date', monthEndStr);
-      const periods = (allPeriodUsers || []).map((pu: { submission_periods: SubmissionPeriod }) => pu.submission_periods);
-      setMonthPeriods(periods);
-      // Fetch all templates for these periods
-      const templateIds = Array.from(new Set(periods.map((p: SubmissionPeriod) => p.template_id)));
-      const templateMap: Record<string, Template> = {};
-      if (templateIds.length > 0) {
-        const { data: templatesData } = await supabase
-          .from('templates')
-          .select('id, name, description')
-          .in('id', templateIds);
-        (templatesData || []).forEach((t: Template) => {
-          templateMap[t.id] = t;
+        .eq('submission_period_id', period.id)
+        .eq('type', 'daily')
+        .maybeSingle();
+      return {
+        period,
+        template,
+        questions,
+        submission: submissionData,
+        form: {},
+        submitted: !!submissionData,
+        submitting: false,
+        submitError: null,
+      };
+    }));
+    setTodayPeriods(periodForms);
+    // 3. Fetch all periods for the current month (for calendar/history)
+    const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
+    const monthEnd = new Date(today.getFullYear(), today.getMonth() + 1, 0, 23, 59, 59);
+    const monthStartStr = monthStart.toISOString();
+    const monthEndStr = monthEnd.toISOString();
+    const { data: allPeriodUsers } = await supabase
+      .from('submission_period_users')
+      .select('*, submission_periods!inner(*)')
+      .eq('user_id', user.id)
+      .eq('submission_periods.period_type', 'daily')
+      .gte('submission_periods.start_date', monthStartStr)
+      .lte('submission_periods.end_date', monthEndStr);
+    const periods = (allPeriodUsers || []).map((pu: { submission_periods: SubmissionPeriod }) => pu.submission_periods);
+    setMonthPeriods(periods);
+    // Fetch all templates for these periods
+    const templateIds = Array.from(new Set(periods.map((p: SubmissionPeriod) => p.template_id)));
+    const templateMap: Record<string, Template> = {};
+    if (templateIds.length > 0) {
+      const { data: templatesData } = await supabase
+        .from('templates')
+        .select('id, name, description')
+        .in('id', templateIds);
+      (templatesData || []).forEach((t: Template) => {
+        templateMap[t.id] = t;
+      });
+    }
+    setMonthTemplates(templateMap);
+    // 4. Fetch all submissions for those periods
+    const periodIds = periods.map((p: SubmissionPeriod) => p.id);
+    let allSubmissions: Submission[] = [];
+    if (periodIds.length > 0) {
+      const { data: allSubs } = await supabase
+        .from('submissions')
+        .select('*')
+        .eq('user_id', user.id)
+        .eq('type', 'daily')
+        .in('submission_period_id', periodIds);
+      allSubmissions = allSubs || [];
+    }
+    setMonthSubmissions(allSubmissions);
+    // Also build questionsByTemplateId for all templates in the month
+    const questionsByTemplateId: Record<string, Question[]> = {};
+    if (templateIds.length > 0) {
+      const { data: allQuestionsData } = await supabase
+        .from('template_questions')
+        .select('template_id, questions(*)')
+        .in('template_id', templateIds)
+        .order('display_order', { ascending: true });
+      for (const row of allQuestionsData || []) {
+        if (!row.template_id) continue;
+        if (!questionsByTemplateId[row.template_id]) questionsByTemplateId[row.template_id] = [];
+        if (row.questions && typeof row.questions === 'object' && !Array.isArray(row.questions)) {
+          questionsByTemplateId[row.template_id].push(row.questions);
+        }
+      }
+      // Deduplicate questions for each template
+      for (const templateId of Object.keys(questionsByTemplateId)) {
+        const seen = new Set();
+        questionsByTemplateId[templateId] = questionsByTemplateId[templateId].filter(q => {
+          if (seen.has(q.id)) return false;
+          seen.add(q.id);
+          return true;
         });
       }
-      setMonthTemplates(templateMap);
-      // 4. Fetch all submissions for those periods
-      const periodIds = periods.map((p: SubmissionPeriod) => p.id);
-      let allSubmissions: Submission[] = [];
-      if (periodIds.length > 0) {
-        const { data: allSubs } = await supabase
-          .from('submissions')
-          .select('*')
-          .eq('user_id', user.id)
-          .eq('type', 'daily')
-          .in('submission_period_id', periodIds);
-        allSubmissions = allSubs || [];
-      }
-      setMonthSubmissions(allSubmissions);
-      setLoading(false);
-    };
-    fetchData();
+    }
+    setQuestionsByTemplateId(questionsByTemplateId);
+    setLoading(false);
   }, [user.id]);
+
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
 
   // Handler for submitting a form for a specific period
   async function handleSubmit(idx: number, e: React.FormEvent<HTMLFormElement>) {
@@ -433,7 +469,7 @@ export default function DailyPulseClient({ user }: { user: { id: string } }) {
             {!f.submitted && (
               <form className="space-y-4" onSubmit={e => handleSubmit(idx, e)}>
                 {f.questions.map((q: Question) => (
-                  <div key={q.id}>
+                  <div key={`${f.period.id}-${q.id}`}>
                     <label className="block text-sm font-medium mb-1 text-gray-700">{q.title}</label>
                     <DailyPulseQuestionField
                       q={q}
@@ -468,7 +504,9 @@ export default function DailyPulseClient({ user }: { user: { id: string } }) {
         monthSubmissions={monthSubmissions}
         todayUTC={todayUTC}
         templateMap={monthTemplates}
-        questions={todayPeriods[0]?.questions || []}
+        questionsByTemplateId={questionsByTemplateId}
+        user={user}
+        refreshData={fetchData}
       />
     </div>
   );

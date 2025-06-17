@@ -4,6 +4,9 @@ import { Eye } from 'lucide-react';
 import React, { useState, useEffect } from 'react';
 import { SubmissionPeriod, Submission } from './DailyPulseCalendar';
 import { createClient } from '@/utils/supabase/client';
+import DailyPulseForm from './DailyPulseForm';
+import { useToast } from '@/components/ui/use-toast';
+import type { Question } from './DailyPulseForm';
 
 interface Template {
   id: string;
@@ -25,16 +28,21 @@ interface DailyPulseHistoryTableProps {
   monthSubmissions: Submission[];
   todayUTC: string;
   templateMap: Record<string, Template>;
-  questions: { id: string; title?: string }[];
+  questionsByTemplateId: Record<string, { id: string; title?: string }[]>;
+  user?: { id: string };
+  refreshData?: () => void;
 }
 
-const DailyPulseHistoryTable: React.FC<DailyPulseHistoryTableProps> = ({ monthDays, periodByDate, monthSubmissions, templateMap, questions }) => {
+const DailyPulseHistoryTable: React.FC<DailyPulseHistoryTableProps> = ({ monthDays, periodByDate, monthSubmissions: initialMonthSubmissions, templateMap, questionsByTemplateId, user, refreshData }) => {
   const today = new Date();
   const [expandedKey, setExpandedKey] = useState<string | null>(null);
   const [expandedPeriodId, setExpandedPeriodId] = useState<string | null>(null);
   const [answers, setAnswers] = useState<Record<string, SubmissionAnswer[]>>({});
   const [loadingAnswers, setLoadingAnswers] = useState<string | null>(null);
   const [errorAnswers, setErrorAnswers] = useState<string | null>(null);
+  const [activeMissed, setActiveMissed] = useState<{ date: string; periodId: string } | null>(null);
+  const [monthSubmissions, setMonthSubmissions] = useState<Submission[]>(initialMonthSubmissions);
+  const { toast } = useToast();
 
   // Fetch answers when a row is expanded
   useEffect(() => {
@@ -54,20 +62,34 @@ const DailyPulseHistoryTable: React.FC<DailyPulseHistoryTableProps> = ({ monthDa
       setAnswers(prev => ({ ...prev, [submissionId]: data || [] }));
       setLoadingAnswers(null);
     };
+    console.log('expandedKey', expandedKey, expandedPeriodId);
     if (expandedKey && expandedPeriodId) {
       // Find the submission for the expanded row
-      const key = expandedKey;
       const periodId = expandedPeriodId;
       const submission = monthSubmissions.find(
-        (s) =>
-          s.submission_period_id === periodId &&
-          new Date(s.submitted_at).toISOString().slice(0, 10) === key
+        (s) => s.submission_period_id === periodId
       );
       if (submission && !answers[submission.id]) {
         fetchAnswers(submission.id);
       }
     }
   }, [expandedKey, expandedPeriodId, periodByDate, monthSubmissions, answers]);
+
+  // Refetch submissions for the month
+  async function refetchMonthSubmissions() {
+    if (!user) return;
+    const supabase = createClient();
+    // Get all period IDs for the month
+    const periodIds = Object.values(periodByDate).flat().map(p => p.id);
+    if (periodIds.length === 0) return;
+    const { data: allSubs } = await supabase
+      .from('submissions')
+      .select('*')
+      .eq('user_id', user.id)
+      .eq('type', 'daily')
+      .in('submission_period_id', periodIds);
+    setMonthSubmissions(allSubs || []);
+  }
 
   console.log('monthSubmissions', monthSubmissions);
   return (
@@ -99,11 +121,9 @@ const DailyPulseHistoryTable: React.FC<DailyPulseHistoryTableProps> = ({ monthDa
               }
               // For each period on this day, render a row
               return periods.map((period) => {
-                // Find a submission for this period where submitted_at matches this day
+                // Find a submission for this period (ignore submitted_at date)
                 const submission = monthSubmissions.find(
-                  (s) =>
-                    s.submission_period_id === period.id &&
-                    new Date(s.submitted_at).toISOString().slice(0, 10) === key
+                  (s) => s.submission_period_id === period.id
                 );
                 let status: 'submitted' | 'missed' | 'not_assigned' | 'not_submitted' = 'not_assigned';
                 if (period) {
@@ -112,8 +132,9 @@ const DailyPulseHistoryTable: React.FC<DailyPulseHistoryTableProps> = ({ monthDa
                   else if (date >= today) status = 'not_submitted';
                 }
                 const isExpanded = expandedKey === key && expandedPeriodId === period.id;
+                const isMissedActive = activeMissed && activeMissed.date === key && activeMissed.periodId === period.id;
                 return (
-                  <React.Fragment key={period.id}>
+                  <React.Fragment key={`${period.id}-${key}`}>
                     <tr className={date.getTime() === today.getTime() ? 'bg-blue-50 font-bold' : ''}>
                       <td className="px-4 py-2 whitespace-nowrap">{key}</td>
                       <td className="px-4 py-2 whitespace-nowrap">{period ? (templateMap[period.template_id]?.name || period.template_id) : '-'}</td>
@@ -138,6 +159,12 @@ const DailyPulseHistoryTable: React.FC<DailyPulseHistoryTableProps> = ({ monthDa
                             <Eye className="w-4 h-4" /> {isExpanded ? 'Hide' : 'View'}
                           </Button>
                         )}
+                        {status === 'missed' && !isMissedActive && user && (
+                          <Button size="sm" variant="outline" className="flex items-center gap-1"
+                            onClick={() => setActiveMissed({ date: key, periodId: period.id })}>
+                            Submit Now
+                          </Button>
+                        )}
                       </td>
                     </tr>
                     {isExpanded && submission && (
@@ -149,21 +176,42 @@ const DailyPulseHistoryTable: React.FC<DailyPulseHistoryTableProps> = ({ monthDa
                           {!loadingAnswers && !errorAnswers && answers[submission.id] && (
                             <div className="space-y-2">
                               {answers[submission.id].length === 0 && <div className="text-sm text-gray-500">No answers found.</div>}
-                              {answers[submission.id].map(ans => (
-                                <div key={ans.id} className="border-b pb-2 mb-2">
-                                  <div className="font-medium text-gray-800">
-                                    {/* Find the question title by question_id */}
-                                    {questions.find(q => q.id === ans.question_id)?.title || ans.question_id}
+                              {answers[submission.id].map(ans => {
+                                const periodQuestions = questionsByTemplateId[period.template_id] || [];
+                                return (
+                                  <div key={ans.id} className="border-b pb-2 mb-2">
+                                    <div className="font-medium text-gray-800">
+                                      {periodQuestions.find(q => q.id === ans.question_id)?.title || ans.question_id}
+                                    </div>
+                                    <div className="text-gray-700 mt-1">
+                                      {Array.isArray(ans.answer)
+                                        ? ans.answer.map((a, i) => <span key={i} className="inline-block bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-xs mr-1">{a}</span>)
+                                        : ans.answer}
+                                    </div>
                                   </div>
-                                  <div className="text-gray-700 mt-1">
-                                    {Array.isArray(ans.answer)
-                                      ? ans.answer.map((a, i) => <span key={i} className="inline-block bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-xs mr-1">{a}</span>)
-                                      : ans.answer}
-                                  </div>
-                                </div>
-                              ))}
+                                );
+                              })}
                             </div>
                           )}
+                        </td>
+                      </tr>
+                    )}
+                    {status === 'missed' && isMissedActive && user && (
+                      <tr>
+                        <td colSpan={4} className="bg-blue-50/50 p-4">
+                          <DailyPulseForm
+                            user={user}
+                            period={period}
+                            questions={templateMap[period.template_id]?.questions as Question[] || questionsByTemplateId[period.template_id] || []}
+                            template={templateMap[period.template_id] || null}
+                            onSuccess={async () => {
+                              setActiveMissed(null);
+                              await refetchMonthSubmissions();
+                              if (refreshData) await refreshData();
+                              toast({ title: 'Check-in submitted!', description: 'Your missed check-in was submitted successfully.', duration: 4000 });
+                            }}
+                            onCancel={() => setActiveMissed(null)}
+                          />
                         </td>
                       </tr>
                     )}

@@ -38,9 +38,7 @@ function getDayStatus({ date, key, periods, monthSubmissions, todayUTC }: {
   let allSubmitted = true;
   for (const period of periods) {
     const submission = monthSubmissions.find(
-      (s) =>
-        s.submission_period_id === period.id &&
-        new Date(s.submitted_at).toISOString().slice(0, 10) === key
+      (s) => s.submission_period_id === period.id
     );
     const isToday = key === todayUTC;
     if (submission) continue;
