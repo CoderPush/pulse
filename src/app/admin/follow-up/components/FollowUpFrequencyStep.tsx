@@ -31,7 +31,6 @@ export function FollowUpFrequencyStep({
         <label className="block mb-1 font-medium flex items-center gap-2"><Calendar className="w-4 h-4" /> Frequency</label>
         <select className="border rounded px-2 py-1 mb-2 w-full" value={frequency} onChange={e => setFrequency(e.target.value)}>
           <option value="daily">Daily</option>
-          <option value="weekly">Weekly</option>
           <option value="ad-hoc">Ad-hoc</option>
         </select>
         {frequency !== 'ad-hoc' && (

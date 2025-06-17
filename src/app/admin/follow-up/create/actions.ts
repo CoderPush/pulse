@@ -35,7 +35,7 @@ export async function createFollowUpAction(values: FollowUpFormValues) {
   }
 
   try {
-    if (frequency !== 'ad-hoc') {
+    if (frequency === 'daily') {
       // 1. Create Recurring Schedule
       const { error: scheduleError } = await supabase.from('recurring_schedules').insert({
         template_id: templateId,
