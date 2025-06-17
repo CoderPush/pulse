@@ -47,6 +47,12 @@ select
   t.type
 from templates t
 left join latest_periods lp on t.id = lp.template_id
-left join recurring_schedules rs on t.id = rs.template_id
+left join lateral (
+  select rs.days_of_week, rs.reminder_time
+  from recurring_schedules rs
+  where rs.template_id = t.id
+  order by rs.start_date desc
+  limit 1
+) rs on true
 order by t.created_at desc;
 $$;

@@ -40,6 +40,7 @@ returns public.follow_up_details
 language sql
 security definer
 as $$
+set search_path = public, pg_temp;
 with latest_period as (
   -- Find the most recent submission period for the given template
   select id, period_type
@@ -47,16 +48,6 @@ with latest_period as (
   where template_id = p_template_id
   order by start_date desc
   limit 1
-),
-participant_list as (
-  -- Get all users assigned to the latest submission period
-  select
-    u.id,
-    u.raw_user_meta_data->>'full_name' as name,
-    u.email
-  from auth.users u
-  join submission_period_users spu on u.id = spu.user_id
-  where spu.submission_period_id = (select id from latest_period)
 )
 select
   t.id,
@@ -65,9 +56,14 @@ select
   coalesce(lp.period_type, 'Ad-hoc') as frequency,
   coalesce(rs.days_of_week, '{}'::text[]) as days,
   rs.reminder_time as "reminderTime",
-  array_agg(
-    (pl.id, pl.name, pl.email)::public.follow_up_participant
-  ) filter (where pl.id is not null) as participants,
+  (
+    select array_agg(
+      (u.id, u.raw_user_meta_data->>'full_name', u.email)::public.follow_up_participant
+    )
+    from auth.users u
+    join submission_period_users spu on u.id = spu.user_id
+    where spu.submission_period_id = (select id from latest_period)
+  ) as participants,
   (
     select array_agg(
       (
@@ -93,7 +89,6 @@ select
 from templates t
 left join recurring_schedules rs on t.id = rs.template_id
 left join latest_period lp on true
-left join participant_list pl on true
 where t.id = p_template_id
 group by t.id, t.name, t.description, lp.period_type, rs.days_of_week, rs.reminder_time;
 $$;
