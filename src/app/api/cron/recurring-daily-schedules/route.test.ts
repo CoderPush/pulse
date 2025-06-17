@@ -15,13 +15,16 @@ function mockRequest(now?: string, auth = true) {
 
 describe('GET /api/cron/recurring-daily-schedules', () => {
   const fromMock = vi.fn();
+  // Minimal test mock, not a full SupabaseClient
+  type MinimalSupabaseClient = { from: typeof fromMock };
 
   beforeEach(() => {
     vi.resetAllMocks();
     process.env.CRON_SECRET = 'test-secret';
+    // @ts-expect-error: test mock does not need full SupabaseClient interface
     vi.spyOn(supabaseModule, 'createClient').mockResolvedValue({
       from: fromMock,
-    } as any);
+    } as MinimalSupabaseClient);
   });
 
   test('returns 401 if unauthorized', async () => {
