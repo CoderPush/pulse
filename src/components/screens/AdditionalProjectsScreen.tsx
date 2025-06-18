@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 
-export default function AdditionalProjectsScreen({ onNext, onBack, formData, setFormData, projects = [], question }: ScreenProps & { question?: Question }) {
+export default function AdditionalProjectsScreen({ onNext, onBack, formData, setFormData, projects = [], question, readOnly = false, hideButton = false }: ScreenProps & { question?: Question }) {
   const [showOtherInput, setShowOtherInput] = useState(false);
   const [otherProject, setOtherProject] = useState('');
   const [hoursInput, setHoursInput] = useState('');
@@ -77,7 +77,7 @@ export default function AdditionalProjectsScreen({ onNext, onBack, formData, set
   }, [onNext]);
 
   return (
-    <div className="flex flex-col h-full w-full max-w-lg mx-auto px-4 pt-8 pb-20">
+    <div className={`flex flex-col h-full w-full max-w-lg mx-auto px-4 ${hideButton ? "pt-0 pb-0" : "pt-8 pb-20"}`}>
       <motion.div
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -93,12 +93,14 @@ export default function AdditionalProjectsScreen({ onNext, onBack, formData, set
             <p className="text-sm text-gray-500 mt-1">{question.description}</p>
           )}
         </div>
-        <button
-          onClick={onNext} // Skip is equivalent to Next here
-          className="text-blue-600 hover:text-blue-700 font-medium transition-colors px-4 py-2 rounded-lg hover:bg-blue-50"
-        >
-          Skip
-        </button>
+        {!hideButton && (
+          <button
+            onClick={onNext} // Skip is equivalent to Next here
+            className="text-blue-600 hover:text-blue-700 font-medium transition-colors px-4 py-2 rounded-lg hover:bg-blue-50"
+          >
+            Skip
+          </button>
+        )}
       </motion.div>
 
       {/* Primary Project Display */}
@@ -142,13 +144,15 @@ export default function AdditionalProjectsScreen({ onNext, onBack, formData, set
                     <span className="font-medium text-gray-800">{proj.project}</span>
                     <span className="text-sm text-gray-500 ml-2">({proj.hours} hrs)</span>
                   </div>
-                  <button 
-                    onClick={() => removeAdditionalProject(index)}
-                    className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-md transition-colors"
-                    aria-label="Remove project"
-                  >
-                    <Trash2 size={16} />
-                  </button>
+                  {!readOnly && (
+                    <button 
+                      onClick={() => removeAdditionalProject(index)}
+                      className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-md transition-colors"
+                      aria-label="Remove project"
+                    >
+                      <Trash2 size={16} />
+                    </button>
+                  )}
                 </motion.div>
               ))}
             </AnimatePresence>
@@ -156,7 +160,13 @@ export default function AdditionalProjectsScreen({ onNext, onBack, formData, set
         )}
         
         {/* Projects Grid & Other input - Further styling in next steps */}
-        <div className="mb-6">
+        <div className="mb-6 relative">
+          {readOnly && (
+            <div
+              className="absolute inset-0 z-20 cursor-not-allowed h-full w-full"
+              aria-label="Read only mode"
+            />
+          )}
           <h3 className="text-md font-semibold text-gray-700 mb-3">Select from existing</h3>
           <div className="grid grid-cols-2 gap-3">
             {projects
@@ -225,10 +235,11 @@ export default function AdditionalProjectsScreen({ onNext, onBack, formData, set
             </button>
           </div>
         </div>
+  
 
         {/* Other Project Input Card - Animated */}
         <AnimatePresence>
-        {showOtherInput && (
+        {!readOnly && showOtherInput && (
           <motion.div
             initial={{ opacity: 0, height: 0, marginTop: 0 }}
             animate={{ opacity: 1, height: 'auto', marginTop: '0.5rem' }}
@@ -271,29 +282,33 @@ export default function AdditionalProjectsScreen({ onNext, onBack, formData, set
         </AnimatePresence>
       </div>
       
-      <motion.div 
-        className="fixed bottom-0 left-0 right-0 w-full bg-white/80 backdrop-blur-sm p-4 border-t border-gray-200 z-10"
-        initial={{ opacity: 0, y: 50 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.4, delay: 0.2, type: "spring" }} // Adjusted delay
-      >
-        <div className="max-w-lg mx-auto flex gap-3">
-          <button 
-            onClick={onBack}
-            className="border border-gray-300 hover:border-gray-400 text-gray-700 px-6 py-3.5 rounded-xl font-semibold flex items-center justify-center gap-2 w-1/3 transition-all duration-200 hover:bg-gray-50 shadow-sm hover:shadow-md"
-          >
-            <ArrowLeft size={20} /> Back
-          </button>
-          <button 
-            onClick={onNext}
-            className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white px-6 py-3.5 rounded-xl font-semibold flex items-center justify-center gap-2 w-2/3 transition-all duration-200 transform hover:-translate-y-0.5 disabled:opacity-60 disabled:cursor-not-allowed shadow-md hover:shadow-lg"
-            aria-label="Next step, or press Shift + Enter"
-          >
-            Next <ArrowRight size={20} /> 
-            <span className="hidden sm:inline text-xs opacity-80 ml-2 border border-white/30 px-1.5 py-0.5 rounded-md">Shift + Enter</span>
-          </button>
-        </div>
-      </motion.div>
+      {!hideButton && (
+        <motion.div 
+          className="fixed bottom-0 left-0 right-0 w-full bg-white/80 backdrop-blur-sm p-4 border-t border-gray-200 z-10"
+          initial={{ opacity: 0, y: 50 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4, delay: 0.2, type: "spring" }} // Adjusted delay
+        >
+          <div className="max-w-lg mx-auto flex gap-3">
+            <button 
+              onClick={onBack}
+              className="border border-gray-300 hover:border-gray-400 text-gray-700 px-6 py-3.5 rounded-xl font-semibold flex items-center justify-center gap-2 w-1/3 transition-all duration-200 hover:bg-gray-50 shadow-sm hover:shadow-md"
+              disabled={readOnly}
+            >
+              <ArrowLeft size={20} /> Back
+            </button>
+            <button 
+              onClick={onNext}
+              className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white px-6 py-3.5 rounded-xl font-semibold flex items-center justify-center gap-2 w-2/3 transition-all duration-200 transform hover:-translate-y-0.5 disabled:opacity-60 disabled:cursor-not-allowed shadow-md hover:shadow-lg"
+              aria-label="Next step, or press Shift + Enter"
+              disabled={readOnly}
+            >
+              Next <ArrowRight size={20} /> 
+              <span className="hidden sm:inline text-xs opacity-80 ml-2 border border-white/30 px-1.5 py-0.5 rounded-md">Shift + Enter</span>
+            </button>
+          </div>
+        </motion.div>
+      )}
     </div>
   );
 } 

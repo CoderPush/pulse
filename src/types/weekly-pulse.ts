@@ -61,6 +61,8 @@ export interface ScreenProps {
   userId?: string;
   currentWeekNumber?: number;
   currentYear?: number;
+  readOnly?: boolean;
+  hideButton?: boolean;
 }
 
 export interface Question {

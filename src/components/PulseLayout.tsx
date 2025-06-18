@@ -31,7 +31,7 @@ export default function PulseLayout({
 
   return (
     <div className="w-full flex">
-      <div className={`transition-all duration-300 px-4 ${isChatOpen ? 'md:w-2/3 w-full' : 'w-full'} ${isChatOpen ? 'md:block hidden' : 'block'}`}>
+      <div className={`transition-all duration-300 px-4 ${isChatOpen ? 'lg:w-1/2 w-full' : 'w-full'} ${isChatOpen ? 'md:block hidden' : 'block'}`}>
         <WeeklyPulseForm 
           user={user} 
           weekNumber={weekNumber} 
@@ -42,7 +42,7 @@ export default function PulseLayout({
         />
       </div>
       {isChatOpen && (
-        <div className="flex flex-col h-[calc(100vh-4rem)] fixed md:w-1/3 w-full shadow-sm border right-0 border-neutral-200 z-[999]">
+        <div className="flex flex-col h-[calc(100vh-4rem)] fixed lg:w-1/2 w-full shadow-sm border right-0 border-neutral-200 z-[9999]">
           <CopilotChat
             className="h-full w-full"
             instructions={createWeeklyPulseFormAssistanceGuidePrompt()}

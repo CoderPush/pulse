@@ -26,7 +26,9 @@ export default function TextInputScreen({
   onNext,
   onBack,
   formData,
-  setFormData
+  setFormData,
+  readOnly = false,
+  hideButton = false
 }: TextInputScreenProps) {
   const handleChange = (value: string) => {
     if (isDynamic) {
@@ -64,6 +66,7 @@ export default function TextInputScreen({
             placeholder={placeholder}
             maxLength={maxLength}
             className="w-full h-48 p-4 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+            readOnly={readOnly}
           />
         ) : (
           <input
@@ -73,6 +76,7 @@ export default function TextInputScreen({
             maxLength={maxLength}
             type={type}
             className="w-full p-4 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            readOnly={readOnly}
           />
         )}
         <div className="flex justify-between items-center mt-2 text-sm text-gray-500 pb-4">
@@ -81,20 +85,24 @@ export default function TextInputScreen({
         </div>
       </div>
       
-      <div className="mt-auto flex gap-3">
-        <button 
-          onClick={onBack}
-          className="border border-gray-300 hover:border-gray-400 px-6 py-3 rounded-full font-medium flex items-center gap-2"
-        >
-          <ArrowLeft size={18} /> Back
-        </button>
-        <button 
-          onClick={onNext}
-          className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white px-6 py-3 rounded-full font-medium flex items-center gap-2 flex-1 justify-center transition-all duration-200 transform hover:-translate-y-0.5"
-        >
-          Next <ArrowRight size={18} />
-        </button>
-      </div>
+      {!hideButton && (
+        <div className="mt-auto flex gap-3">
+          <button 
+            onClick={onBack}
+            className="border border-gray-300 hover:border-gray-400 px-6 py-3 rounded-full font-medium flex items-center gap-2"
+            disabled={readOnly}
+          >
+            <ArrowLeft size={18} /> Back
+          </button>
+          <button 
+            onClick={onNext}
+            className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white px-6 py-3 rounded-full font-medium flex items-center gap-2 flex-1 justify-center transition-all duration-200 transform hover:-translate-y-0.5 disabled:opacity-60 disabled:cursor-not-allowed"
+            disabled={readOnly}
+          >
+            Next <ArrowRight size={18} />
+          </button>
+        </div>
+      )}
     </div>
   );
 } 

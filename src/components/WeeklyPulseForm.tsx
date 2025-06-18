@@ -85,6 +85,7 @@ export default function WeeklyPulseForm({
     1. navigateToScreenAction:
       Used to navigate between form screens. Parameters:
       - screenName: string - Name of screen to navigate to. The avaible screens are ${Object.keys(screenNameToScreenNumberMapping).join(', ')}
+      ONLY CALL WHEN THE USER EXPLICITLY SAY THEY START FILLING THE FORM
       MUST BE CALLED WHENEVER ASKING USER NEW QUESTION 
       MUST NAVIAGE TO 'review' SCREEN WHENEVER DISPLAYING SUMMARY OF THE SUBMISSION TO USER
       NOTIFY THE USER WHEN YOU NAVIGATE TO A NEW SCREEN
@@ -300,7 +301,44 @@ export default function WeeklyPulseForm({
         message: `Screen ${screenName} not found`
       }
     },
-  });
+    render: (props) => {
+      const screenName = props.args.screenName;
+      if (!screenName || !screenNameToScreenNumberMapping[screenName]) {
+        return <></>
+      }
+
+      const screenCommonProps = {
+        onNext: handleNext,
+        onBack: handleBack,
+        formData,
+        setFormData,
+        error,
+        projects,
+        userId: user.id,
+        currentWeekNumber: weekNumber,
+        currentYear: currentYear,
+        questions,
+        readOnly: true,
+        hideButton: true, 
+      };
+      return (
+        <div className="flex-1 py-12 flex flex-col h-fit max-h-[400px] lg:max-h-[600px] w-[90vw] lg:w-[400px] rounded-xl border border-neutral-200 shadow-lg overflow-y-auto">
+          <DynamicScreen
+            questions={questions || []}
+            screenCommonProps={screenCommonProps}
+            screenNumber={screenNameToScreenNumberMapping[screenName]}
+            totalScreens={totalScreens}
+            setCurrentScreen={setCurrentScreen}
+            formData={formData}
+            setFormData={setFormData}
+            onNext={handleNext}
+            onBack={handleBack}
+            error={error}
+          />
+        </div>
+      );
+    }
+  }, [questions, formData, setFormData, error, projects, weekNumber, currentYear, totalScreens, setCurrentScreen]);
 
   useEffect(() => {
     async function fetchQuestions() {
@@ -381,8 +419,8 @@ export default function WeeklyPulseForm({
     }
     return null;
   };
-  
-  const renderScreen = () => {
+
+  const renderScreen = (readOnly = false, hideButton = false) => {
     const screenCommonProps = {
       onNext: handleNext,
       onBack: handleBack,
@@ -394,109 +432,27 @@ export default function WeeklyPulseForm({
       currentWeekNumber: weekNumber,
       currentYear: currentYear,
       questions,
+      readOnly,
+      hideButton
     };
+    
     if (currentScreen === 0) {
-      return <WelcomeScreen user={user} onNext={handleNext} weekNumber={weekNumber} />;
+      return <WelcomeScreen user={user} onNext={handleNext} weekNumber={weekNumber}/>;
     }
+    
     // Dynamic question screens
-    if (questions && currentScreen > 0 && currentScreen <= questions.length) {
-      const question = questions[currentScreen - 1];
-      if (question.category === 'primaryProject') {
-        return <ProjectSelectionScreen {...screenCommonProps} question={question} />;
-      }
-      if (question.category === 'primaryProjectHours') {
-        return <HoursWorkedScreen {...screenCommonProps} question={question} />;
-      }
-      if (question.category === 'manager') {
-        return <ManagerScreen {...screenCommonProps} question={question} />;
-      }
-      if (question.category === 'additionalProjects') {
-        return <AdditionalProjectsScreen {...screenCommonProps} projects={projects} question={question} />;
-      }
-      if (question.category === 'formCompletionTime') {
-        return <TimeInputScreen {...screenCommonProps} question={question} />;
-      }
-      if (question.category && (question.category in formData)) {
-        return (
-          <TextInputScreen
-            {...screenCommonProps}
-            title={question.title}
-            description={question.description}
-            placeholder={question.description || question.title}
-            fieldName={question.category as keyof WeeklyPulseFormData}
-            optional={!question.required}
-            maxLength={500}
-            multiline={true}
-          />
-        );
-      }
-      // Dynamic question fallback: render by type
-      if (!question.category) {
-        switch (question.type) {
-          case 'text':
-            return (
-              <TextInputScreen
-                {...screenCommonProps}
-                title={question.title}
-                description={question.description}
-                placeholder={question.description || question.title}
-                fieldName={question.id as string}
-                optional={!question.required}
-                maxLength={500}
-                isDynamic
-              />
-            );
-          case 'number':
-            return (
-              <TextInputScreen
-                {...screenCommonProps}
-                title={question.title}
-                description={question.description}
-                placeholder={question.description || question.title}
-                fieldName={question.id}
-                optional={!question.required}
-                type="number"
-                isDynamic
-              />
-            );
-          case 'textarea':
-            return (
-              <TextInputScreen
-                {...screenCommonProps}
-                title={question.title}
-                description={question.description}
-                placeholder={question.description || question.title}
-                fieldName={question.id as string}
-                optional={!question.required}
-                multiline
-                isDynamic
-              />
-            );
-          case 'multiple_choice':
-          case 'checkbox':
-            return (
-              <MultipleChoiceScreen
-                question={question}
-                formData={formData}
-                setFormData={setFormData}
-                onNext={handleNext}
-                onBack={handleBack}
-                error={error}
-              />
-            );
-          default:
-            return <div>Unsupported question type</div>;
-        }
-      }
-      return null;
-    }
-    if (currentScreen === totalScreens - 2) {
-      return <ReviewScreen {...screenCommonProps} questions={questions || []} totalScreens={totalScreens} setCurrentScreen={setCurrentScreen} />;
-    }
-    if (currentScreen === totalScreens - 1) {
-      return <SuccessScreen />;
-    }
-    return null;
+    return <DynamicScreen 
+      questions={questions || []} 
+      screenCommonProps={screenCommonProps} 
+      screenNumber={currentScreen} 
+      totalScreens={totalScreens} 
+      setCurrentScreen={setCurrentScreen}
+      formData={formData}
+      setFormData={setFormData}
+      onNext={handleNext}
+      onBack={handleBack}
+      error={error}
+    />;
   };
   
   if (loadingQuestions) {
@@ -554,3 +510,132 @@ export default function WeeklyPulseForm({
     </div>
   );
 } 
+
+interface DynamicScreenProps {
+  questions: Question[];
+  screenCommonProps: any;
+  screenNumber: number;
+  totalScreens: number;
+  setCurrentScreen: (screen: number) => void;
+  formData: any;
+  setFormData: React.Dispatch<React.SetStateAction<any>>;
+  onNext: (targetScreen?: number) => void;
+  onBack: () => void;
+  error: string | null;
+}
+
+const DynamicScreen: React.FC<DynamicScreenProps> = ({
+  questions,
+  screenCommonProps,
+  screenNumber,
+  totalScreens,
+  setCurrentScreen,
+  formData,
+  setFormData,
+  onNext,
+  onBack,
+  error
+}) => {
+  if(screenNumber === undefined) return null;
+  if (questions && screenNumber > 0 && screenNumber <= questions.length) {
+    const question = questions[screenNumber - 1];
+    if (!question) return null;
+
+    if (question.category === 'primaryProject') {
+      return <ProjectSelectionScreen {...screenCommonProps} question={question} />;
+    }
+    if (question.category === 'primaryProjectHours') {
+      return <HoursWorkedScreen {...screenCommonProps} question={question} />;
+    }
+    if (question.category === 'manager') {
+      return <ManagerScreen {...screenCommonProps} question={question} />;
+    }
+    if (question.category === 'additionalProjects') {
+      return <AdditionalProjectsScreen {...screenCommonProps} question={question} />;
+    }
+    if (question.category === 'formCompletionTime') {
+      return <TimeInputScreen {...screenCommonProps} question={question} />;
+    }
+    if (question.category && (question.category in formData)) {
+      return (
+        <TextInputScreen
+          {...screenCommonProps}
+          title={question.title}
+          description={question.description}
+          placeholder={question.description || question.title}
+          fieldName={question.category as keyof WeeklyPulseFormData}
+          optional={!question.required}
+          maxLength={500}
+          multiline={true}
+        />
+      );
+    }
+    // Dynamic question fallback: render by type
+    if (!question.category) {
+      switch (question.type) {
+        case 'text':
+          return (
+            <TextInputScreen
+              {...screenCommonProps}
+              title={question.title}
+              description={question.description}
+              placeholder={question.description || question.title}
+              fieldName={question.id as string}
+              optional={!question.required}
+              maxLength={500}
+              isDynamic
+            />
+          );
+        case 'number':
+          return (
+            <TextInputScreen
+              {...screenCommonProps}
+              title={question.title}
+              description={question.description}
+              placeholder={question.description || question.title}
+              fieldName={question.id}
+              optional={!question.required}
+              type="number"
+              isDynamic
+            />
+          );
+        case 'textarea':
+          return (
+            <TextInputScreen
+              {...screenCommonProps}
+              title={question.title}
+              description={question.description}
+              placeholder={question.description || question.title}
+              fieldName={question.id as string}
+              optional={!question.required}
+              multiline
+              isDynamic
+            />
+          );
+        case 'multiple_choice':
+        case 'checkbox':
+          return (
+            <MultipleChoiceScreen
+              question={question}
+              formData={formData}
+              setFormData={setFormData}
+              onNext={onNext}
+              onBack={onBack}
+              error={error}
+            />
+          );
+        default:
+          return <div>Unsupported question type</div>;
+      }
+    }
+    return null;
+  }
+
+  if (screenNumber === totalScreens - 2) {
+    return <ReviewScreen {...screenCommonProps} questions={questions || []} totalScreens={totalScreens} setCurrentScreen={setCurrentScreen} />;
+  }
+  if (screenNumber === totalScreens - 1) {
+    return <SuccessScreen/>;
+  }
+  return null;
+};

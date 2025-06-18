@@ -4,7 +4,7 @@ import { ScreenProps } from '@/types/weekly-pulse';
 import { Card } from "@/components/ui/card";
 import { getPreviousWeekManager } from '@/app/actions';
 
-export default function ManagerScreen({ onNext, onBack, formData, setFormData, userId, currentWeekNumber, currentYear, question }: ScreenProps & { userId?: string; currentWeekNumber?: number; currentYear?: number; question?: import('@/types/weekly-pulse').Question }) {
+export default function ManagerScreen({ onNext, onBack, formData, setFormData, userId, currentWeekNumber, currentYear, question, readOnly = false, hideButton = false }: ScreenProps & { userId?: string; currentWeekNumber?: number; currentYear?: number; question?: import('@/types/weekly-pulse').Question }) {
   const [dontKnow, setDontKnow] = useState(false);
   const [fetchedPreviousManager, setFetchedPreviousManager] = useState<string | null>(null);
   const [isLoadingPreviousManager, setIsLoadingPreviousManager] = useState(true);
@@ -104,7 +104,7 @@ export default function ManagerScreen({ onNext, onBack, formData, setFormData, u
               value={formData.manager}
               onChange={(e) => handleManagerChange(e.target.value)}
               className="w-full p-4 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white/50"
-              disabled={dontKnow}
+              disabled={dontKnow || readOnly}
             />
             {isLoadingPreviousManager && (
               <div className="text-xs text-gray-400 mt-2">Loading suggestion...</div>
@@ -129,6 +129,7 @@ export default function ManagerScreen({ onNext, onBack, formData, setFormData, u
             checked={dontKnow}
             onChange={(e) => handleDontKnowChange(e.target.checked)}
             className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+            disabled={readOnly}
           />
           <label htmlFor="dont-know" className="text-md text-gray-900 cursor-pointer">
             I don&apos;t know who my manager is
@@ -141,23 +142,26 @@ export default function ManagerScreen({ onNext, onBack, formData, setFormData, u
         Helps us spot confusion in reporting lines.
       </div>
       
-      <div className="mt-auto flex gap-3">
-        <button 
-          onClick={onBack}
-          className="border border-gray-300 hover:border-gray-400 px-6 py-3 rounded-full font-medium flex items-center gap-2 transition-all duration-200 hover:bg-gray-50"
-        >
-          <ArrowLeft size={18} /> Back
-        </button>
-        <button 
-          onClick={onNext}
-          className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white px-6 py-3.5 rounded-xl font-semibold flex items-center justify-center gap-2 w-full transition-all duration-200 transform hover:-translate-y-0.5 disabled:opacity-60 disabled:cursor-not-allowed shadow-md hover:shadow-lg"
-          disabled={!formData.manager || isLoadingPreviousManager}
-          aria-label="Next step, or press Shift + Enter"
-        >
-          Next <ArrowRight size={20} />
-          <span className="hidden sm:inline text-xs opacity-80 ml-2 border border-white/30 px-1.5 py-0.5 rounded-md">Shift + Enter</span>
-        </button>
-      </div>
+      {!hideButton && (
+        <div className="mt-auto flex gap-3">
+          <button 
+            onClick={onBack}
+            className="border border-gray-300 hover:border-gray-400 px-6 py-3 rounded-full font-medium flex items-center gap-2 transition-all duration-200 hover:bg-gray-50"
+            disabled={readOnly}
+          >
+            <ArrowLeft size={18} /> Back
+          </button>
+          <button 
+            onClick={onNext}
+            className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white px-6 py-3.5 rounded-xl font-semibold flex items-center justify-center gap-2 w-full transition-all duration-200 transform hover:-translate-y-0.5 disabled:opacity-60 disabled:cursor-not-allowed shadow-md hover:shadow-lg"
+            disabled={!formData.manager || isLoadingPreviousManager || readOnly}
+            aria-label="Next step, or press Shift + Enter"
+          >
+            Next <ArrowRight size={20} />
+            <span className="hidden sm:inline text-xs opacity-80 ml-2 border border-white/30 px-1.5 py-0.5 rounded-md">Shift + Enter</span>
+          </button>
+        </div>
+      )}
     </div>
   );
 } 
