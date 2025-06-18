@@ -520,7 +520,7 @@ export default function WeeklyPulseForm({
   }
   
   return (
-    <div className="flex justify-center items-center w-full min-h-[calc(100vh-4rem)] py-8">
+    <div className="flex justify-center items-center w-full h-[calc(100vh-4rem)] py-8">
       <div className="bg-white rounded-xl shadow-lg w-full max-w-md h-full flex flex-col relative overflow-hidden">
         {/* Progress bar */}
         {currentScreen > 0 && currentScreen < totalScreens - 2 && (
@@ -547,7 +547,7 @@ export default function WeeklyPulseForm({
         )}
         
         {/* Main content */}
-        <div className="flex-1 py-12 flex flex-col overflow-y-auto">
+        <div className="flex-1 py-12 flex flex-col h-full overflow-y-auto">
           {renderScreen()}
         </div>
       </div>
