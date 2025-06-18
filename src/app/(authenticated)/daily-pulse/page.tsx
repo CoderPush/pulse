@@ -1,5 +1,5 @@
 import { createClient } from '@/utils/supabase/server';
-import DailyPulseClient from './DailyPulseClient';
+import DailyPulseClient from './components/DailyPulseClient';
 
 export default async function DailyPulsePage() {
   const supabase = await createClient();

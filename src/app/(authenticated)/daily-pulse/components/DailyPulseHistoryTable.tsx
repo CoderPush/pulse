@@ -1,9 +1,11 @@
+// This file has been moved from the root of daily-pulse to components/DailyPulseHistoryTable.tsx. 
+
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Eye } from 'lucide-react';
 import React, { useState, useEffect } from 'react';
 import { SubmissionPeriod, Submission } from './DailyPulseCalendar';
-import { createClient } from '@/utils/supabase/client';
+import { fetchSubmissionAnswers, refetchMonthSubmissions } from '../actions';
 import DailyPulseForm from './DailyPulseForm';
 import { useToast } from '@/components/ui/use-toast';
 import type { Question } from './DailyPulseForm';
@@ -49,11 +51,7 @@ const DailyPulseHistoryTable: React.FC<DailyPulseHistoryTableProps> = ({ monthDa
     const fetchAnswers = async (submissionId: string) => {
       setLoadingAnswers(submissionId);
       setErrorAnswers(null);
-      const supabase = createClient();
-      const { data, error } = await supabase
-        .from('submission_answers')
-        .select('*')
-        .eq('submission_id', submissionId);
+      const { data, error } = await fetchSubmissionAnswers(submissionId);
       if (error) {
         setErrorAnswers('Failed to fetch answers');
         setLoadingAnswers(null);
@@ -76,18 +74,12 @@ const DailyPulseHistoryTable: React.FC<DailyPulseHistoryTableProps> = ({ monthDa
   }, [expandedKey, expandedPeriodId, periodByDate, monthSubmissions, answers]);
 
   // Refetch submissions for the month
-  async function refetchMonthSubmissions() {
+  async function refetchMonthSubmissionsHandler() {
     if (!user) return;
-    const supabase = createClient();
     // Get all period IDs for the month
     const periodIds = Object.values(periodByDate).flat().map(p => p.id);
     if (periodIds.length === 0) return;
-    const { data: allSubs } = await supabase
-      .from('submissions')
-      .select('*')
-      .eq('user_id', user.id)
-      .eq('type', 'daily')
-      .in('submission_period_id', periodIds);
+    const { data: allSubs } = await refetchMonthSubmissions(user.id, periodIds);
     setMonthSubmissions(allSubs || []);
   }
 
@@ -206,7 +198,7 @@ const DailyPulseHistoryTable: React.FC<DailyPulseHistoryTableProps> = ({ monthDa
                             template={templateMap[period.template_id] || null}
                             onSuccess={async () => {
                               setActiveMissed(null);
-                              await refetchMonthSubmissions();
+                              await refetchMonthSubmissionsHandler();
                               if (refreshData) await refreshData();
                               toast({ title: 'Check-in submitted!', description: 'Your missed check-in was submitted successfully.', duration: 4000 });
                             }}

@@ -1,3 +1,5 @@
+// This file has been moved from the root of daily-pulse to components/DailyPulseCalendar.tsx. 
+
 import React from 'react';
 
 // Types matching the structure from DailyPulseClient and submissions table

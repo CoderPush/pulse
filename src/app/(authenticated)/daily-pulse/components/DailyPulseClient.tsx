@@ -1,119 +1,24 @@
 "use client";
 import { useEffect, useState, useMemo, useCallback } from 'react';
-import { Card, CardContent } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { Textarea } from '@/components/ui/textarea';
-import { Input } from '@/components/ui/input';
 import { CalendarDays } from 'lucide-react';
-import { createClient } from '@/utils/supabase/client';
 import DailyPulseCalendar from './DailyPulseCalendar';
 import DailyPulseHistoryTable from './DailyPulseHistoryTable';
 import { SubmissionPeriod, Submission } from './DailyPulseCalendar';
-
-// Add Template and Question types
-interface Template {
-  id: string;
-  name: string;
-  description: string;
-}
-interface Question {
-  id: string;
-  title?: string;
-  text?: string;
-  type: string;
-  description?: string;
-  required?: boolean;
-  choices?: string[];
-}
-
-// Add DailyPeriodForm type for todayPeriods state
-interface DailyPeriodForm {
-  period: SubmissionPeriod;
-  template: Template | null;
-  questions: Question[];
-  submission: Submission | null;
-  form: Record<string, string | string[]>;
-  submitted: boolean;
-  submitting: boolean;
-  submitError: string | null;
-}
-
-export function DailyPulseQuestionField({ q, value, onChange, submitting }: {
-  q: Question;
-  value: string | string[] | undefined;
-  onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement> | { target: { name: string; value: string | string[]; type: string; checked?: boolean } }) => void;
-  submitting: boolean;
-}) {
-  if (q.type === 'textarea') {
-    return (
-      <Textarea
-        name={q.id}
-        value={typeof value === 'string' ? value : ''}
-        onChange={onChange}
-        required={q.required}
-        placeholder={q.description}
-        disabled={submitting}
-      />
-    );
-  } else if (q.type === 'multiple_choice' && q.choices) {
-    return (
-      <div className="flex flex-col gap-2">
-        {q.choices.map((choice) => (
-          <label key={choice} className="flex items-center gap-2">
-            <input
-              type="radio"
-              name={q.id}
-              value={choice}
-              checked={value === choice}
-              onChange={onChange}
-              required={q.required}
-              disabled={submitting}
-            />
-            {choice}
-          </label>
-        ))}
-      </div>
-    );
-  } else if (q.type === 'checkbox' && q.choices) {
-    return (
-      <div className="flex flex-col gap-2">
-        {q.choices.map((choice) => (
-          <label key={choice} className="flex items-center gap-2">
-            <input
-              type="checkbox"
-              name={q.id}
-              value={choice}
-              checked={Array.isArray(value) ? value.includes(choice) : false}
-              onChange={e => {
-                const prev = Array.isArray(value) ? value : [];
-                if (e.target.checked) {
-                  onChange({ target: { name: q.id, value: [...prev, choice], type: 'checkbox', checked: true } });
-                } else {
-                  onChange({ target: { name: q.id, value: prev.filter((c: string) => c !== choice), type: 'checkbox', checked: false } });
-                }
-              }}
-              disabled={submitting}
-            />
-            {choice}
-          </label>
-        ))}
-      </div>
-    );
-  } else {
-    return (
-      <Input
-        name={q.id}
-        value={typeof value === 'string' ? value : ''}
-        onChange={onChange}
-        required={q.required}
-        placeholder={q.description}
-        disabled={submitting}
-      />
-    );
-  }
-}
+import DailyPulseFormInner from './DailyPulseFormInner';
+import { handleFormFieldChangeArray } from './handleFormFieldChange';
+import {
+  fetchTodayPeriods,
+  fetchQuestionsByTemplateIds,
+  fetchTemplateById,
+  fetchSubmission,
+  fetchMonthPeriods,
+  fetchTemplatesByIds,
+  fetchSubmissions,
+  submitDailyPulse
+} from '../actions';
+import type { Template, Question, DailyPeriodForm } from '@/types/followup';
 
 export default function DailyPulseClient({ user }: { user: { id: string } }) {
   const [loading, setLoading] = useState(true);
@@ -128,17 +33,10 @@ export default function DailyPulseClient({ user }: { user: { id: string } }) {
   const fetchData = useCallback(async () => {
     setLoading(true);
     setError(null);
-    const supabase = createClient();
     const today = new Date();
     const nowStr = new Date().toISOString();
     // 1. Fetch all periods for today
-    const { data: periodUsers, error: periodError } = await supabase
-      .from('submission_period_users')
-      .select('*, submission_periods!inner(*)')
-      .eq('user_id', user.id)
-      .eq('submission_periods.period_type', 'daily')
-      .lte('submission_periods.start_date', nowStr)
-      .gte('submission_periods.end_date', nowStr);
+    const { data: periodUsers, error: periodError } = await fetchTodayPeriods(user.id, nowStr);
     if (periodError) {
       setError(periodError.message);
       setLoading(false);
@@ -149,11 +47,7 @@ export default function DailyPulseClient({ user }: { user: { id: string } }) {
     // Preload all questions for today's templates in one query
     const questionsByTemplate: Record<string, Question[]> = {};
     if (todayTemplateIds.length > 0) {
-      const { data: allQuestionsData } = await supabase
-        .from('template_questions')
-        .select('template_id, questions(*)')
-        .in('template_id', todayTemplateIds)
-        .order('display_order', { ascending: true });
+      const { data: allQuestionsData } = await fetchQuestionsByTemplateIds(todayTemplateIds);
       // Group questions by template_id
       for (const row of allQuestionsData || []) {
         if (!row.template_id) continue;
@@ -167,11 +61,7 @@ export default function DailyPulseClient({ user }: { user: { id: string } }) {
     const periodForms = await Promise.all((periodUsers || []).map(async (pu: { submission_periods: SubmissionPeriod }) => {
       const period = pu.submission_periods;
       // Fetch template
-      const { data: template } = await supabase
-        .from('templates')
-        .select('id, name, description')
-        .eq('id', period.template_id)
-        .single();
+      const { data: template } = await fetchTemplateById(period.template_id);
       // Use preloaded questions
       let questions: Question[] = questionsByTemplate[period.template_id] || [];
       // Deduplicate questions by id
@@ -182,13 +72,7 @@ export default function DailyPulseClient({ user }: { user: { id: string } }) {
         return true;
       });
       // Fetch submission
-      const { data: submissionData } = await supabase
-        .from('submissions')
-        .select('*')
-        .eq('user_id', user.id)
-        .eq('submission_period_id', period.id)
-        .eq('type', 'daily')
-        .maybeSingle();
+      const { data: submissionData } = await fetchSubmission(user.id, period.id, 'daily');
       return {
         period,
         template,
@@ -206,23 +90,14 @@ export default function DailyPulseClient({ user }: { user: { id: string } }) {
     const monthEnd = new Date(today.getFullYear(), today.getMonth() + 1, 0, 23, 59, 59);
     const monthStartStr = monthStart.toISOString();
     const monthEndStr = monthEnd.toISOString();
-    const { data: allPeriodUsers } = await supabase
-      .from('submission_period_users')
-      .select('*, submission_periods!inner(*)')
-      .eq('user_id', user.id)
-      .eq('submission_periods.period_type', 'daily')
-      .gte('submission_periods.start_date', monthStartStr)
-      .lte('submission_periods.end_date', monthEndStr);
+    const { data: allPeriodUsers } = await fetchMonthPeriods(user.id, monthStartStr, monthEndStr);
     const periods = (allPeriodUsers || []).map((pu: { submission_periods: SubmissionPeriod }) => pu.submission_periods);
     setMonthPeriods(periods);
     // Fetch all templates for these periods
     const templateIds = Array.from(new Set(periods.map((p: SubmissionPeriod) => p.template_id)));
     const templateMap: Record<string, Template> = {};
     if (templateIds.length > 0) {
-      const { data: templatesData } = await supabase
-        .from('templates')
-        .select('id, name, description')
-        .in('id', templateIds);
+      const { data: templatesData } = await fetchTemplatesByIds(templateIds);
       (templatesData || []).forEach((t: Template) => {
         templateMap[t.id] = t;
       });
@@ -232,23 +107,14 @@ export default function DailyPulseClient({ user }: { user: { id: string } }) {
     const periodIds = periods.map((p: SubmissionPeriod) => p.id);
     let allSubmissions: Submission[] = [];
     if (periodIds.length > 0) {
-      const { data: allSubs } = await supabase
-        .from('submissions')
-        .select('*')
-        .eq('user_id', user.id)
-        .eq('type', 'daily')
-        .in('submission_period_id', periodIds);
+      const { data: allSubs } = await fetchSubmissions(user.id, 'daily', periodIds);
       allSubmissions = allSubs || [];
     }
     setMonthSubmissions(allSubmissions);
     // Also build questionsByTemplateId for all templates in the month
     const questionsByTemplateId: Record<string, Question[]> = {};
     if (templateIds.length > 0) {
-      const { data: allQuestionsData } = await supabase
-        .from('template_questions')
-        .select('template_id, questions(*)')
-        .in('template_id', templateIds)
-        .order('display_order', { ascending: true });
+      const { data: allQuestionsData } = await fetchQuestionsByTemplateIds(templateIds);
       for (const row of allQuestionsData || []) {
         if (!row.template_id) continue;
         if (!questionsByTemplateId[row.template_id]) questionsByTemplateId[row.template_id] = [];
@@ -278,44 +144,18 @@ export default function DailyPulseClient({ user }: { user: { id: string } }) {
   async function handleSubmit(idx: number, e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setTodayPeriods(prev => prev.map((f, i) => i === idx ? { ...f, submitting: true, submitError: null } : f));
-    const supabase = createClient();
     const form = todayPeriods[idx].form;
     const period = todayPeriods[idx].period;
     const questions = todayPeriods[idx].questions;
     try {
-      // 1. Insert submission
-      const { data: submission, error: submissionError } = await supabase
-        .from('submissions')
-        .insert({
-          user_id: user.id,
-          submission_period_id: period.id,
-          submitted_at: new Date().toISOString(),
-          type: 'daily',
-        })
-        .select()
-        .single();
-      if (submissionError || !submission) {
-        setTodayPeriods(prev => prev.map((f, i) => i === idx ? { ...f, submitting: false, submitError: 'Failed to submit check-in. Please try again.' } : f));
-        return;
-      }
-      // 2. Insert answers
-      const answers = questions.map((q: Question) => {
-        let answer = form[q.id];
-        // If answer is an array (e.g., checkbox), store as JSON string
-        if (Array.isArray(answer)) {
-          answer = JSON.stringify(answer);
-        }
-        return {
-          submission_id: submission.id,
-          question_id: q.id,
-          answer: answer || '',
-        };
+      const result = await submitDailyPulse({
+        userId: user.id,
+        periodId: period.id,
+        questions,
+        form,
       });
-      const { error: answersError } = await supabase
-        .from('submission_answers')
-        .insert(answers);
-      if (answersError) {
-        setTodayPeriods(prev => prev.map((f, i) => i === idx ? { ...f, submitting: false, submitError: 'Failed to save answers. Please try again.' } : f));
+      if (result.error) {
+        setTodayPeriods(prev => prev.map((f, i) => i === idx ? { ...f, submitting: false, submitError: result.error + ' Please try again.' } : f));
         return;
       }
       setTodayPeriods(prev => prev.map((f, i) => i === idx ? { ...f, submitted: true, submitting: false } : f));
@@ -325,40 +165,8 @@ export default function DailyPulseClient({ user }: { user: { id: string } }) {
   }
 
   // Handler for form field change
-  function handleChange(
-    idx: number,
-    e:
-      | React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
-      | { target: { name: string; value: string | string[]; type: string; checked?: boolean } }
-  ) {
-    // Normalize event
-    const { name, value, type, checked } =
-      'target' in e && typeof e.target === 'object'
-        ? {
-            name: e.target.name,
-            value: e.target.value,
-            type: e.target.type,
-            checked: 'checked' in e.target ? (e.target as { checked?: boolean }).checked : undefined,
-          }
-        : { name: '', value: '', type: '', checked: false };
-    setTodayPeriods(prev =>
-      prev.map((f, i) => {
-        if (i !== idx) return f;
-        const newForm = { ...f.form };
-        if (type === 'checkbox') {
-          const prevArr = Array.isArray(newForm[name]) ? (newForm[name] as string[]) : [];
-          if (checked) {
-            newForm[name] = [...prevArr, value as string];
-          } else {
-            newForm[name] = prevArr.filter((v: string) => v !== value);
-          }
-        } else {
-          newForm[name] = value;
-        }
-        return { ...f, form: newForm };
-      })
-    );
-  }
+  const handleChange = (idx: number, e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement> | { target: { name: string; value: string | string[]; type: string; checked?: boolean } }) =>
+    handleFormFieldChangeArray(setTodayPeriods, idx)(e);
 
   // Calendar/History helpers
   const today = new Date();
@@ -456,39 +264,22 @@ export default function DailyPulseClient({ user }: { user: { id: string } }) {
       </div>
       {/* Daily Check-in Fill Forms */}
       {todayPeriods.map((f, idx) => (
-        <Card key={f.period.id} className="mb-8 border-green-400 shadow-lg">
-          <CardContent className="py-6">
-            {f.submitError && (
-              <div className="mb-4 text-red-500 text-sm font-semibold text-center">{f.submitError}</div>
-            )}
-            <div className="mb-4 flex items-center gap-3">
-              <span className="text-lg font-bold text-green-700">{f.template?.name || 'Daily Check-in'} {!f.submitted && 'needs your response!'}</span>
-              {!f.submitted && <Badge className="bg-yellow-400 text-white flex items-center gap-1"><span>⏰</span>Not Submitted</Badge>}
-              {f.submitted && <Badge className="bg-green-500 text-white flex items-center gap-1"><span>✅</span>Submitted</Badge>}
-            </div>
-            {!f.submitted && (
-              <form className="space-y-4" onSubmit={e => handleSubmit(idx, e)}>
-                {f.questions.map((q: Question) => (
-                  <div key={`${f.period.id}-${q.id}`}>
-                    <label className="block text-sm font-medium mb-1 text-gray-700">{q.title}</label>
-                    <DailyPulseQuestionField
-                      q={q}
-                      value={f.form[q.id]}
-                      submitting={f.submitting}
-                      onChange={e => handleChange(idx, e)}
-                    />
-                  </div>
-                ))}
-                <Button type="submit" className="bg-green-500 hover:bg-green-600 text-white w-full mt-2" disabled={f.submitting}>
-                  {f.submitting ? 'Submitting...' : 'Submit Daily Check-in'}
-                </Button>
-              </form>
-            )}
-            {f.submitted && (
-              <div className="text-green-700 font-semibold text-center py-4">✅ Daily Check-in submitted! Have a great day!</div>
-            )}
-          </CardContent>
-        </Card>
+        <div key={f.period.id}>
+          {!f.submitted ? (
+            <DailyPulseFormInner
+              form={f.form}
+              questions={f.questions}
+              submitting={f.submitting}
+              submitError={f.submitError}
+              onChange={e => handleChange(idx, e)}
+              onSubmit={e => handleSubmit(idx, e)}
+              template={f.template}
+              submitLabel="Submit Daily Check-in"
+            />
+          ) : (
+            <div className="text-green-700 font-semibold text-center py-4">✅ Daily Check-in submitted! Have a great day!</div>
+          )}
+        </div>
       ))}
       {/* Calendar View */}
       <DailyPulseCalendar
