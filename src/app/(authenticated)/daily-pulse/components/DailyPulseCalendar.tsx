@@ -1,23 +1,6 @@
-// This file has been moved from the root of daily-pulse to components/DailyPulseCalendar.tsx. 
-
 import React from 'react';
+import type { SubmissionPeriod, Submission } from '@/types/followup';
 
-// Types matching the structure from DailyPulseClient and submissions table
-export interface SubmissionPeriod {
-  id: string;
-  period_type: string;
-  start_date: string;
-  end_date: string;
-  template_id: string;
-}
-
-export interface Submission {
-  id: string;
-  submission_period_id: string;
-  submitted_at: string;
-  user_id: string;
-  type: string;
-}
 
 interface DailyPulseCalendarProps {
   monthDays: Date[];

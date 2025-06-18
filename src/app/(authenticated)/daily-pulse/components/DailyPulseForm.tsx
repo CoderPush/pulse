@@ -1,24 +1,9 @@
 import React, { useState } from 'react';
-import { SubmissionPeriod } from './DailyPulseCalendar';
 import { submitDailyPulse } from '../actions';
 import DailyPulseFormInner from './DailyPulseFormInner';
 import { handleFormFieldChange } from './handleFormFieldChange';
+import type { Question, Template, SubmissionPeriod } from '@/types/followup';
 
-interface Template {
-  id: string;
-  name: string;
-  description: string;
-}
-
-export interface Question {
-  id: string;
-  title?: string;
-  text?: string;
-  type: string;
-  description?: string;
-  required?: boolean;
-  choices?: string[];
-}
 
 interface DailyPulseFormProps {
   user: { id: string };

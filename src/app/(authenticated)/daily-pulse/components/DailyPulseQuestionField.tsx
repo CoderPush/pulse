@@ -1,16 +1,7 @@
 import React from 'react';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
-
-export interface Question {
-  id: string;
-  title?: string;
-  text?: string;
-  type: string;
-  description?: string;
-  required?: boolean;
-  choices?: string[];
-}
+import type { Question } from '@/types/followup';
 
 export function DailyPulseQuestionField({ q, value, onChange, submitting }: {
   q: Question;

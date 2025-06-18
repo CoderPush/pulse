@@ -5,7 +5,6 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { CalendarDays } from 'lucide-react';
 import DailyPulseCalendar from './DailyPulseCalendar';
 import DailyPulseHistoryTable from './DailyPulseHistoryTable';
-import { SubmissionPeriod, Submission } from './DailyPulseCalendar';
 import DailyPulseFormInner from './DailyPulseFormInner';
 import { handleFormFieldChangeArray } from './handleFormFieldChange';
 import {
@@ -18,7 +17,7 @@ import {
   fetchSubmissions,
   submitDailyPulse
 } from '../actions';
-import type { Template, Question, DailyPeriodForm } from '@/types/followup';
+import type { Template, Question, DailyPeriodForm, Submission, SubmissionPeriod } from '@/types/followup';
 
 export default function DailyPulseClient({ user }: { user: { id: string } }) {
   const [loading, setLoading] = useState(true);

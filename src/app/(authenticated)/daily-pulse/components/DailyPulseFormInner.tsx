@@ -1,26 +1,9 @@
-// This file has been moved from the root of daily-pulse to components/DailyPulseFormInner.tsx. 
-
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 import { DailyPulseQuestionField } from './DailyPulseQuestionField';
-
-interface Template {
-  id: string;
-  name: string;
-  description: string;
-}
-
-export interface Question {
-  id: string;
-  title?: string;
-  text?: string;
-  type: string;
-  description?: string;
-  required?: boolean;
-  choices?: string[];
-}
+import type { Question, Template } from '@/types/followup';
 
 interface DailyPulseFormInnerProps {
   form: Record<string, string | string[]>;

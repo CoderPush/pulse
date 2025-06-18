@@ -1,28 +1,12 @@
-// This file has been moved from the root of daily-pulse to components/DailyPulseHistoryTable.tsx. 
 
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Eye } from 'lucide-react';
 import React, { useState, useEffect } from 'react';
-import { SubmissionPeriod, Submission } from './DailyPulseCalendar';
 import { fetchSubmissionAnswers, refetchMonthSubmissions } from '../actions';
 import DailyPulseForm from './DailyPulseForm';
 import { useToast } from '@/components/ui/use-toast';
-import type { Question } from './DailyPulseForm';
-
-interface Template {
-  id: string;
-  name: string;
-  description: string;
-  questions?: { id: string; title: string }[];
-}
-
-interface SubmissionAnswer {
-  id: string;
-  submission_id: string;
-  question_id: string;
-  answer: string | string[];
-}
+import type { Question, Template, SubmissionPeriod, Submission, SubmissionAnswer } from '@/types/followup';
 
 interface DailyPulseHistoryTableProps {
   monthDays: Date[];

@@ -14,6 +14,7 @@ export async function fetchTodayPeriods(userId: string, nowStr: string) {
 
 // Fetch all questions for a set of template IDs
 export async function fetchQuestionsByTemplateIds(templateIds: string[]) {
+  if (!templateIds.length) return { data: [], error: null };
   const supabase = createClient();
   return supabase
     .from('template_questions')
@@ -58,6 +59,7 @@ export async function fetchMonthPeriods(userId: string, monthStartStr: string, m
 
 // Fetch all templates by IDs
 export async function fetchTemplatesByIds(templateIds: string[]) {
+  if (!templateIds.length) return { data: [], error: null };
   const supabase = createClient();
   return supabase
     .from('templates')

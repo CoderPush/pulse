@@ -8,8 +8,6 @@ export function handleFormFieldChange(
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement> | { target: { name: string; value: string | string[]; type: string; checked?: boolean } }
   ) => {
     if (
-      !('target' in e) ||
-      typeof e.target !== 'object' ||
       typeof e.target.name !== 'string' ||
       typeof e.target.value === 'undefined'
     ) {

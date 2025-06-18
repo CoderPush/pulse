@@ -23,7 +23,8 @@ export type FollowUpQuestion = {
 export type Template = {
   id: string;
   name: string;
-  description: string;
+  description: string | null;
+  questions?: Question[];
 };
 
 export type Question = {
@@ -62,3 +63,10 @@ export type DailyPeriodForm = {
   submitting: boolean;
   submitError: string | null;
 }; 
+
+export type SubmissionAnswer = {
+  id: string;
+  submission_id: string;
+  question_id: string;
+  answer: string | string[];
+};
