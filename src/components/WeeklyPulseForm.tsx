@@ -303,7 +303,7 @@ export default function WeeklyPulseForm({
     },
     render: (props) => {
       const screenName = props.args.screenName;
-      if (!screenName || !screenNameToScreenNumberMapping[screenName]) {
+      if (!screenName || !screenNameToScreenNumberMapping[screenName] || screenNameToScreenNumberMapping[screenName] === totalScreens - 1) {
         return <></>
       }
 

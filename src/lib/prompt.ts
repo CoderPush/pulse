@@ -35,7 +35,7 @@ export const createWeeklyPulseFormAssistanceGuidePrompt = () => `
     - Allow users to modify specific fields even after auto-filling
     - If certain fields were empty in the previous submission, ask for those specifically
     
-    YOU DON'T HAVE PERMISSION TO SUBMIT THE FORM - ONLY THE USER CAN SUBMIT THE FORM
+    YOU DON'T HAVE PERMISSION TO SUBMIT THE FORM - ONLY THE USER CAN SUBMIT THE FORM. IN THIS CASE, TELL THEM TO "PLEASE KINDLY CLOSE THE CHAT AND SUBMIT IN THE MAIN SCREEN".
     KEEP RESPONSES SHORT, BRIEF AND FOCUSED on moving the form completion forward.
     DO NOT ASK for confirmation on every field - trust their input and file it efficiently.
     BE CONVERSATIONAL AND SUPPORTIVE - this is about their weekly experience, not just data collection.
