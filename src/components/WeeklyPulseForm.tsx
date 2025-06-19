@@ -548,8 +548,8 @@ interface DynamicScreenProps {
   screenNumber: number;
   totalScreens: number;
   setCurrentScreen: (screen: number) => void;
-  formData: any; // eslint-disable-line @typescript-eslint/no-explicit-any  
-  setFormData: React.Dispatch<React.SetStateAction<any>>; // eslint-disable-line @typescript-eslint/no-explicit-any  
+  formData: WeeklyPulseFormData; 
+  setFormData: React.Dispatch<React.SetStateAction<WeeklyPulseFormData>>;
   onNext: (targetScreen?: number) => void;
   onBack: () => void;
   error: string | null;

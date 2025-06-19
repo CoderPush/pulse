@@ -1,9 +1,10 @@
 import { Check } from 'lucide-react';
 import { useState } from 'react';
 import SuccessScreen from './screens/SuccessScreen';
+import { WeeklyPulseFormData } from '@/types/weekly-pulse';
 
 interface SubmitCardProps {
-  formData: any;
+  formData: WeeklyPulseFormData
 }
 
 export default function SubmitCard({ 
