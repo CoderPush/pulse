@@ -17,6 +17,7 @@ import { getISOWeek } from 'date-fns/getISOWeek';
 import MultipleChoiceScreen from './screens/MultipleChoiceScreen';
 import { useCopilotReadable, useCopilotAction, useCopilotAdditionalInstructions } from '@copilotkit/react-core';
 import { motion } from 'framer-motion';
+import SubmitCard from './SubmitCard';
 
 interface WeeklyPulseFormProps {
   user: User;
@@ -91,6 +92,10 @@ export default function WeeklyPulseForm({
       MUST NAVIAGE TO 'review' SCREEN WHENEVER DISPLAYING SUMMARY OF THE SUBMISSION TO USER
       NOTIFY THE USER WHEN YOU NAVIGATE TO A NEW SCREEN
 
+    2. navigateToSubmitScreen:
+      Used to navigate to the submit screen. Parameters: None
+      MUST BE CALLED WHENEVER ASKING USER TO SUBMIT THE FORM
+
     2. weeklyPulseFormAction:
       Used to update form data fields. Parameters:
       - primaryProject: string - Primary project name
@@ -107,6 +112,9 @@ export default function WeeklyPulseForm({
     Example usage:
     1. Navigate to manager screen:
     navigateToScreenAction({screenName: "manager"})
+
+    2. Submitting the form:
+    navigateToSubmitScreen()
 
     2. Update primary project:
     weeklyPulseFormAction({primaryProject: "Project A", primaryProjectHours: 40})
@@ -346,6 +354,23 @@ export default function WeeklyPulseForm({
     }
   }, [questions, formData, setFormData, error, projects, weekNumber, currentYear, totalScreens, setCurrentScreen]);
 
+  // Create a copilot action which go to the submit screen when the user want to submi
+  useCopilotAction({
+    name: "navigateToSubmitScreen",
+    description: "Actions for navigating to the submit screen.",
+    render: () => {
+      return (
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3 }}
+          className="flex-1 h-fit w-[90vw] lg:w-[400px] rounded-xl border border-neutral-200 shadow-lg"
+        >
+          <SubmitCard formData={formData}/>
+        </motion.div>
+      );
+    }
+  }, [formData]);
   useEffect(() => {
     async function fetchQuestions() {
       setLoadingQuestions(true);
