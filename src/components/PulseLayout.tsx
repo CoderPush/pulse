@@ -8,14 +8,15 @@ import { createWeeklyPulseFormAssistanceGuidePrompt } from '@/lib/prompt';
 import { getGreeting } from '@/utils/getGreetings';
 import { getDisplayName } from '@/lib/auth/user';
 import { X, MessageSquare } from 'lucide-react';
+import { WeeklyPulseSubmission } from '@/types/weekly-pulse';
 
 interface PulseLayoutProps {
   user: User;
   weekNumber: number;
   currentYear: number;
   hasSubmittedThisWeek: boolean;
-  projects: any[];
-  previousSubmission: any;
+  projects: Array<{ id: string; name: string }>;
+  previousSubmission: WeeklyPulseSubmission;
 }
 
 export default function PulseLayout({

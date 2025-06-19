@@ -3,9 +3,7 @@ import { redirect } from 'next/navigation'
 import { getMostRecentThursdayWeek } from '@/lib/utils/date'
 import type { User } from '@supabase/supabase-js'
 import CopilotProvider from '@/components/CopilotProvider';
-import { getDisplayName } from '@/lib/auth/user'
 import PulseLayout from '@/components/PulseLayout';
-
 
 interface HomeProps {
   searchParams: Promise<{
@@ -22,7 +20,6 @@ export default async function HomePage({ searchParams }: HomeProps) {
   }
 
   const user: User = maybeUser
-  const userName = getDisplayName(user);
 
   // Fetch 20 most recent submissions for the current user
   const { data: submissions, error } = await supabase

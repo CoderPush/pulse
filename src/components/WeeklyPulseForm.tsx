@@ -519,12 +519,12 @@ export default function WeeklyPulseForm({
 
 interface DynamicScreenProps {
   questions: Question[];
-  screenCommonProps: any;
+  screenCommonProps: any; // eslint-disable-line @typescript-eslint/no-explicit-any  
   screenNumber: number;
   totalScreens: number;
   setCurrentScreen: (screen: number) => void;
-  formData: any;
-  setFormData: React.Dispatch<React.SetStateAction<any>>;
+  formData: any; // eslint-disable-line @typescript-eslint/no-explicit-any  
+  setFormData: React.Dispatch<React.SetStateAction<any>>; // eslint-disable-line @typescript-eslint/no-explicit-any  
   onNext: (targetScreen?: number) => void;
   onBack: () => void;
   error: string | null;
