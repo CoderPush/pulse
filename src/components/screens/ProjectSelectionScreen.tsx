@@ -303,7 +303,7 @@ export default function ProjectSelectionScreen({ onNext, formData, setFormData, 
       
       {!hideButton && (
         <motion.div 
-          className="fixed bottom-0 left-0 right-0 w-full bg-white/80 backdrop-blur-sm p-4 border-t border-gray-200 z-10"
+          className="absolute bottom-0 left-0 right-0 w-full bg-white/80 backdrop-blur-sm p-4 border-t border-gray-200 z-10"
           initial={{ opacity: 0, y: 50 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4, delay: 0.5, type: "spring" }}

@@ -16,6 +16,7 @@ import SubmissionSuccessScreen from './screens/SubmissionSuccessScreen';
 import { getISOWeek } from 'date-fns/getISOWeek';
 import MultipleChoiceScreen from './screens/MultipleChoiceScreen';
 import { useCopilotReadable, useCopilotAction, useCopilotAdditionalInstructions } from '@copilotkit/react-core';
+import { motion } from 'framer-motion';
 
 interface WeeklyPulseFormProps {
   user: User;
@@ -322,7 +323,12 @@ export default function WeeklyPulseForm({
         hideButton: true, 
       };
       return (
-        <div className="flex-1 py-12 flex flex-col h-fit max-h-[400px] lg:max-h-[600px] w-[90vw] lg:w-[400px] rounded-xl border border-neutral-200 shadow-lg overflow-y-auto">
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3 }}
+          className="flex-1 py-12 flex flex-col h-fit max-h-[400px] lg:max-h-[600px] w-[90vw] lg:w-[400px] rounded-xl border border-neutral-200 shadow-lg overflow-y-auto"
+        >
           <DynamicScreen
             questions={questions || []}
             screenCommonProps={screenCommonProps}
@@ -335,7 +341,7 @@ export default function WeeklyPulseForm({
             onBack={handleBack}
             error={error}
           />
-        </div>
+        </motion.div>
       );
     }
   }, [questions, formData, setFormData, error, projects, weekNumber, currentYear, totalScreens, setCurrentScreen]);
