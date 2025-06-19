@@ -10,10 +10,10 @@ import {
   Legend,
   ResponsiveContainer,
 } from "recharts";
-import { useMemo, useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useMemo, useState, useEffect } from "react";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { TrendingUp, BarChart3, ChevronLeft, ChevronRight } from "lucide-react";
+import { BarChart3, ChevronLeft, ChevronRight } from "lucide-react";
 
 type ChartDataPoint = {
   week: number;
@@ -33,13 +33,19 @@ export default function ProjectLineChart({ data, weekMeta }: Props) {
     [data]
   );
 
+  // Pagination state for weeks
+  const WINDOW_SIZE = 3;
+  const [windowStart, setWindowStart] = useState(0);
+  const maxWindowStart = Math.max(0, data.length - WINDOW_SIZE);
+  const visibleData = data.slice(windowStart, windowStart + WINDOW_SIZE);
+
   // Project visibility state
   const [visibleProjects, setVisibleProjects] = useState<
     Record<string, boolean>
   >(() => Object.fromEntries(allProjectNames.map((name) => [name, true])));
 
   // Update visibleProjects if project list changes
-  useMemo(() => {
+  useEffect(() => {
     setVisibleProjects((prev) => {
       const next: Record<string, boolean> = {};
       for (const name of allProjectNames) {
@@ -47,7 +53,7 @@ export default function ProjectLineChart({ data, weekMeta }: Props) {
       }
       return next;
     });
-  }, [allProjectNames.join(",")]);
+  }, [allProjectNames]);
 
   const totalHoursPerWeek = useMemo(() => {
     return data.map((d) => {
@@ -82,17 +88,30 @@ export default function ProjectLineChart({ data, weekMeta }: Props) {
     return colors[index % colors.length];
   }
 
-  const CustomTooltip = ({ active, payload, label }: any) => {
-    if (!active || !payload || payload.length === 0) return null;
+  type TooltipPayload = {
+    name: string;
+    value: number;
+    color: string;
+  };
+
+  type CustomTooltipProps = {
+    active?: boolean;
+    payload?: TooltipPayload[];
+    label?: number;
+  };
+
+  const CustomTooltip = ({ active, payload, label }: CustomTooltipProps) => {
+    if (!active || !payload || payload.length === 0 || label === undefined)
+      return null;
 
     let shownPayload = payload;
 
     if (hoveredProject) {
-      shownPayload = payload.filter((p: any) => p.name === hoveredProject);
+      shownPayload = payload.filter((p) => p.name === hoveredProject);
     }
 
     const total = shownPayload.reduce(
-      (sum: number, entry: any) => sum + (entry?.value ?? 0),
+      (sum, entry) => sum + (entry?.value ?? 0),
       0
     );
 
@@ -115,11 +134,13 @@ export default function ProjectLineChart({ data, weekMeta }: Props) {
               Week {label}
             </p>
             {weekDates && (
-              <p className="text-xs text-blue-500 dark:text-blue-200 mt-0.5">{weekDates}</p>
+              <p className="text-xs text-blue-500 dark:text-blue-200 mt-0.5">
+                {weekDates}
+              </p>
             )}
           </div>
         </div>
-        {shownPayload.map((entry: any, i: number) => (
+        {shownPayload.map((entry, i) => (
           <div
             key={i}
             className="flex items-center justify-between gap-3 bg-white/50 dark:bg-gray-700/50 rounded-lg p-2 border border-blue-100 dark:border-blue-800"
@@ -185,19 +206,21 @@ export default function ProjectLineChart({ data, weekMeta }: Props) {
               target.style.setProperty("--scrollbar-thumb", "#cbd5e1");
             }}
           >
-            {totalHoursPerWeek.map(({ week, total }) => (
-              <div
-                key={week}
-                className="relative flex items-center bg-gradient-to-br from-amber-100 to-yellow-100 dark:from-amber-900 dark:to-yellow-900 rounded-xl shadow-md border-l-4 border-amber-400 px-3 py-2"
-              >
-                <span className="min-w-15 text-amber-800 dark:text-amber-200 text-sm font-medium">
-                  Week {week}
-                </span>
-                <Badge className="bg-sky-200 text-amber-900 ml-2 font-bold shadow-sm">
-                  {total}h
-                </Badge>
-              </div>
-            ))}
+            {totalHoursPerWeek
+              .slice(windowStart, windowStart + WINDOW_SIZE)
+              .map(({ week, total }) => (
+                <div
+                  key={week}
+                  className="relative flex items-center bg-gradient-to-br from-amber-100 to-yellow-100 dark:from-amber-900 dark:to-yellow-900 rounded-xl shadow-md border-l-4 border-amber-400 px-3 py-2"
+                >
+                  <span className="min-w-15 text-amber-800 dark:text-amber-200 text-sm font-medium">
+                    Week {week}
+                  </span>
+                  <Badge className="bg-sky-200 text-amber-900 ml-2 font-bold shadow-sm">
+                    {total}h
+                  </Badge>
+                </div>
+              ))}
           </div>
         </div>
 
@@ -206,7 +229,7 @@ export default function ProjectLineChart({ data, weekMeta }: Props) {
           <div className="w-full h-[420px]">
             <ResponsiveContainer width="100%" height="100%">
               <LineChart
-                data={data}
+                data={visibleData}
                 margin={{ top: 20, right: 30, left: 20, bottom: 20 }}
                 onMouseLeave={() => setHoveredProject(null)}
               >
@@ -286,6 +309,37 @@ export default function ProjectLineChart({ data, weekMeta }: Props) {
               </LineChart>
             </ResponsiveContainer>
           </div>
+        </div>
+
+        {/* Pagination Controls */}
+        <div className="flex items-center justify-center gap-4 mb-4">
+          <button
+            onClick={() => setWindowStart((prev) => Math.max(0, prev - 1))}
+            disabled={windowStart === 0}
+            className={`p-2 rounded-full border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 shadow transition disabled:opacity-40 disabled:cursor-not-allowed`}
+            aria-label="Previous weeks"
+          >
+            <ChevronLeft className="w-5 h-5" />
+          </button>
+          <span className="text-sm font-medium text-blue-700 dark:text-blue-300">
+            Weeks {data[windowStart]?.week}
+            {windowStart + 1 < data.length
+              ? ` - ${
+                  data[Math.min(windowStart + WINDOW_SIZE - 1, data.length - 1)]
+                    ?.week
+                }`
+              : ""}
+          </span>
+          <button
+            onClick={() =>
+              setWindowStart((prev) => Math.min(maxWindowStart, prev + 1))
+            }
+            disabled={windowStart >= maxWindowStart}
+            className={`p-2 rounded-full border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 shadow transition disabled:opacity-40 disabled:cursor-not-allowed`}
+            aria-label="Next weeks"
+          >
+            <ChevronRight className="w-5 h-5" />
+          </button>
         </div>
 
         {/* Project Toggle Panel */}
