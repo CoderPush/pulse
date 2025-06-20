@@ -1,17 +1,17 @@
 // Chart and weekMeta utilities for Weekly Pulse
 
-type Submission = {
+export interface Submission {
   week_number: number;
   primary_project_name: string;
   primary_project_hours: number;
-  additional_projects?: { name: string; hours: number }[];
-};
+  additional_projects?: Array<{ name: string; hours: number }>;
+}
 
-type Week = {
+export interface WeekData {
   week_number: number;
   start_date: string;
   end_date: string;
-};
+}
 
 export type ChartDataPoint = {
   week: number;
@@ -45,7 +45,7 @@ export function prepareChartData(submissions: Submission[]): ChartDataPoint[] {
     });
 }
 
-export function buildWeekMeta(allWeeks: Week[]): Record<number, { start_date: string; end_date: string }> {
+export function buildWeekMeta(allWeeks: WeekData[]): Record<number, { start_date: string; end_date: string }> {
   const weekMeta: Record<number, { start_date: string; end_date: string }> = {};
   (allWeeks || []).forEach((w) => {
     weekMeta[w.week_number] = {

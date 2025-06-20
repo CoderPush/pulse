@@ -391,7 +391,7 @@ export default async function HistoryPage({
                   </div>
                 )}
 
-                {submission && submission.id && (
+                {submission?.id && (
                   <SubmissionComments
                     submissionId={submission.id}
                     currentUserId={user.id}

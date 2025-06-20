@@ -14,11 +14,7 @@ import { useMemo, useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { BarChart3, ChevronLeft, ChevronRight } from "lucide-react";
-
-type ChartDataPoint = {
-  week: number;
-  [projectName: string]: number | string;
-};
+import { ChartDataPoint } from "@/lib/utils/chart";
 
 type Props = {
   data: ChartDataPoint[];
@@ -34,10 +30,17 @@ type TooltipPayload = {
 export default function ProjectLineChart({ data, weekMeta }: Props) {
   const [hoveredProject, setHoveredProject] = useState<string | null>(null);
 
-  const allProjectNames = useMemo(
-    () => Object.keys(data[0] || {}).filter((key) => key !== "week"),
-    [data]
-  );
+  const allProjectNames = useMemo(() => {
+    const projectNamesSet = new Set<string>();
+    data.forEach(dataPoint => {
+      Object.keys(dataPoint).forEach(key => {
+        if (key !== "week") {
+          projectNamesSet.add(key);
+        }
+      });
+    });
+    return Array.from(projectNamesSet);
+  }, [data]);
 
   // Pagination state for weeks
   const WINDOW_SIZE = 3;
@@ -71,27 +74,21 @@ export default function ProjectLineChart({ data, weekMeta }: Props) {
     });
   }, [data, allProjectNames]);
 
-  // Colors of the project lines
-  function getProjectColor(index: number) {
+  const projectColors = useMemo(() => {
     const colors = [
-      "#0ea5e9", // sky-500
-      "#f59e0b", // amber-500
-      "#10b981", // emerald-500
-      "#8b5cf6", // violet-500
-      "#f97316", // orange-500
-      "#06b6d4", // cyan-500
-      "#84cc16", // lime-500
-      "#ec4899", // pink-500
-      "#ef4444", // red-500
-      "#6366f1", // indigo-500
-      "#14b8a6", // teal-500
-      "#f97316", // orange-500
-      "#a855f7", // purple-500
-      "#22c55e", // green-500
-      "#3b82f6", // blue-500
-      "#fb7185", // rose-500
+      "#0ea5e9", "#f59e0b", "#10b981", "#8b5cf6", "#f97316", "#06b6d4",
+      "#84cc16", "#ec4899", "#ef4444", "#6366f1", "#14b8a6", "#a855f7",
+      "#22c55e", "#3b82f6", "#fb7185",
     ];
-    return colors[index % colors.length];
+    const mapping: Record<string, string> = {};
+    allProjectNames.forEach((project, idx) => {
+      mapping[project] = colors[idx % colors.length];
+    });
+    return mapping;
+  }, [allProjectNames]);
+
+  function getProjectColor(projectName: string) {
+    return projectColors[projectName] || "#000000";
   }
 
   return (
@@ -185,7 +182,14 @@ export default function ProjectLineChart({ data, weekMeta }: Props) {
                     fontWeight: 600,
                   }}
                 />
-                <Tooltip content={<CustomTooltip weekMeta={weekMeta} hoveredProject={hoveredProject} />} />
+                <Tooltip
+                  content={
+                    <CustomTooltip
+                      weekMeta={weekMeta}
+                      hoveredProject={hoveredProject}
+                    />
+                  }
+                />
                 <Legend
                   verticalAlign="top"
                   height={50}
@@ -196,9 +200,9 @@ export default function ProjectLineChart({ data, weekMeta }: Props) {
                     fontWeight: 500,
                   }}
                 />
-                {allProjectNames.map((project, i) => {
+                {allProjectNames.map((project) => {
                   if (!visibleProjects[project]) return null;
-                  const color = getProjectColor(i);
+                  const color = getProjectColor(project);
                   return (
                     <Line
                       key={project}
@@ -261,7 +265,13 @@ type CustomTooltipProps = {
   hoveredProject?: string | null;
 };
 
-function CustomTooltip({ active, payload, label, weekMeta, hoveredProject }: CustomTooltipProps) {
+function CustomTooltip({
+  active,
+  payload,
+  label,
+  weekMeta,
+  hoveredProject,
+}: CustomTooltipProps) {
   if (!active || !payload || payload.length === 0 || label === undefined)
     return null;
 
@@ -278,7 +288,7 @@ function CustomTooltip({ active, payload, label, weekMeta, hoveredProject }: Cus
 
   // Get week start/end dates
   let weekDates: string | null = null;
-  if (weekMeta && weekMeta[label]) {
+  if (weekMeta?.[label]) {
     const { start_date, end_date } = weekMeta[label];
     // Format as YYYY-MM-DD
     const start = new Date(start_date).toISOString().slice(0, 10);
@@ -344,7 +354,13 @@ type PaginationControlsProps = {
   WINDOW_SIZE: number;
 };
 
-function PaginationControls({ windowStart, setWindowStart, maxWindowStart, data, WINDOW_SIZE }: PaginationControlsProps) {
+function PaginationControls({
+  windowStart,
+  setWindowStart,
+  maxWindowStart,
+  data,
+  WINDOW_SIZE,
+}: PaginationControlsProps) {
   return (
     <div className="flex items-center justify-center gap-4 mb-4">
       <button
@@ -359,7 +375,8 @@ function PaginationControls({ windowStart, setWindowStart, maxWindowStart, data,
         Weeks {data[windowStart]?.week}
         {windowStart + 1 < data.length
           ? ` - ${
-              data[Math.min(windowStart + WINDOW_SIZE - 1, data.length - 1)]?.week
+              data[Math.min(windowStart + WINDOW_SIZE - 1, data.length - 1)]
+                ?.week
             }`
           : ""}
       </span>
@@ -380,17 +397,24 @@ function PaginationControls({ windowStart, setWindowStart, maxWindowStart, data,
 type ProjectTogglePanelProps = {
   allProjectNames: string[];
   visibleProjects: Record<string, boolean>;
-  setVisibleProjects: React.Dispatch<React.SetStateAction<Record<string, boolean>>>;
-  getProjectColor: (i: number) => string;
+  setVisibleProjects: React.Dispatch<
+    React.SetStateAction<Record<string, boolean>>
+  >;
+  getProjectColor: (projectName: string) => string;
 };
 
-function ProjectTogglePanel({ allProjectNames, visibleProjects, setVisibleProjects, getProjectColor }: ProjectTogglePanelProps) {
+function ProjectTogglePanel({
+  allProjectNames,
+  visibleProjects,
+  setVisibleProjects,
+  getProjectColor,
+}: ProjectTogglePanelProps) {
   return (
     <div className="flex flex-wrap gap-3 items-center my-4">
       <span className="text-sm font-semibold text-blue-700 dark:text-blue-300 mr-2">
         Toggle Projects:
       </span>
-      {allProjectNames.map((project, i) => (
+      {allProjectNames.map((project) => (
         <label
           key={project}
           className="flex items-center gap-1 cursor-pointer select-none"
@@ -410,7 +434,7 @@ function ProjectTogglePanel({ allProjectNames, visibleProjects, setVisibleProjec
             className="text-xs font-medium"
             style={{
               color: visibleProjects[project]
-                ? getProjectColor(i)
+                ? getProjectColor(project)
                 : "#94a3b8",
             }}
           >
