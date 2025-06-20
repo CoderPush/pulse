@@ -34,7 +34,7 @@ export default function NavBar({ user }: NavBarProps) {
   const userInitials = getInitials(user.email);
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b bg-white dark:bg-gray-950 shadow-sm">
+    <header className="sticky top-0 z-[110] w-full border-b bg-white dark:bg-gray-950 shadow-sm">
       <nav className="container mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex h-16 items-center justify-between">
           {/* Logo/Brand */}
@@ -44,7 +44,7 @@ export default function NavBar({ user }: NavBarProps) {
               className="flex items-center space-x-2 text-xl font-semibold hover:opacity-90 transition-opacity group"
             >
               <LineChart className="h-6 w-6 text-blue-600 dark:text-blue-400 group-hover:scale-110 transition-transform" />
-              <span className="text-blue-600 dark:text-blue-400">Weekly Pulse</span>
+              <span className="text-blue-600 dark:text-blue-400 hidden md:block">Weekly Pulse</span>
             </Link>
           </div>
 
@@ -60,7 +60,7 @@ export default function NavBar({ user }: NavBarProps) {
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-pink-400 opacity-75"></span>
                 <span className="relative inline-flex rounded-full h-3 w-3 bg-pink-500"></span>
               </span>
-              <History className="h-5 w-5" />
+              <History className="h-5 w-5 hidden lg:block" />
               <span>My Pulses</span>
             </Link>
             <DropdownMenu>
@@ -77,7 +77,7 @@ export default function NavBar({ user }: NavBarProps) {
                   </Avatar>
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent className="w-72 rounded-2xl shadow-2xl bg-white/90 dark:bg-gray-900/90 border border-white/30 animate-fade-in" align="end" forceMount>
+              <DropdownMenuContent className="z-[120] w-72 rounded-2xl shadow-2xl bg-white/90 dark:bg-gray-900/90 border border-white/30 animate-fade-in" align="end" forceMount>
                 {/* User Card */}
                 <DropdownMenuLabel className="font-normal px-4 py-4">
                   <div className="flex items-center space-x-4">
