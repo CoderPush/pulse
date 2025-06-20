@@ -6,7 +6,7 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { getPreviousWeekPrimaryProject } from '@/app/actions';
 
-export default function ProjectSelectionScreen({ onNext, formData, setFormData, projects = [], userId, currentWeekNumber, currentYear, question }: ScreenProps & { userId?: string; currentWeekNumber?: number; currentYear?: number; question?: Question }) {
+export default function ProjectSelectionScreen({ onNext, formData, setFormData, projects = [], userId, currentWeekNumber, currentYear, question, readOnly = false, hideButton = false }: ScreenProps & { userId?: string; currentWeekNumber?: number; currentYear?: number; question?: Question }) {
   const [showOtherInput, setShowOtherInput] = useState(false);
   const [otherProject, setOtherProject] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
@@ -151,7 +151,7 @@ export default function ProjectSelectionScreen({ onNext, formData, setFormData, 
     formData.primaryProject.name === fetchedPreviousProject;
 
   return (
-    <div className="flex flex-col h-full w-full max-w-lg mx-auto px-4 pt-8 pb-20">
+    <div className={`flex flex-col h-full w-full max-w-lg mx-auto px-4 ${hideButton ? "pt-0 pb-0" : "pt-8 pb-16"}`}>
       <motion.div
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -182,6 +182,7 @@ export default function ProjectSelectionScreen({ onNext, formData, setFormData, 
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="w-full p-3 pl-10 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors bg-white shadow-sm"
+            disabled={readOnly}
           />
         </div>
       </motion.div>
@@ -203,7 +204,8 @@ export default function ProjectSelectionScreen({ onNext, formData, setFormData, 
                 animate="visible"
                 exit="exit"
                 layout
-                onClick={() => selectProject(project.name)}
+                onClick={() => !readOnly && selectProject(project.name)}
+                disabled={readOnly}
                 className={`w-full p-4 rounded-xl text-left transition-all duration-200 flex items-center justify-between group
                   ${
                     isCurrentSelected
@@ -211,7 +213,7 @@ export default function ProjectSelectionScreen({ onNext, formData, setFormData, 
                       : isSuggested(project.name) && !isPrefilledFromLastWeek(project.name)
                       ? 'bg-yellow-50 border border-yellow-200 hover:bg-yellow-100 text-yellow-700'
                       : 'bg-white hover:bg-gray-50 border border-gray-200 hover:border-gray-300 text-gray-700 shadow-sm'
-                  }`}
+                  } ${readOnly ? 'cursor-default' : ''}`}
               >
                 <div className="flex items-center">
                   <span className={`font-medium ${isCurrentSelected ? '' : 'group-hover:text-gray-900'}`}>
@@ -238,30 +240,32 @@ export default function ProjectSelectionScreen({ onNext, formData, setFormData, 
           })}
         </AnimatePresence>
 
-        <motion.button
-          custom={filteredProjects.length}
-          variants={itemVariants}
-          initial="hidden"
-          animate="visible"
-          exit="exit"
-          layout
-          onClick={handleOtherClick}
-          className={`w-full p-4 rounded-xl transition-all duration-200 flex items-center gap-3 group
-            ${showOtherInput
-              ? 'bg-indigo-600 text-white shadow-lg ring-2 ring-indigo-300'
-              : 'bg-white hover:bg-gray-50 border border-gray-200 hover:border-gray-300 text-gray-700 shadow-sm'
-            }`}
-        >
-          <Plus className={`w-5 h-5 ${showOtherInput ? '' : 'text-gray-500 group-hover:text-gray-700'}`} />
-          <span className={`font-medium ${showOtherInput ? '' : 'group-hover:text-gray-900'}`}>
-            Other
-          </span>
-          {showOtherInput && formData.primaryProject.name === '' && (
-             <motion.div initial={{scale:0.5, opacity:0}} animate={{scale:1, opacity:1}}>
-               <Check className="w-6 h-6 text-white" />
-             </motion.div>
-          )}
-        </motion.button>
+        {!readOnly && (
+          <motion.button
+            custom={filteredProjects.length}
+            variants={itemVariants}
+            initial="hidden"
+            animate="visible"
+            exit="exit"
+            layout
+            onClick={handleOtherClick}
+            className={`w-full p-4 rounded-xl transition-all duration-200 flex items-center gap-3 group
+              ${showOtherInput
+                ? 'bg-indigo-600 text-white shadow-lg ring-2 ring-indigo-300'
+                : 'bg-white hover:bg-gray-50 border border-gray-200 hover:border-gray-300 text-gray-700 shadow-sm'
+              }`}
+          >
+            <Plus className={`w-5 h-5 ${showOtherInput ? '' : 'text-gray-500 group-hover:text-gray-700'}`} />
+            <span className={`font-medium ${showOtherInput ? '' : 'group-hover:text-gray-900'}`}>
+              Other
+            </span>
+            {showOtherInput && formData.primaryProject.name === '' && (
+               <motion.div initial={{scale:0.5, opacity:0}} animate={{scale:1, opacity:1}}>
+                 <Check className="w-6 h-6 text-white" />
+               </motion.div>
+            )}
+          </motion.button>
+        )}
 
         <AnimatePresence>
           {showOtherInput && (
@@ -281,10 +285,11 @@ export default function ProjectSelectionScreen({ onNext, formData, setFormData, 
                     onChange={(e) => setOtherProject(e.target.value)}
                     className="flex-1 p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white"
                     aria-label="Other project name"
+                    disabled={readOnly}
                   />
                   <button
                     onClick={handleOtherProjectSubmit}
-                    disabled={!otherProject.trim()}
+                    disabled={!otherProject.trim() || readOnly}
                     className="px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg disabled:bg-gray-300 disabled:cursor-not-allowed transition-all duration-200 font-medium flex items-center justify-center gap-2"
                   >
                     Add Project
@@ -296,27 +301,29 @@ export default function ProjectSelectionScreen({ onNext, formData, setFormData, 
         </AnimatePresence>
       </div>
       
-      <motion.div 
-        className="fixed bottom-0 left-0 right-0 w-full bg-white/80 backdrop-blur-sm p-4 border-t border-gray-200 z-10"
-        initial={{ opacity: 0, y: 50 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.4, delay: 0.5, type: "spring" }}
-      >
-        <div className="max-w-lg mx-auto">
-          <button 
-            onClick={onNext}
-            className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white px-6 py-3.5 rounded-xl font-semibold flex items-center justify-center gap-2 w-full transition-all duration-200 transform hover:-translate-y-0.5 disabled:opacity-60 disabled:cursor-not-allowed shadow-md hover:shadow-lg"
-            disabled={!formData.primaryProject.name && !otherProject.trim()}
-            aria-label="Next step, or press Shift + Enter"
-          >
-            Next <ArrowRight size={20} /> 
-            <span className="hidden sm:inline text-xs opacity-80 ml-2 border border-white/30 px-1.5 py-0.5 rounded-md">Shift + Enter</span>
-          </button>
-          <p className="text-xs text-gray-500 mt-3 text-center">
-            Your confirmation helps us keep project data up to date.
-          </p>
-        </div>
-      </motion.div>
+      {!hideButton && (
+        <motion.div 
+          className="absolute bottom-0 left-0 right-0 w-full bg-white/80 backdrop-blur-sm p-4 border-t border-gray-200 z-10"
+          initial={{ opacity: 0, y: 50 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4, delay: 0.5, type: "spring" }}
+        >
+          <div className="max-w-lg mx-auto">
+            <button 
+              onClick={onNext}
+              className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white px-6 py-3.5 rounded-xl font-semibold flex items-center justify-center gap-2 w-full transition-all duration-200 transform hover:-translate-y-0.5 disabled:opacity-60 disabled:cursor-not-allowed shadow-md hover:shadow-lg"
+              disabled={(!formData.primaryProject.name && !otherProject.trim()) || readOnly}
+              aria-label="Next step, or press Shift + Enter"
+            >
+              Next <ArrowRight size={20} /> 
+              <span className="hidden sm:inline text-xs opacity-80 ml-2 border border-white/30 px-1.5 py-0.5 rounded-md">Shift + Enter</span>
+            </button>
+            <p className="text-xs text-gray-500 mt-3 text-center">
+              Your confirmation helps us keep project data up to date.
+            </p>
+          </div>
+        </motion.div>
+      )}
     </div>
   );
 } 
