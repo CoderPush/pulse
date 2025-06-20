@@ -12,10 +12,12 @@ export default function SubmitCard({
 }: SubmitCardProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const handleSubmit = async () => {
     try {
       setIsSubmitting(true);
+      setError(null);
       
       const submissionData = {
         ...formData,
@@ -40,6 +42,7 @@ export default function SubmitCard({
       setIsSuccess(true);
     } catch (error) {
       console.error('Submission error:', error);
+      setError(error instanceof Error ? error.message : 'Failed to submit form');
     } finally {
       setIsSubmitting(false);
     }
@@ -52,6 +55,7 @@ export default function SubmitCard({
       ) : (
         <div className="space-y-4">
           <h3 className="text-xl font-semibold text-center text-gray-800">Ready to Submit</h3>
+          {!!error && <p className="mx-2 text-red-500">{error}</p>}
           <button 
           onClick={handleSubmit}
           className="relative bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 rounded-full font-medium flex items-center gap-2 w-full justify-center disabled:bg-blue-400 overflow-hidden group transition-all duration-300 shadow-lg hover:shadow-xl"

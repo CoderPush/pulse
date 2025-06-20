@@ -647,6 +647,7 @@ const DynamicScreen: React.FC<DynamicScreenProps> = ({
         case 'checkbox':
           return (
             <MultipleChoiceScreen
+              {...screenCommonProps}
               question={question}
               formData={formData}
               setFormData={setFormData}
