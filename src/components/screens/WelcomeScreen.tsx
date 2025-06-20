@@ -117,13 +117,13 @@ export default function WelcomeScreen({ user, onNext, weekNumber }: WelcomeScree
         initial={{ scale: 0.8, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
         transition={{ duration: 0.5, delay: 0.2 }}
-        className="relative z-10 w-full"
+        className="relative z-10 w-full flex flex-col"
       >
         <motion.h1 
           initial={{ y: 20, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           transition={{ delay: 0.3 }}
-          className="text-3xl font-bold mb-6 flex flex-col items-center gap-2"
+          className="text-3xl font-bold mb-6 flex flex-col items-center gap-2 order-2 lg:order-1"
         >
           <span className="flex items-center gap-2">
             <span className="text-4xl animate-wave">👋</span>
@@ -140,7 +140,7 @@ export default function WelcomeScreen({ user, onNext, weekNumber }: WelcomeScree
           initial={{ y: 20, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           transition={{ delay: 0.4 }}
-          className="mb-8"
+          className="mb-8 order-3 lg:order-2"
         >
           <motion.h2 
             whileHover={{ scale: 1.05 }}
@@ -161,7 +161,7 @@ export default function WelcomeScreen({ user, onNext, weekNumber }: WelcomeScree
           initial={{ y: 20, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           transition={{ delay: 0.5 }}
-          className="bg-gradient-to-br from-blue-50 via-purple-50 to-blue-100 p-8 rounded-2xl mb-8 w-full shadow-lg border border-blue-100"
+          className="bg-gradient-to-br from-blue-50 via-purple-50 to-blue-100 p-8 rounded-2xl w-full shadow-lg border border-blue-100 order-4 lg:order-3 lg:mb-8"
         >
           <motion.h3 
             whileHover={{ scale: 1.02 }}
@@ -199,7 +199,7 @@ export default function WelcomeScreen({ user, onNext, weekNumber }: WelcomeScree
           whileHover={{ scale: 1.02 }}
           whileTap={{ scale: 0.98 }}
           onClick={onNext}
-          className="w-full bg-gradient-to-r from-blue-500 to-blue-600 text-white py-4 px-6 rounded-xl hover:from-blue-600 hover:to-blue-700 transition-all flex items-center justify-center gap-3 group shadow-lg font-bold"
+          className="w-full bg-gradient-to-r from-blue-500 to-blue-600 text-white py-4 px-6 rounded-xl hover:from-blue-600 hover:to-blue-700 transition-all flex items-center justify-center gap-3 group shadow-lg font-bold order-3 lg:order-4 mb-8 lg:mb-0"
         >
           <motion.span
             animate={{ x: [0, 5, 0] }}
