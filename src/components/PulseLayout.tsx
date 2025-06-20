@@ -43,7 +43,7 @@ export default function PulseLayout({
         />
       </div>
       {isChatOpen && (
-        <div className="flex flex-col h-[calc(100vh-4rem)] fixed lg:w-1/2 w-full shadow-sm border right-0 border-neutral-200 z-[9999]">
+        <div className="flex flex-col h-[calc(100vh-4rem)] fixed lg:w-1/2 w-full shadow-sm border right-0 border-neutral-200 z-[100]">
           <CopilotChat
             className="h-full w-full"
             instructions={createWeeklyPulseFormAssistanceGuidePrompt()}
