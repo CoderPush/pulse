@@ -366,11 +366,11 @@ export default function WeeklyPulseForm({
           transition={{ duration: 0.3 }}
           className="flex-1 h-fit w-[90vw] lg:w-[400px] rounded-xl border border-neutral-200 shadow-lg"
         >
-          <SubmitCard formData={formData}/>
+          <SubmitCard formData={formData} moveToSuccessScreen={() => setCurrentScreen(totalScreens - 1)}/>
         </motion.div>
       );
     }
-  }, [formData]);
+  }, [formData, setCurrentScreen, totalScreens]);
   useEffect(() => {
     async function fetchQuestions() {
       setLoadingQuestions(true);

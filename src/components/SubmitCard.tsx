@@ -5,10 +5,12 @@ import { WeeklyPulseFormData } from '@/types/weekly-pulse';
 
 interface SubmitCardProps {
   formData: WeeklyPulseFormData
+  moveToSuccessScreen: () => void
 }
 
 export default function SubmitCard({ 
-  formData
+  formData,
+  moveToSuccessScreen
 }: SubmitCardProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
@@ -40,6 +42,7 @@ export default function SubmitCard({
       }
 
       setIsSuccess(true);
+      moveToSuccessScreen()
     } catch (error) {
       console.error('Submission error:', error);
       setError(error instanceof Error ? error.message : 'Failed to submit form');
