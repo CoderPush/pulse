@@ -32,8 +32,8 @@ export default function ProjectLineChart({ data, weekMeta }: Props) {
 
   const allProjectNames = useMemo(() => {
     const projectNamesSet = new Set<string>();
-    data.forEach(dataPoint => {
-      Object.keys(dataPoint).forEach(key => {
+    data.forEach((dataPoint) => {
+      Object.keys(dataPoint).forEach((key) => {
         if (key !== "week") {
           projectNamesSet.add(key);
         }
@@ -76,9 +76,21 @@ export default function ProjectLineChart({ data, weekMeta }: Props) {
 
   const projectColors = useMemo(() => {
     const colors = [
-      "#0ea5e9", "#f59e0b", "#10b981", "#8b5cf6", "#f97316", "#06b6d4",
-      "#84cc16", "#ec4899", "#ef4444", "#6366f1", "#14b8a6", "#a855f7",
-      "#22c55e", "#3b82f6", "#fb7185",
+      "#0ea5e9",
+      "#f59e0b",
+      "#10b981",
+      "#8b5cf6",
+      "#f97316",
+      "#06b6d4",
+      "#84cc16",
+      "#ec4899",
+      "#ef4444",
+      "#6366f1",
+      "#14b8a6",
+      "#a855f7",
+      "#22c55e",
+      "#3b82f6",
+      "#fb7185",
     ];
     const mapping: Record<string, string> = {};
     allProjectNames.forEach((project, idx) => {
@@ -92,166 +104,167 @@ export default function ProjectLineChart({ data, weekMeta }: Props) {
   }
 
   return (
-    <Card className="w-full shadow-lg border-primary/10 bg-gradient-to-br from-white to-blue-50/30 dark:from-gray-900 dark:to-blue-950/30">
-      <div>
+    <div>
+      <div className="mb-6">
         <h1 className="text-3xl font-bold mb-2">Weekly Project Hours</h1>
         <p className="text-muted-foreground">
           Track your time allocation across projects over time
         </p>
       </div>
+      <Card className="w-full shadow-lg border-primary/10 bg-gradient-to-br from-white to-blue-50/30 dark:from-gray-900 dark:to-blue-950/30">
+        <CardContent className="">
+          {/* Weekly Summary Tags */}
+          <div className="mb-6">
+            <h4 className="text-sm font-semibold text-blue-700 dark:text-blue-300 mb-3 flex items-center gap-2">
+              <BarChart3 className="w-4 h-4" />
+              Weekly Totals
+            </h4>
+            <div
+              className="flex gap-2 overflow-x-auto"
+              style={{
+                scrollbarWidth: "thin",
+                scrollbarColor: "#cbd5e1 #f1f5f9",
+              }}
+              onMouseEnter={(e) => {
+                const target = e.currentTarget;
+                target.style.setProperty("--scrollbar-thumb", "#94a3b8");
+              }}
+              onMouseLeave={(e) => {
+                const target = e.currentTarget;
+                target.style.setProperty("--scrollbar-thumb", "#cbd5e1");
+              }}
+            >
+              {totalHoursPerWeek
+                .slice(windowStart, windowStart + WINDOW_SIZE)
+                .map(({ week, total }) => (
+                  <div
+                    key={week}
+                    className="relative flex items-center bg-gradient-to-br from-amber-100 to-yellow-100 dark:from-amber-900 dark:to-yellow-900 rounded-xl shadow-md border-l-4 border-amber-400 px-3 py-2"
+                  >
+                    <span className="min-w-15 text-amber-800 dark:text-amber-200 text-sm font-medium">
+                      Week {week}
+                    </span>
+                    <Badge className="bg-sky-200 text-amber-900 ml-2 font-bold shadow-sm">
+                      {total}h
+                    </Badge>
+                  </div>
+                ))}
+            </div>
+          </div>
 
-      <CardContent className="pt-6">
-        {/* Weekly Summary Tags */}
-        <div className="mb-6">
-          <h4 className="text-sm font-semibold text-blue-700 dark:text-blue-300 mb-3 flex items-center gap-2">
-            <BarChart3 className="w-4 h-4" />
-            Weekly Totals
-          </h4>
-          <div
-            className="flex gap-2 overflow-x-auto"
-            style={{
-              scrollbarWidth: "thin",
-              scrollbarColor: "#cbd5e1 #f1f5f9",
-            }}
-            onMouseEnter={(e) => {
-              const target = e.currentTarget;
-              target.style.setProperty("--scrollbar-thumb", "#94a3b8");
-            }}
-            onMouseLeave={(e) => {
-              const target = e.currentTarget;
-              target.style.setProperty("--scrollbar-thumb", "#cbd5e1");
-            }}
-          >
-            {totalHoursPerWeek
-              .slice(windowStart, windowStart + WINDOW_SIZE)
-              .map(({ week, total }) => (
-                <div
-                  key={week}
-                  className="relative flex items-center bg-gradient-to-br from-amber-100 to-yellow-100 dark:from-amber-900 dark:to-yellow-900 rounded-xl shadow-md border-l-4 border-amber-400 px-3 py-2"
+          {/* Chart Container */}
+          <div className="bg-gradient-to-br from-white/80 to-blue-50/80 dark:from-gray-800/80 dark:to-blue-950/80 rounded-2xl p-6 border border-blue-100 dark:border-blue-800 shadow-inner">
+            <div className="w-full h-[420px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart
+                  data={visibleData}
+                  margin={{ top: 20, right: 30, left: 20, bottom: 20 }}
+                  onMouseLeave={() => setHoveredProject(null)}
                 >
-                  <span className="min-w-15 text-amber-800 dark:text-amber-200 text-sm font-medium">
-                    Week {week}
-                  </span>
-                  <Badge className="bg-sky-200 text-amber-900 ml-2 font-bold shadow-sm">
-                    {total}h
-                  </Badge>
-                </div>
-              ))}
+                  <CartesianGrid
+                    strokeDasharray="3 3"
+                    stroke="#cbd5e1"
+                    strokeOpacity={0.6}
+                  />
+                  <XAxis
+                    dataKey="week"
+                    tick={{ fontSize: 12, fill: "#475569" }}
+                    tickLine={{ stroke: "#94a3b8" }}
+                    axisLine={{ stroke: "#94a3b8" }}
+                    label={{
+                      value: "Week",
+                      position: "insideBottomRight",
+                      offset: -8,
+                      fontSize: 14,
+                      fill: "#475569",
+                      fontWeight: 600,
+                    }}
+                  />
+                  <YAxis
+                    tick={{ fontSize: 12, fill: "#475569" }}
+                    tickLine={{ stroke: "#94a3b8" }}
+                    axisLine={{ stroke: "#94a3b8" }}
+                    label={{
+                      value: "Hours",
+                      angle: -90,
+                      position: "insideLeft",
+                      offset: 8,
+                      fontSize: 14,
+                      fill: "#475569",
+                      fontWeight: 600,
+                    }}
+                  />
+                  <Tooltip
+                    content={
+                      <CustomTooltip
+                        weekMeta={weekMeta}
+                        hoveredProject={hoveredProject}
+                      />
+                    }
+                  />
+                  <Legend
+                    verticalAlign="top"
+                    height={50}
+                    iconType="circle"
+                    wrapperStyle={{
+                      paddingBottom: "20px",
+                      fontSize: "14px",
+                      fontWeight: 500,
+                    }}
+                  />
+                  {allProjectNames.map((project) => {
+                    if (!visibleProjects[project]) return null;
+                    const color = getProjectColor(project);
+                    return (
+                      <Line
+                        key={project}
+                        isAnimationActive={false}
+                        type="monotone"
+                        dataKey={project}
+                        strokeWidth={3}
+                        stroke={color}
+                        dot={{
+                          r: 5,
+                          strokeWidth: 3,
+                          fill: "#fff",
+                          stroke: color,
+                          filter: "drop-shadow(0 2px 4px rgba(0,0,0,0.1))",
+                        }}
+                        activeDot={{
+                          r: 7,
+                          fill: color,
+                          stroke: "#fff",
+                          strokeWidth: 3,
+                          filter: "drop-shadow(0 4px 8px rgba(0,0,0,0.2))",
+                        }}
+                        onMouseEnter={() => setHoveredProject(project)}
+                      />
+                    );
+                  })}
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
           </div>
-        </div>
 
-        {/* Chart Container */}
-        <div className="bg-gradient-to-br from-white/80 to-blue-50/80 dark:from-gray-800/80 dark:to-blue-950/80 rounded-2xl p-6 border border-blue-100 dark:border-blue-800 shadow-inner">
-          <div className="w-full h-[420px]">
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart
-                data={visibleData}
-                margin={{ top: 20, right: 30, left: 20, bottom: 20 }}
-                onMouseLeave={() => setHoveredProject(null)}
-              >
-                <CartesianGrid
-                  strokeDasharray="3 3"
-                  stroke="#cbd5e1"
-                  strokeOpacity={0.6}
-                />
-                <XAxis
-                  dataKey="week"
-                  tick={{ fontSize: 12, fill: "#475569" }}
-                  tickLine={{ stroke: "#94a3b8" }}
-                  axisLine={{ stroke: "#94a3b8" }}
-                  label={{
-                    value: "Week",
-                    position: "insideBottomRight",
-                    offset: -8,
-                    fontSize: 14,
-                    fill: "#475569",
-                    fontWeight: 600,
-                  }}
-                />
-                <YAxis
-                  tick={{ fontSize: 12, fill: "#475569" }}
-                  tickLine={{ stroke: "#94a3b8" }}
-                  axisLine={{ stroke: "#94a3b8" }}
-                  label={{
-                    value: "Hours",
-                    angle: -90,
-                    position: "insideLeft",
-                    offset: 8,
-                    fontSize: 14,
-                    fill: "#475569",
-                    fontWeight: 600,
-                  }}
-                />
-                <Tooltip
-                  content={
-                    <CustomTooltip
-                      weekMeta={weekMeta}
-                      hoveredProject={hoveredProject}
-                    />
-                  }
-                />
-                <Legend
-                  verticalAlign="top"
-                  height={50}
-                  iconType="circle"
-                  wrapperStyle={{
-                    paddingBottom: "20px",
-                    fontSize: "14px",
-                    fontWeight: 500,
-                  }}
-                />
-                {allProjectNames.map((project) => {
-                  if (!visibleProjects[project]) return null;
-                  const color = getProjectColor(project);
-                  return (
-                    <Line
-                      key={project}
-                      isAnimationActive={false}
-                      type="monotone"
-                      dataKey={project}
-                      strokeWidth={3}
-                      stroke={color}
-                      dot={{
-                        r: 5,
-                        strokeWidth: 3,
-                        fill: "#fff",
-                        stroke: color,
-                        filter: "drop-shadow(0 2px 4px rgba(0,0,0,0.1))",
-                      }}
-                      activeDot={{
-                        r: 7,
-                        fill: color,
-                        stroke: "#fff",
-                        strokeWidth: 3,
-                        filter: "drop-shadow(0 4px 8px rgba(0,0,0,0.2))",
-                      }}
-                      onMouseEnter={() => setHoveredProject(project)}
-                    />
-                  );
-                })}
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
+          {/* Pagination Controls */}
+          <PaginationControls
+            windowStart={windowStart}
+            setWindowStart={setWindowStart}
+            maxWindowStart={maxWindowStart}
+            data={data}
+            WINDOW_SIZE={WINDOW_SIZE}
+          />
 
-        {/* Pagination Controls */}
-        <PaginationControls
-          windowStart={windowStart}
-          setWindowStart={setWindowStart}
-          maxWindowStart={maxWindowStart}
-          data={data}
-          WINDOW_SIZE={WINDOW_SIZE}
-        />
-
-        {/* Project Toggle Panel */}
-        <ProjectTogglePanel
-          allProjectNames={allProjectNames}
-          visibleProjects={visibleProjects}
-          setVisibleProjects={setVisibleProjects}
-          getProjectColor={getProjectColor}
-        />
-      </CardContent>
-    </Card>
+          {/* Project Toggle Panel */}
+          <ProjectTogglePanel
+            allProjectNames={allProjectNames}
+            visibleProjects={visibleProjects}
+            setVisibleProjects={setVisibleProjects}
+            getProjectColor={getProjectColor}
+          />
+        </CardContent>
+      </Card>
+    </div>
   );
 }
 
