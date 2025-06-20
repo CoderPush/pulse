@@ -25,6 +25,12 @@ type Props = {
   weekMeta?: Record<number, { start_date: string; end_date: string }>;
 };
 
+type TooltipPayload = {
+  name: string;
+  value: number;
+  color: string;
+};
+
 export default function ProjectLineChart({ data, weekMeta }: Props) {
   const [hoveredProject, setHoveredProject] = useState<string | null>(null);
 
@@ -249,7 +255,7 @@ export default function ProjectLineChart({ data, weekMeta }: Props) {
 
 type CustomTooltipProps = {
   active?: boolean;
-  payload?: any[];
+  payload?: TooltipPayload[];
   label?: number;
   weekMeta?: Record<number, { start_date: string; end_date: string }>;
   hoveredProject?: string | null;
