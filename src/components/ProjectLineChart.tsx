@@ -88,93 +88,6 @@ export default function ProjectLineChart({ data, weekMeta }: Props) {
     return colors[index % colors.length];
   }
 
-  type TooltipPayload = {
-    name: string;
-    value: number;
-    color: string;
-  };
-
-  type CustomTooltipProps = {
-    active?: boolean;
-    payload?: TooltipPayload[];
-    label?: number;
-  };
-
-  const CustomTooltip = ({ active, payload, label }: CustomTooltipProps) => {
-    if (!active || !payload || payload.length === 0 || label === undefined)
-      return null;
-
-    let shownPayload = payload;
-
-    if (hoveredProject) {
-      shownPayload = payload.filter((p) => p.name === hoveredProject);
-    }
-
-    const total = shownPayload.reduce(
-      (sum, entry) => sum + (entry?.value ?? 0),
-      0
-    );
-
-    // Get week start/end dates
-    let weekDates: string | null = null;
-    if (weekMeta && weekMeta[label]) {
-      const { start_date, end_date } = weekMeta[label];
-      // Format as YYYY-MM-DD
-      const start = new Date(start_date).toISOString().slice(0, 10);
-      const end = new Date(end_date).toISOString().slice(0, 10);
-      weekDates = `${start} → ${end}`;
-    }
-
-    return (
-      <div className="bg-gradient-to-br from-white to-blue-50 dark:from-gray-800 dark:to-gray-900 p-4 border border-blue-200 dark:border-blue-700 rounded-2xl shadow-xl text-sm space-y-2 max-w-sm backdrop-blur-sm">
-        <div className="flex items-center gap-2 mb-3">
-          <BarChart3 className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-          <div>
-            <p className="text-lg font-bold text-blue-700 dark:text-blue-300">
-              Week {label}
-            </p>
-            {weekDates && (
-              <p className="text-xs text-blue-500 dark:text-blue-200 mt-0.5">
-                {weekDates}
-              </p>
-            )}
-          </div>
-        </div>
-        {shownPayload.map((entry, i) => (
-          <div
-            key={i}
-            className="flex items-center justify-between gap-3 bg-white/50 dark:bg-gray-700/50 rounded-lg p-2 border border-blue-100 dark:border-blue-800"
-          >
-            <div className="flex items-center gap-2">
-              <span
-                className="inline-block w-3 h-3 rounded-full shadow-sm"
-                style={{ backgroundColor: entry.color }}
-              ></span>
-              <span className="font-medium text-gray-700 dark:text-gray-200">
-                {entry.name}
-              </span>
-            </div>
-            <Badge className="bg-yellow-300 text-blue-900 font-bold shadow-sm">
-              {entry.value}h
-            </Badge>
-          </div>
-        ))}
-        {shownPayload.length > 1 && (
-          <div className="pt-2 border-t border-blue-200 dark:border-blue-700 mt-3">
-            <div className="flex items-center justify-between bg-gradient-to-r from-sky-100 to-blue-100 dark:from-sky-900 dark:to-blue-900 rounded-lg p-2 border-l-4 border-sky-400">
-              <span className="font-bold text-blue-900 dark:text-blue-100">
-                Total Hours
-              </span>
-              <Badge className="bg-sky-200 text-blue-900 font-bold shadow">
-                {total}h
-              </Badge>
-            </div>
-          </div>
-        )}
-      </div>
-    );
-  };
-
   return (
     <Card className="w-full shadow-lg border-primary/10 bg-gradient-to-br from-white to-blue-50/30 dark:from-gray-900 dark:to-blue-950/30">
       <div>
@@ -266,7 +179,7 @@ export default function ProjectLineChart({ data, weekMeta }: Props) {
                     fontWeight: 600,
                   }}
                 />
-                <Tooltip content={<CustomTooltip />} />
+                <Tooltip content={<CustomTooltip weekMeta={weekMeta} hoveredProject={hoveredProject} />} />
                 <Legend
                   verticalAlign="top"
                   height={50}
@@ -312,71 +225,193 @@ export default function ProjectLineChart({ data, weekMeta }: Props) {
         </div>
 
         {/* Pagination Controls */}
-        <div className="flex items-center justify-center gap-4 mb-4">
-          <button
-            onClick={() => setWindowStart((prev) => Math.max(0, prev - 1))}
-            disabled={windowStart === 0}
-            className={`p-2 rounded-full border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 shadow transition disabled:opacity-40 disabled:cursor-not-allowed`}
-            aria-label="Previous weeks"
-          >
-            <ChevronLeft className="w-5 h-5" />
-          </button>
-          <span className="text-sm font-medium text-blue-700 dark:text-blue-300">
-            Weeks {data[windowStart]?.week}
-            {windowStart + 1 < data.length
-              ? ` - ${
-                  data[Math.min(windowStart + WINDOW_SIZE - 1, data.length - 1)]
-                    ?.week
-                }`
-              : ""}
-          </span>
-          <button
-            onClick={() =>
-              setWindowStart((prev) => Math.min(maxWindowStart, prev + 1))
-            }
-            disabled={windowStart >= maxWindowStart}
-            className={`p-2 rounded-full border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 shadow transition disabled:opacity-40 disabled:cursor-not-allowed`}
-            aria-label="Next weeks"
-          >
-            <ChevronRight className="w-5 h-5" />
-          </button>
-        </div>
+        <PaginationControls
+          windowStart={windowStart}
+          setWindowStart={setWindowStart}
+          maxWindowStart={maxWindowStart}
+          data={data}
+          WINDOW_SIZE={WINDOW_SIZE}
+        />
 
         {/* Project Toggle Panel */}
-        <div className="flex flex-wrap gap-3 items-center my-4">
-          <span className="text-sm font-semibold text-blue-700 dark:text-blue-300 mr-2">
-            Toggle Projects:
-          </span>
-          {allProjectNames.map((project, i) => (
-            <label
-              key={project}
-              className="flex items-center gap-1 cursor-pointer select-none"
-            >
-              <input
-                type="checkbox"
-                checked={visibleProjects[project]}
-                onChange={() =>
-                  setVisibleProjects((prev) => ({
-                    ...prev,
-                    [project]: !prev[project],
-                  }))
-                }
-                className="accent-blue-600 w-4 h-4 rounded border-gray-300"
-              />
-              <span
-                className="text-xs font-medium"
-                style={{
-                  color: visibleProjects[project]
-                    ? getProjectColor(i)
-                    : "#94a3b8",
-                }}
-              >
-                {project}
-              </span>
-            </label>
-          ))}
-        </div>
+        <ProjectTogglePanel
+          allProjectNames={allProjectNames}
+          visibleProjects={visibleProjects}
+          setVisibleProjects={setVisibleProjects}
+          getProjectColor={getProjectColor}
+        />
       </CardContent>
     </Card>
+  );
+}
+
+// --- Subcomponents ---
+
+type CustomTooltipProps = {
+  active?: boolean;
+  payload?: any[];
+  label?: number;
+  weekMeta?: Record<number, { start_date: string; end_date: string }>;
+  hoveredProject?: string | null;
+};
+
+function CustomTooltip({ active, payload, label, weekMeta, hoveredProject }: CustomTooltipProps) {
+  if (!active || !payload || payload.length === 0 || label === undefined)
+    return null;
+
+  let shownPayload = payload;
+
+  if (hoveredProject) {
+    shownPayload = payload.filter((p) => p.name === hoveredProject);
+  }
+
+  const total = shownPayload.reduce(
+    (sum, entry) => sum + (entry?.value ?? 0),
+    0
+  );
+
+  // Get week start/end dates
+  let weekDates: string | null = null;
+  if (weekMeta && weekMeta[label]) {
+    const { start_date, end_date } = weekMeta[label];
+    // Format as YYYY-MM-DD
+    const start = new Date(start_date).toISOString().slice(0, 10);
+    const end = new Date(end_date).toISOString().slice(0, 10);
+    weekDates = `${start} → ${end}`;
+  }
+
+  return (
+    <div className="bg-gradient-to-br from-white to-blue-50 dark:from-gray-800 dark:to-gray-900 p-4 border border-blue-200 dark:border-blue-700 rounded-2xl shadow-xl text-sm space-y-2 max-w-sm backdrop-blur-sm">
+      <div className="flex items-center gap-2 mb-3">
+        <BarChart3 className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+        <div>
+          <p className="text-lg font-bold text-blue-700 dark:text-blue-300">
+            Week {label}
+          </p>
+          {weekDates && (
+            <p className="text-xs text-blue-500 dark:text-blue-200 mt-0.5">
+              {weekDates}
+            </p>
+          )}
+        </div>
+      </div>
+      {shownPayload.map((entry, i) => (
+        <div
+          key={i}
+          className="flex items-center justify-between gap-3 bg-white/50 dark:bg-gray-700/50 rounded-lg p-2 border border-blue-100 dark:border-blue-800"
+        >
+          <div className="flex items-center gap-2">
+            <span
+              className="inline-block w-3 h-3 rounded-full shadow-sm"
+              style={{ backgroundColor: entry.color }}
+            ></span>
+            <span className="font-medium text-gray-700 dark:text-gray-200">
+              {entry.name}
+            </span>
+          </div>
+          <Badge className="bg-yellow-300 text-blue-900 font-bold shadow-sm">
+            {entry.value}h
+          </Badge>
+        </div>
+      ))}
+      {shownPayload.length > 1 && (
+        <div className="pt-2 border-t border-blue-200 dark:border-blue-700 mt-3">
+          <div className="flex items-center justify-between bg-gradient-to-r from-sky-100 to-blue-100 dark:from-sky-900 dark:to-blue-900 rounded-lg p-2 border-l-4 border-sky-400">
+            <span className="font-bold text-blue-900 dark:text-blue-100">
+              Total Hours
+            </span>
+            <Badge className="bg-sky-200 text-blue-900 font-bold shadow">
+              {total}h
+            </Badge>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+type PaginationControlsProps = {
+  windowStart: number;
+  setWindowStart: (fn: (prev: number) => number) => void;
+  maxWindowStart: number;
+  data: ChartDataPoint[];
+  WINDOW_SIZE: number;
+};
+
+function PaginationControls({ windowStart, setWindowStart, maxWindowStart, data, WINDOW_SIZE }: PaginationControlsProps) {
+  return (
+    <div className="flex items-center justify-center gap-4 mb-4">
+      <button
+        onClick={() => setWindowStart((prev) => Math.max(0, prev - 1))}
+        disabled={windowStart === 0}
+        className={`p-2 rounded-full border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 shadow transition disabled:opacity-40 disabled:cursor-not-allowed`}
+        aria-label="Previous weeks"
+      >
+        <ChevronLeft className="w-5 h-5" />
+      </button>
+      <span className="text-sm font-medium text-blue-700 dark:text-blue-300">
+        Weeks {data[windowStart]?.week}
+        {windowStart + 1 < data.length
+          ? ` - ${
+              data[Math.min(windowStart + WINDOW_SIZE - 1, data.length - 1)]?.week
+            }`
+          : ""}
+      </span>
+      <button
+        onClick={() =>
+          setWindowStart((prev) => Math.min(maxWindowStart, prev + 1))
+        }
+        disabled={windowStart >= maxWindowStart}
+        className={`p-2 rounded-full border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 shadow transition disabled:opacity-40 disabled:cursor-not-allowed`}
+        aria-label="Next weeks"
+      >
+        <ChevronRight className="w-5 h-5" />
+      </button>
+    </div>
+  );
+}
+
+type ProjectTogglePanelProps = {
+  allProjectNames: string[];
+  visibleProjects: Record<string, boolean>;
+  setVisibleProjects: React.Dispatch<React.SetStateAction<Record<string, boolean>>>;
+  getProjectColor: (i: number) => string;
+};
+
+function ProjectTogglePanel({ allProjectNames, visibleProjects, setVisibleProjects, getProjectColor }: ProjectTogglePanelProps) {
+  return (
+    <div className="flex flex-wrap gap-3 items-center my-4">
+      <span className="text-sm font-semibold text-blue-700 dark:text-blue-300 mr-2">
+        Toggle Projects:
+      </span>
+      {allProjectNames.map((project, i) => (
+        <label
+          key={project}
+          className="flex items-center gap-1 cursor-pointer select-none"
+        >
+          <input
+            type="checkbox"
+            checked={visibleProjects[project]}
+            onChange={() =>
+              setVisibleProjects((prev) => ({
+                ...prev,
+                [project]: !prev[project],
+              }))
+            }
+            className="accent-blue-600 w-4 h-4 rounded border-gray-300"
+          />
+          <span
+            className="text-xs font-medium"
+            style={{
+              color: visibleProjects[project]
+                ? getProjectColor(i)
+                : "#94a3b8",
+            }}
+          >
+            {project}
+          </span>
+        </label>
+      ))}
+    </div>
   );
 }
