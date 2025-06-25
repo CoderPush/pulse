@@ -44,7 +44,7 @@ export default function NavBar({ user }: NavBarProps) {
               className="flex items-center space-x-2 text-xl font-semibold hover:opacity-90 transition-opacity group"
             >
               <LineChart className="h-6 w-6 text-blue-600 dark:text-blue-400 group-hover:scale-110 transition-transform" />
-              <span className="text-blue-600 dark:text-blue-400">Weekly Pulse</span>
+              <span className="text-blue-600 dark:text-blue-400 hidden md:block">Weekly Pulse</span>
             </Link>
           </div>
 

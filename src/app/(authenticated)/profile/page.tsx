@@ -1,30 +1,38 @@
-import { createClient } from '@/utils/supabase/server'
-import { redirect } from 'next/navigation'
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
-import { Avatar, AvatarFallback } from "@/components/ui/avatar"
-import { getInitials } from '@/lib/auth/user'
-import { Settings, Bell, Clock, FileText, CalendarCheck2 } from "lucide-react"
-import Link from 'next/link'
+import { createClient } from "@/utils/supabase/server";
+import { redirect } from "next/navigation";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from "@/components/ui/card";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { getInitials } from "@/lib/auth/user";
+import { Settings, Bell, Clock, FileText, CalendarCheck2 } from "lucide-react";
+import Link from "next/link";
 
 export default async function ProfilePage() {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
 
   if (!user) {
-    redirect('/auth/login')
+    redirect("/auth/login");
   }
 
   // Fetch latest submission
   const { data: latestSubmission, error } = await supabase
-    .from('submissions')
-    .select('*')
-    .eq('user_id', user.id)
-    .order('submitted_at', { ascending: false })
+    .from("submissions")
+    .select("*")
+    .eq("user_id", user.id)
+    .order("submitted_at", { ascending: false })
     .limit(1)
-    .maybeSingle()
+    .maybeSingle();
 
   if (error) {
-    console.error('Error fetching latest submission:', error)
+    console.error("Error fetching latest submission:", error);
   }
 
   const userInitials = getInitials(user.email);
@@ -40,7 +48,9 @@ export default async function ProfilePage() {
             </AvatarFallback>
           </Avatar>
           <div className="w-full text-center sm:text-left">
-            <h1 className="text-xl sm:text-3xl font-bold mb-2 truncate break-words max-w-full">{user.email}</h1>
+            <h1 className="text-xl sm:text-3xl font-bold mb-2 truncate break-words max-w-full">
+              {user.email}
+            </h1>
           </div>
         </div>
       </div>
@@ -64,7 +74,9 @@ export default async function ProfilePage() {
           <CardContent className="space-y-4">
             <div className="space-y-2">
               <label className="text-sm font-medium">Email</label>
-              <p className="text-sm text-muted-foreground break-words">{user.email}</p>
+              <p className="text-sm text-muted-foreground break-words">
+                {user.email}
+              </p>
             </div>
             <div className="space-y-2">
               <label className="text-sm font-medium">Name</label>
@@ -84,12 +96,16 @@ export default async function ProfilePage() {
               <Bell className="w-5 h-5" />
               <span>Preferences</span>
             </CardTitle>
-            <CardDescription>Your notification and display settings</CardDescription>
+            <CardDescription>
+              Your notification and display settings
+            </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">
               <label className="text-sm font-medium">Email Notifications</label>
-              <p className="text-sm text-muted-foreground italic">Coming soon</p>
+              <p className="text-sm text-muted-foreground italic">
+                Coming soon
+              </p>
             </div>
             <div className="space-y-2">
               <label className="text-sm font-medium">Time Zone</label>
@@ -112,7 +128,9 @@ export default async function ProfilePage() {
               <div className="flex flex-col items-center gap-4 py-4">
                 <div className="flex items-center gap-2">
                   <CalendarCheck2 className="w-7 h-7 text-green-600" />
-                  <span className="text-lg font-bold text-blue-700">Week {latestSubmission.week_number}</span>
+                  <span className="text-lg font-bold text-blue-700">
+                    Week {latestSubmission.week_number}
+                  </span>
                   <span className="rounded-full bg-blue-100 text-blue-700 border border-blue-200 font-semibold px-3 py-1 text-xs dark:bg-blue-900 dark:text-blue-300 dark:border-blue-800 ml-2">
                     {latestSubmission.status}
                   </span>
@@ -126,7 +144,9 @@ export default async function ProfilePage() {
                   <div className="flex items-center gap-2">
                     <FileText className="w-4 h-4 text-blue-500" />
                     <span className="font-medium">Project:</span>
-                    <span className="truncate">{latestSubmission.primary_project_name}</span>
+                    <span className="truncate">
+                      {latestSubmission.primary_project_name}
+                    </span>
                   </div>
                   <div className="flex items-center gap-2">
                     <Clock className="w-4 h-4 text-blue-500" />
@@ -137,15 +157,24 @@ export default async function ProfilePage() {
                     <div>
                       <div className="flex items-center gap-2 mt-2 mb-1">
                         <FileText className="w-4 h-4 text-blue-500" />
-                        <span className="font-medium">Additional Projects:</span>
+                        <span className="font-medium">
+                          Additional Projects:
+                        </span>
                       </div>
                       <ul className="pl-6 list-disc text-sm">
-                        {latestSubmission.additional_projects.map((proj: { name: string; hours: number }, idx: number) => (
-                          <li key={idx} className="flex items-center gap-2">
-                            <span className="font-medium">{proj.name}</span>
-                            <span className="text-xs text-blue-700 bg-blue-100 rounded px-2 py-0.5 ml-2">{proj.hours}h</span>
-                          </li>
-                        ))}
+                        {latestSubmission.additional_projects.map(
+                          (
+                            proj: { name: string; hours: number },
+                            idx: number
+                          ) => (
+                            <li key={idx} className="flex items-center gap-2">
+                              <span className="font-medium">{proj.name}</span>
+                              <span className="text-xs text-blue-700 bg-blue-100 rounded px-2 py-0.5 ml-2">
+                                {proj.hours}h
+                              </span>
+                            </li>
+                          )
+                        )}
                       </ul>
                     </div>
                   )}
@@ -157,7 +186,9 @@ export default async function ProfilePage() {
                   <div className="flex items-center gap-2">
                     <CalendarCheck2 className="w-4 h-4 text-blue-500" />
                     <span className="font-medium">Submitted:</span>
-                    <span>{new Date(latestSubmission.submitted_at).toLocaleString()}</span>
+                    <span>
+                      {new Date(latestSubmission.submitted_at).toLocaleString()}
+                    </span>
                   </div>
                 </div>
                 <Link
@@ -171,8 +202,13 @@ export default async function ProfilePage() {
             ) : (
               <div className="flex flex-col items-center justify-center py-8">
                 <CalendarCheck2 className="w-10 h-10 text-blue-400 mb-3" />
-                <p className="text-muted-foreground mb-2">No submissions yet.</p>
-                <Link href="/" className="inline-flex items-center gap-2 text-blue-600 hover:underline text-sm font-medium">
+                <p className="text-muted-foreground mb-2">
+                  No submissions yet.
+                </p>
+                <Link
+                  href="/"
+                  className="inline-flex items-center gap-2 text-blue-600 hover:underline text-sm font-medium"
+                >
                   <FileText className="w-4 h-4" />
                   Submit your pulse!
                 </Link>
@@ -182,5 +218,5 @@ export default async function ProfilePage() {
         </Card>
       </div>
     </div>
-  )
-} 
+  );
+}

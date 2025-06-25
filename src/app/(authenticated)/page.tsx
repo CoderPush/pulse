@@ -1,10 +1,9 @@
 import { createClient } from '@/utils/supabase/server'
-import WeeklyPulseForm from '@/components/WeeklyPulseForm'
 import { redirect } from 'next/navigation'
 import { getMostRecentThursdayWeek } from '@/lib/utils/date'
 import type { User } from '@supabase/supabase-js'
 import CopilotProvider from '@/components/CopilotProvider';
-import { createWeeklyPulseFormAssistanceGuidePrompt } from '@/lib/prompt';
+import PulseLayout from '@/components/PulseLayout';
 
 interface HomeProps {
   searchParams: Promise<{
@@ -64,16 +63,15 @@ export default async function HomePage({ searchParams }: HomeProps) {
   }
 
   return (
-    <CopilotProvider user={user} submissions={submissions || []} instructions={createWeeklyPulseFormAssistanceGuidePrompt()}>
-      <div className="w-full px-4">
-        <WeeklyPulseForm 
-          user={user} 
-          weekNumber={weekNumber} 
-          currentYear={currentYear}
-          hasSubmittedThisWeek={!!existingSubmission}
-          projects={projects || []}
-          previousSubmission={submissions?.[0]}        />
-      </div>
+    <CopilotProvider user={user}>
+      <PulseLayout
+        user={user}
+        weekNumber={weekNumber}
+        currentYear={currentYear}
+        hasSubmittedThisWeek={!!existingSubmission}
+        projects={projects || []}
+        previousSubmission={submissions?.[0]}
+      />
     </CopilotProvider>
   )
 }
