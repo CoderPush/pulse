@@ -1,80 +1,42 @@
-# CLAUDE.md
+# CLAUDE Development Notes
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+This document contains extended guidance for working on Pulse. Codex will also use these instructions for additional context.
 
-## Development Commands
+## Local Development Workflow
 
-**Development workflow:**
-```bash
-pnpm dev                    # Start dev server with Turbopack
-pnpm build                  # Build for production
-pnpm lint                   # Run ESLint
-```
+- Install dependencies with `pnpm install`.
+- Start the application locally with `pnpm dev`.
+- Build for production with `pnpm build`.
 
-**Database management:**
-```bash
-supabase start             # Start local Supabase
-supabase stop              # Stop local Supabase
-supabase db reset          # Reset local database (CONFIRM BEFORE RUNNING)
-supabase status            # Check Supabase status
-```
-
-**Testing commands:**
-```bash
-pnpm test                   # Run unit tests in watch mode
-pnpm test:run              # Run unit tests once
-pnpm test:coverage         # Run unit tests with coverage
-pnpm test:e2e              # Run Playwright E2E tests
-pnpm test:e2e:ui           # Run E2E tests with UI mode
-pnpm test:e2e:debug        # Run E2E tests in debug mode
-```
+### Supabase Local
+- `supabase start` &mdash; start the local Supabase instance.
+- `supabase stop` &mdash; stop the instance when not needed.
+- `supabase status` &mdash; check whether Supabase is running.
+- `supabase db reset` &mdash; **destroys local data. Confirm before running.**
 
 ## Architecture Overview
 
-### Application Structure
-- **Next.js 15 App Router** with route groups: `(authenticated)` for protected routes, `admin` for admin-only areas
-- **Supabase local development** - always confirm before running `supabase db reset` as it resets the database
-- **Multi-step form flow** orchestrated by `WeeklyPulseForm` with screen-based progression
-- **Dynamic questions system** with versioned questions supporting multiple types (text, textarea, number, multiple_choice, checkbox)
+Pulse uses Next.js 15 with the App Router. Key route groups are `(authenticated)` for user views and `admin` for administrative pages. Supabase authentication works on both the server and API routes through helper clients in `src/lib/supabase` (`server.ts`, `api.ts`, `middleware.ts`).
 
-### Authentication & Authorization
-- **Supabase SSR authentication** with three client types:
-  - Server: `/utils/supabase/server.ts` for server components
-  - API: `/utils/supabase/api.ts` for API routes
-  - Middleware: `/utils/supabase/middleware.ts` for route protection
-- **Two-tier access control**: authenticated users vs admin users (`is_admin` flag)
-- **Middleware-based route protection** in `/src/middleware.ts`
+Submissions are collected via the multi-step `WeeklyPulseForm`. Questions are versioned so that historical submissions retain their original questions. Track the time from `startTime` to form completion for analytics purposes.
 
-### Database Schema
-- **Versioned questions**: Questions use `parent_id` self-reference with version incrementing
-- **Submission windows**: Friday 5PM opens → Monday 2PM due → Tuesday 5PM late cutoff
-- **JSONB storage**: `additional_projects` in submissions, `answers` in submission_answers
-- **Hierarchical data**: Comments with `parent_id`, questions with versioning
+## Testing Tools
 
-### Form Architecture
-- **Screen components** in `/src/components/screens/` with consistent interfaces
-- **Question-to-screen mapping**: Categories map to specialized screens (e.g., `primaryProject` → `ProjectSelectionScreen`)
-- **Dynamic question rendering** falls back by question type
-- **Form data structure**: Core submission data + `answers` object keyed by question ID
+- Unit tests: `pnpm test:run`
+- Coverage: `pnpm test:coverage`
+- End-to-end tests: `pnpm test:e2e` (requires MCP and local Supabase)
+- Debugging E2E tests: `pnpm test:e2e:debug`
 
-### Testing Strategy
-- **Unit tests**: Vitest with React Testing Library and jsdom
-- **E2E tests**: Playwright with automatic dev server setup
-- **Test utilities**: Supabase mocks in `/src/test-utils/`
+## Important Notes
+
+- Follow modern Next.js 15 patterns (server actions, file-based routing).
+- Form validation occurs at the UI, API layer, and database constraints.
+- Refer to `docs/test-plan.md` for the full testing strategy and `docs/implementation.md` for architecture details.
+
 
 ### Key Business Logic
-- **Week calculations**: ISO week numbers with `date-fns` for consistency
+
 - **Auto-sharing**: Submissions auto-shared with managers for NEXT_PUBLIC_COMPANY_EMAIL_DOMAIN emails
 - **Streak calculation**: Configurable start week with exclusions for holidays
 - **Late submission detection**: Based on submission window timing
 
-### Component Patterns
-- **Screen components**: Follow props pattern `{onNext, onBack, formData, setFormData, error}`
-- **Admin components**: Modular structure in `/src/components/admin/`
-- **UI components**: Radix UI-based components in `/src/components/ui/`
-
-### Important Notes
-- Always use Next.js 15 latest practices, not older patterns
-- Supabase local development - confirm before database resets
-- Form validation happens at multiple levels: form, API, and database
-- Time tracking from `startTime` to completion for analytics
