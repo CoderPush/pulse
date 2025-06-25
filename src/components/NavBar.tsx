@@ -32,7 +32,7 @@ interface NavBarProps {
 export default function NavBar({ user }: NavBarProps) {
   const userInitials = getInitials(user.email);
   return (
-    <header className="sticky top-0 z-50 w-full backdrop-blur-md bg-white/70 dark:bg-gray-950/80 shadow-lg border-b border-transparent" style={{boxShadow: '0 4px 24px 0 rgba(80,80,180,0.07)'}}>
+    <header className="sticky top-0 z-[110] w-full backdrop-blur-md bg-white/70 dark:bg-gray-950/80 shadow-lg border-b border-transparent" style={{boxShadow: '0 4px 24px 0 rgba(80,80,180,0.07)'}}>
       {/* Gradient accent border */}
       <div className="h-1 w-full bg-gradient-to-r from-blue-400 via-pink-400 to-green-400 opacity-60" />
       <nav className="container mx-auto px-4 sm:px-6 lg:px-8">
@@ -61,7 +61,7 @@ export default function NavBar({ user }: NavBarProps) {
                   <span>My Pulse</span>
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="bg-white shadow-xl rounded-xl p-2 min-w-[180px] animate-fade-in">
+              <DropdownMenuContent align="end" className="z-[120] bg-white shadow-xl rounded-xl p-2 min-w-[180px] animate-fade-in">
                 <DropdownMenuItem asChild>
                   <Link
                     href="/history"
@@ -98,7 +98,7 @@ export default function NavBar({ user }: NavBarProps) {
                   </Avatar>
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent className="w-80 rounded-2xl shadow-2xl bg-gradient-to-br from-white/90 via-blue-50/80 to-purple-50/80 dark:from-gray-900/90 dark:via-gray-800/90 dark:to-gray-900/80 border border-white/30 animate-fade-in backdrop-blur-md" align="end" forceMount>
+              <DropdownMenuContent className="z-[120] w-80 rounded-2xl shadow-2xl bg-gradient-to-br from-white/90 via-blue-50/80 to-purple-50/80 dark:from-gray-900/90 dark:via-gray-800/90 dark:to-gray-900/80 border border-white/30 animate-fade-in backdrop-blur-md" align="end" forceMount>
                 {/* User Card */}
                 <DropdownMenuLabel className="font-normal px-4 py-5 bg-gradient-to-r from-blue-100/60 via-pink-100/60 to-green-100/60 dark:from-gray-800/80 dark:via-gray-900/80 dark:to-gray-800/80 rounded-t-2xl mb-2">
                   <div className="flex items-center space-x-4">
@@ -119,6 +119,12 @@ export default function NavBar({ user }: NavBarProps) {
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
                 {/* Other */}
+                <DropdownMenuItem asChild>
+                  <Link href="/history" className="flex items-center gap-2">
+                    <HeartPulse className="h-5 w-5 text-pink-500" />
+                    My Weekly Pulse
+                  </Link>
+                </DropdownMenuItem>
                 <DropdownMenuItem asChild>
                   <Link href="/leaderboard" className="flex items-center gap-2">
                     <Trophy className="w-5 h-5 text-yellow-500" />
