@@ -44,9 +44,16 @@ export default function ProjectLineChart({ data, weekMeta }: Props) {
 
   // Pagination state for weeks
   const WINDOW_SIZE = 3;
-  const [windowStart, setWindowStart] = useState(0);
+  const [windowStart, setWindowStart] = useState(() =>
+    Math.max(0, data.length - WINDOW_SIZE)
+  );
   const maxWindowStart = Math.max(0, data.length - WINDOW_SIZE);
   const visibleData = data.slice(windowStart, windowStart + WINDOW_SIZE);
+
+  // Update windowStart if data length changes (e.g., new data loaded)
+  useEffect(() => {
+    setWindowStart(Math.max(0, data.length - WINDOW_SIZE));
+  }, [data.length, WINDOW_SIZE]);
 
   // Project visibility state
   const [visibleProjects, setVisibleProjects] = useState<
