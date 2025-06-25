@@ -5,7 +5,7 @@ import { Card } from "@/components/ui/card";
 import { motion } from "framer-motion";
 import { useEffect } from 'react';
 
-export default function HoursWorkedScreen({ onNext, onBack, formData, setFormData, question }: ScreenProps & { question?: Question }) {
+export default function HoursWorkedScreen({ onNext, onBack, formData, setFormData, question, readOnly = false, hideButton = false }: ScreenProps & { question?: Question }) {
   const handleHoursChange = (hours: number[]) => {
     setFormData({
       ...formData,
@@ -83,6 +83,7 @@ export default function HoursWorkedScreen({ onNext, onBack, formData, setFormDat
                 step={1}
                 value={[formData.primaryProject.hours]}
                 onValueChange={handleHoursChange}
+                disabled={readOnly}
                 className="w-full [&_[data-slot=slider-track]]:bg-blue-100 [&_[data-slot=slider-range]]:bg-gradient-to-r [&_[data-slot=slider-range]]:from-blue-500 [&_[data-slot=slider-range]]:to-blue-600 [&_[data-slot=slider-thumb]]:border-blue-600 [&_[data-slot=slider-thumb]]:hover:ring-blue-200 [&_[data-slot=slider-thumb]]:focus-visible:ring-blue-200"
               />
               <div className="flex justify-between text-sm text-muted-foreground mt-2">
@@ -119,28 +120,31 @@ export default function HoursWorkedScreen({ onNext, onBack, formData, setFormDat
         </motion.div>
       </div>
       
-      <motion.div 
-        className="mt-auto flex gap-3"
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.4, delay: 0.8 }}
-      >
-        <button 
-          onClick={onBack}
-          className="border border-gray-300 hover:border-gray-400 px-6 py-3 rounded-full font-medium flex items-center gap-2 transition-all duration-200 hover:bg-gray-50"
+      {!hideButton && (
+        <motion.div 
+          className="mt-auto flex gap-3"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4, delay: 0.8 }}
         >
-          <ArrowLeft size={18} /> Back
-        </button>
-        <button 
-          onClick={onNext}
-          className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white px-6 py-3.5 rounded-xl font-semibold flex items-center justify-center gap-2 w-full transition-all duration-200 transform hover:-translate-y-0.5 disabled:opacity-60 disabled:cursor-not-allowed shadow-md hover:shadow-lg"
-          disabled={!formData.primaryProject.hours}
-          aria-label="Next step, or press Shift + Enter"
-        >
-          Next <ArrowRight size={20} />
-          <span className="hidden sm:inline text-xs opacity-80 ml-2 border border-white/30 px-1.5 py-0.5 rounded-md">Shift + Enter</span>
-        </button>
-      </motion.div>
+          <button 
+            onClick={onBack}
+            className="border border-gray-300 hover:border-gray-400 px-6 py-3 rounded-full font-medium flex items-center gap-2 transition-all duration-200 hover:bg-gray-50"
+            disabled={readOnly}
+          >
+            <ArrowLeft size={18} /> Back
+          </button>
+          <button 
+            onClick={onNext}
+            className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white px-6 py-3.5 rounded-xl font-semibold flex items-center justify-center gap-2 w-full transition-all duration-200 transform hover:-translate-y-0.5 disabled:opacity-60 disabled:cursor-not-allowed shadow-md hover:shadow-lg"
+            disabled={!formData.primaryProject.hours || readOnly}
+            aria-label="Next step, or press Shift + Enter"
+          >
+            Next <ArrowRight size={20} />
+            <span className="hidden sm:inline text-xs opacity-80 ml-2 border border-white/30 px-1.5 py-0.5 rounded-md">Shift + Enter</span>
+          </button>
+        </motion.div>
+      )}
     </div>
   );
 } 

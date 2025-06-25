@@ -9,17 +9,17 @@ importers:
   .:
     dependencies:
       '@copilotkit/react-core':
-        specifier: ^1.9.0
-        version: 1.9.0(@types/react@19.1.2)(graphql@16.11.0)(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
+        specifier: ^1.9.1
+        version: 1.9.1(@types/react@19.1.2)(graphql@16.11.0)(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
       '@copilotkit/react-textarea':
-        specifier: ^1.9.0
-        version: 1.9.0(@types/react-dom@19.1.2(@types/react@19.1.2))(@types/react@19.1.2)(graphql@16.11.0)(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
+        specifier: ^1.9.1
+        version: 1.9.1(@types/react-dom@19.1.2(@types/react@19.1.2))(@types/react@19.1.2)(graphql@16.11.0)(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
       '@copilotkit/react-ui':
-        specifier: ^1.9.0
-        version: 1.9.0(@types/react@19.1.2)(graphql@16.11.0)(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
+        specifier: ^1.9.1
+        version: 1.9.1(@types/react@19.1.2)(graphql@16.11.0)(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
       '@copilotkit/runtime':
-        specifier: ^1.9.0
-        version: 1.9.0(@ag-ui/client@0.0.28)(@ag-ui/core@0.0.28)(@ag-ui/encoder@0.0.28)(@ag-ui/proto@0.0.28)(@aws-crypto/sha256-js@5.2.0)(@aws-sdk/client-bedrock-agent-runtime@3.826.0)(@aws-sdk/client-bedrock-runtime@3.826.0)(@aws-sdk/client-kendra@3.826.0)(@aws-sdk/credential-provider-node@3.826.0)(@browserbasehq/sdk@2.6.0)(@browserbasehq/stagehand@1.14.0(@playwright/test@1.52.0)(deepmerge@4.3.1)(dotenv@16.5.0)(openai@4.104.0(ws@8.18.1)(zod@3.25.50))(zod@3.25.50))(@ibm-cloud/watsonx-ai@1.6.7)(@smithy/util-utf8@2.3.0)(@supabase/supabase-js@2.49.4)(axios@1.9.0)(fast-xml-parser@4.4.1)(google-auth-library@8.9.0)(html-to-text@9.0.5)(ibm-cloud-sdk-core@5.4.0)(ignore@5.3.2)(jsdom@26.1.0)(jsonwebtoken@9.0.2)(lodash@4.17.21)(playwright@1.52.0)(react@19.1.0)(weaviate-client@3.6.0)(ws@8.18.1)
+        specifier: ^1.9.1
+        version: 1.9.1(@ag-ui/client@0.0.28)(@ag-ui/core@0.0.28)(@ag-ui/encoder@0.0.28)(@ag-ui/proto@0.0.28)(@aws-crypto/sha256-js@5.2.0)(@aws-sdk/client-bedrock-agent-runtime@3.826.0)(@aws-sdk/client-bedrock-runtime@3.826.0)(@aws-sdk/client-kendra@3.826.0)(@aws-sdk/credential-provider-node@3.826.0)(@browserbasehq/sdk@2.6.0)(@browserbasehq/stagehand@1.14.0(@playwright/test@1.52.0)(deepmerge@4.3.1)(dotenv@16.5.0)(openai@4.104.0(ws@8.18.1)(zod@3.25.50))(zod@3.25.50))(@ibm-cloud/watsonx-ai@1.6.7)(@smithy/util-utf8@2.3.0)(@supabase/supabase-js@2.49.4)(axios@1.9.0)(fast-xml-parser@4.4.1)(google-auth-library@8.9.0)(html-to-text@9.0.5)(ibm-cloud-sdk-core@5.4.0)(ignore@5.3.2)(jsdom@26.1.0)(jsonwebtoken@9.0.2)(lodash@4.17.21)(playwright@1.52.0)(react@19.1.0)(weaviate-client@3.6.0)(ws@8.18.1)
       '@langchain/aws':
         specifier: ^0.1.10
         version: 0.1.10(@langchain/core@0.3.57(openai@4.104.0(ws@8.18.1)(zod@3.25.50)))
@@ -498,38 +498,38 @@ packages:
   '@cfworker/json-schema@4.1.1':
     resolution: {integrity: sha512-gAmrUZSGtKc3AiBL71iNWxDsyUC5uMaKKGdvzYsBoTW/xi42JQHl7eKV2OYzCUqvc+D2RCcf7EXY2iCyFIk6og==}
 
-  '@copilotkit/react-core@1.9.0':
-    resolution: {integrity: sha512-W9Ds+GgMAhLReYJ9XUWIv+tPM9Sbr/sFlFjtnWozTMg2ivp42FOR/tiQ7yV9kAvJtlvx/d7sbs3cY7uFsPQC5Q==}
+  '@copilotkit/react-core@1.9.1':
+    resolution: {integrity: sha512-HYKGoCg7smf6RqPv4pCGPHk8MKNMCL4UwHoK8DiJI796ck1KINoqh/Ieu55FYISVlLF6JXmvRM0mMgSRKjpNKw==}
     peerDependencies:
       react: ^18 || ^19 || ^19.0.0-rc
       react-dom: ^18 || ^19 || ^19.0.0-rc
 
-  '@copilotkit/react-textarea@1.9.0':
-    resolution: {integrity: sha512-y20UWVlwE3pWPtcs7xxgXN9fJnKWpV0ZyqIBdgK3VEGTFFVkTB2YwCJOoWJ4VMRxLmNMmkBzrdkwp8KZ25xhZQ==}
+  '@copilotkit/react-textarea@1.9.1':
+    resolution: {integrity: sha512-voZQYJl/y551yZxM0PLIOZhHli7FLzQG7J6xswELvkjaelAVB1QI1Kkg3lX/Jq7BUE7McXYkhNW0LJinLoGoAw==}
     peerDependencies:
       react: ^18 || ^19 || ^19.0.0-rc
       react-dom: ^18 || ^19 || ^19.0.0-rc
 
-  '@copilotkit/react-ui@1.9.0':
-    resolution: {integrity: sha512-1VIk2EeYXm3jpuRK2NyB6Y7op9FKYZYkulvterVng0fWLsmiOFtG59t1muVLJaWKlPJ/XR50MxDlDctGZaXWtA==}
+  '@copilotkit/react-ui@1.9.1':
+    resolution: {integrity: sha512-ppAc1X85hfLr7Al+YLEzvV+Q9nuxEU6FXja9i2dwzBeBd1GGPcflydCmAFeP1OTv/3arQ6AP23mnsoJSH82hdA==}
     peerDependencies:
       react: ^18 || ^19 || ^19.0.0-rc
 
-  '@copilotkit/runtime-client-gql@1.9.0':
-    resolution: {integrity: sha512-BXzPfzHrNc1M6u04fwHCtL1iK0beM1Y6mhFPJWegk0uCnLtWZz/cRPqlmkI9M2g1fNaHp80hH3RnmUK0Wqk/dw==}
+  '@copilotkit/runtime-client-gql@1.9.1':
+    resolution: {integrity: sha512-RHCKGO1aeiZ8tn917lVnOjTLqfONddhbhchypcgInSQ3X0IeFyIB0ntn3vE3YosDO8lNdbptVHjABobZJWx2Aw==}
     peerDependencies:
       react: ^18 || ^19 || ^19.0.0-rc
 
-  '@copilotkit/runtime@1.9.0':
-    resolution: {integrity: sha512-Mjl/OrkKSLuG5TwsBtzR7h7znbEZLugPm6kzYyUITmIgvm9jadXTFRJ74sHJle1xK6tNhD+/ya9DYhfg+GFt5Q==}
+  '@copilotkit/runtime@1.9.1':
+    resolution: {integrity: sha512-JC0t6HewoMCmx7RhkF9HBaQGHODTErZnnu0m8On/Slwy9zvgPxVeGl+cbYaUbsy9+zJFE5vu0Y92O1j9bYDe4g==}
     peerDependencies:
       '@ag-ui/client': '>=0.0.28'
       '@ag-ui/core': '>=0.0.28'
       '@ag-ui/encoder': '>=0.0.28'
       '@ag-ui/proto': '>=0.0.28'
 
-  '@copilotkit/shared@1.9.0':
-    resolution: {integrity: sha512-jkKmVgZFflZDXYMHTCpAW+bBWc6QBQYIkT1/tpYmrTAEhHv8PY+j8OuXus7uGvbmzM/BT+Q864ilm7TU+TdvmQ==}
+  '@copilotkit/shared@1.9.1':
+    resolution: {integrity: sha512-Jrj4F2Vd26a17eWJhGT9zYD1Z1ccxW+Woo71FTXz4H5XU4vsGaAgSc42rjzKbhji5pwayRPx932EZSZ+n5b2yA==}
 
   '@csstools/color-helpers@5.0.2':
     resolution: {integrity: sha512-JqWH1vsgdGcw2RR6VliXXdA0/59LttzlU8UlRT/iUUsEeWfYq8I+K0yhihEUTTHLRm1EXvpsCx3083EU15ecsA==}
@@ -7517,10 +7517,10 @@ snapshots:
 
   '@cfworker/json-schema@4.1.1': {}
 
-  '@copilotkit/react-core@1.9.0(@types/react@19.1.2)(graphql@16.11.0)(react-dom@19.1.0(react@19.1.0))(react@19.1.0)':
+  '@copilotkit/react-core@1.9.1(@types/react@19.1.2)(graphql@16.11.0)(react-dom@19.1.0(react@19.1.0))(react@19.1.0)':
     dependencies:
-      '@copilotkit/runtime-client-gql': 1.9.0(graphql@16.11.0)(react@19.1.0)
-      '@copilotkit/shared': 1.9.0
+      '@copilotkit/runtime-client-gql': 1.9.1(graphql@16.11.0)(react@19.1.0)
+      '@copilotkit/shared': 1.9.1
       '@scarf/scarf': 1.4.0
       react: 19.1.0
       react-dom: 19.1.0(react@19.1.0)
@@ -7532,11 +7532,11 @@ snapshots:
       - graphql
       - supports-color
 
-  '@copilotkit/react-textarea@1.9.0(@types/react-dom@19.1.2(@types/react@19.1.2))(@types/react@19.1.2)(graphql@16.11.0)(react-dom@19.1.0(react@19.1.0))(react@19.1.0)':
+  '@copilotkit/react-textarea@1.9.1(@types/react-dom@19.1.2(@types/react@19.1.2))(@types/react@19.1.2)(graphql@16.11.0)(react-dom@19.1.0(react@19.1.0))(react@19.1.0)':
     dependencies:
-      '@copilotkit/react-core': 1.9.0(@types/react@19.1.2)(graphql@16.11.0)(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
-      '@copilotkit/runtime-client-gql': 1.9.0(graphql@16.11.0)(react@19.1.0)
-      '@copilotkit/shared': 1.9.0
+      '@copilotkit/react-core': 1.9.1(@types/react@19.1.2)(graphql@16.11.0)(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
+      '@copilotkit/runtime-client-gql': 1.9.1(graphql@16.11.0)(react@19.1.0)
+      '@copilotkit/shared': 1.9.1
       '@emotion/css': 11.13.5
       '@emotion/react': 11.14.0(@types/react@19.1.2)(react@19.1.0)
       '@emotion/styled': 11.14.0(@emotion/react@11.14.0(@types/react@19.1.2)(react@19.1.0))(@types/react@19.1.2)(react@19.1.0)
@@ -7564,11 +7564,11 @@ snapshots:
       - graphql
       - supports-color
 
-  '@copilotkit/react-ui@1.9.0(@types/react@19.1.2)(graphql@16.11.0)(react-dom@19.1.0(react@19.1.0))(react@19.1.0)':
+  '@copilotkit/react-ui@1.9.1(@types/react@19.1.2)(graphql@16.11.0)(react-dom@19.1.0(react@19.1.0))(react@19.1.0)':
     dependencies:
-      '@copilotkit/react-core': 1.9.0(@types/react@19.1.2)(graphql@16.11.0)(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
-      '@copilotkit/runtime-client-gql': 1.9.0(graphql@16.11.0)(react@19.1.0)
-      '@copilotkit/shared': 1.9.0
+      '@copilotkit/react-core': 1.9.1(@types/react@19.1.2)(graphql@16.11.0)(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
+      '@copilotkit/runtime-client-gql': 1.9.1(graphql@16.11.0)(react@19.1.0)
+      '@copilotkit/shared': 1.9.1
       '@headlessui/react': 2.2.4(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
       react: 19.1.0
       react-markdown: 10.1.0(@types/react@19.1.2)(react@19.1.0)
@@ -7583,9 +7583,9 @@ snapshots:
       - react-dom
       - supports-color
 
-  '@copilotkit/runtime-client-gql@1.9.0(graphql@16.11.0)(react@19.1.0)':
+  '@copilotkit/runtime-client-gql@1.9.1(graphql@16.11.0)(react@19.1.0)':
     dependencies:
-      '@copilotkit/shared': 1.9.0
+      '@copilotkit/shared': 1.9.1
       '@urql/core': 5.1.1(graphql@16.11.0)
       react: 19.1.0
       untruncate-json: 0.0.1
@@ -7594,7 +7594,7 @@ snapshots:
       - encoding
       - graphql
 
-  '@copilotkit/runtime@1.9.0(@ag-ui/client@0.0.28)(@ag-ui/core@0.0.28)(@ag-ui/encoder@0.0.28)(@ag-ui/proto@0.0.28)(@aws-crypto/sha256-js@5.2.0)(@aws-sdk/client-bedrock-agent-runtime@3.826.0)(@aws-sdk/client-bedrock-runtime@3.826.0)(@aws-sdk/client-kendra@3.826.0)(@aws-sdk/credential-provider-node@3.826.0)(@browserbasehq/sdk@2.6.0)(@browserbasehq/stagehand@1.14.0(@playwright/test@1.52.0)(deepmerge@4.3.1)(dotenv@16.5.0)(openai@4.104.0(ws@8.18.1)(zod@3.25.50))(zod@3.25.50))(@ibm-cloud/watsonx-ai@1.6.7)(@smithy/util-utf8@2.3.0)(@supabase/supabase-js@2.49.4)(axios@1.9.0)(fast-xml-parser@4.4.1)(google-auth-library@8.9.0)(html-to-text@9.0.5)(ibm-cloud-sdk-core@5.4.0)(ignore@5.3.2)(jsdom@26.1.0)(jsonwebtoken@9.0.2)(lodash@4.17.21)(playwright@1.52.0)(react@19.1.0)(weaviate-client@3.6.0)(ws@8.18.1)':
+  '@copilotkit/runtime@1.9.1(@ag-ui/client@0.0.28)(@ag-ui/core@0.0.28)(@ag-ui/encoder@0.0.28)(@ag-ui/proto@0.0.28)(@aws-crypto/sha256-js@5.2.0)(@aws-sdk/client-bedrock-agent-runtime@3.826.0)(@aws-sdk/client-bedrock-runtime@3.826.0)(@aws-sdk/client-kendra@3.826.0)(@aws-sdk/credential-provider-node@3.826.0)(@browserbasehq/sdk@2.6.0)(@browserbasehq/stagehand@1.14.0(@playwright/test@1.52.0)(deepmerge@4.3.1)(dotenv@16.5.0)(openai@4.104.0(ws@8.18.1)(zod@3.25.50))(zod@3.25.50))(@ibm-cloud/watsonx-ai@1.6.7)(@smithy/util-utf8@2.3.0)(@supabase/supabase-js@2.49.4)(axios@1.9.0)(fast-xml-parser@4.4.1)(google-auth-library@8.9.0)(html-to-text@9.0.5)(ibm-cloud-sdk-core@5.4.0)(ignore@5.3.2)(jsdom@26.1.0)(jsonwebtoken@9.0.2)(lodash@4.17.21)(playwright@1.52.0)(react@19.1.0)(weaviate-client@3.6.0)(ws@8.18.1)':
     dependencies:
       '@ag-ui/client': 0.0.28
       '@ag-ui/core': 0.0.28
@@ -7602,7 +7602,7 @@ snapshots:
       '@ag-ui/langgraph': 0.0.3(openai@4.104.0(ws@8.18.1)(zod@3.25.50))(react@19.1.0)
       '@ag-ui/proto': 0.0.28
       '@anthropic-ai/sdk': 0.27.3
-      '@copilotkit/shared': 1.9.0
+      '@copilotkit/shared': 1.9.1
       '@graphql-yoga/plugin-defer-stream': 3.13.5(graphql-yoga@5.13.5(graphql@16.11.0))(graphql@16.11.0)
       '@langchain/aws': 0.1.10(@langchain/core@0.3.57(openai@4.104.0(ws@8.18.1)(zod@3.25.50)))
       '@langchain/community': 0.3.45(@aws-crypto/sha256-js@5.2.0)(@aws-sdk/client-bedrock-agent-runtime@3.826.0)(@aws-sdk/client-bedrock-runtime@3.826.0)(@aws-sdk/client-kendra@3.826.0)(@aws-sdk/credential-provider-node@3.826.0)(@browserbasehq/sdk@2.6.0)(@browserbasehq/stagehand@1.14.0(@playwright/test@1.52.0)(deepmerge@4.3.1)(dotenv@16.5.0)(openai@4.104.0(ws@8.18.1)(zod@3.25.50))(zod@3.25.50))(@ibm-cloud/watsonx-ai@1.6.7)(@langchain/aws@0.1.10(@langchain/core@0.3.57(openai@4.104.0(ws@8.18.1)(zod@3.25.50))))(@langchain/core@0.3.57(openai@4.104.0(ws@8.18.1)(zod@3.25.50)))(@smithy/util-utf8@2.3.0)(@supabase/supabase-js@2.49.4)(axios@1.9.0)(fast-xml-parser@4.4.1)(google-auth-library@8.9.0)(html-to-text@9.0.5)(ibm-cloud-sdk-core@5.4.0)(ignore@5.3.2)(jsdom@26.1.0)(jsonwebtoken@9.0.2)(lodash@4.17.21)(openai@4.104.0(ws@8.18.1)(zod@3.25.50))(playwright@1.52.0)(weaviate-client@3.6.0)(ws@8.18.1)
@@ -7773,7 +7773,7 @@ snapshots:
       - ws
       - youtubei.js
 
-  '@copilotkit/shared@1.9.0':
+  '@copilotkit/shared@1.9.1':
     dependencies:
       '@segment/analytics-node': 2.2.1
       chalk: 4.1.2
