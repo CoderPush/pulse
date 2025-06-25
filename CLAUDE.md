@@ -33,3 +33,10 @@ Submissions are collected via the multi-step `WeeklyPulseForm`. Questions are ve
 - Form validation occurs at the UI, API layer, and database constraints.
 - Refer to `docs/test-plan.md` for the full testing strategy and `docs/implementation.md` for architecture details.
 
+
+### Key Business Logic
+
+- **Auto-sharing**: Submissions auto-shared with managers for NEXT_PUBLIC_COMPANY_EMAIL_DOMAIN emails
+- **Streak calculation**: Configurable start week with exclusions for holidays
+- **Late submission detection**: Based on submission window timing
+

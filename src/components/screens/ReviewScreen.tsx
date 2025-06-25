@@ -16,7 +16,7 @@ const CORE_QUESTION_CATEGORIES = [
   'hoursReportingImpact',
 ];
 
-export default function ReviewScreen({ onBack, formData, onNext, questions = [] }: ScreenProps & { questions?: Question[] }) {
+export default function ReviewScreen({ onBack, formData, questions = [], totalScreens, setCurrentScreen, readOnly = false, hideButton = false }: ScreenProps & { questions?: Question[], totalScreens: number, setCurrentScreen: (screen: number) => void }) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -56,7 +56,8 @@ export default function ReviewScreen({ onBack, formData, onNext, questions = [] 
         throw new Error(data.error || 'Failed to submit form');
       }
 
-      onNext();
+      // Only this action can navigate to the Success screen
+      setCurrentScreen(totalScreens - 1);
     } catch (error) {
       console.error('Error submitting:', error);
       setError(error instanceof Error ? error.message : 'Failed to submit form');
@@ -189,19 +190,19 @@ export default function ReviewScreen({ onBack, formData, onNext, questions = [] 
           })}
         </div>
       )}
-      
+       {!hideButton && (
       <div className="mt-auto flex gap-3">
         <button 
           onClick={onBack}
           className="border border-gray-300 hover:border-gray-400 px-6 py-3 rounded-full font-medium flex items-center gap-2"
-          disabled={isSubmitting}
+          disabled={isSubmitting || readOnly}
         >
           <ArrowLeft size={18} /> Back
         </button>
         <button 
           onClick={handleSubmit}
           className="relative bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 rounded-full font-medium flex items-center gap-2 flex-1 justify-center disabled:bg-blue-400 overflow-hidden group transition-all duration-300 shadow-lg hover:shadow-xl"
-          disabled={isSubmitting}
+          disabled={isSubmitting || readOnly}
         >
           <span className="relative z-10 flex items-center gap-2">
             {isSubmitting ? 'Submitting...' : 'Submit Now'} 
@@ -212,6 +213,7 @@ export default function ReviewScreen({ onBack, formData, onNext, questions = [] 
           <span className="absolute -inset-1 bg-blue-400 opacity-0 group-hover:opacity-20 blur-xl transition-all duration-300"></span>
         </button>
       </div>
+      )}
     </div>
   );
 } 
