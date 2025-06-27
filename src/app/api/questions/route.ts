@@ -1,13 +1,30 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/utils/supabase/server';
+import { FollowUpQuestion } from '@/types/followup';
 
 export async function GET() {
   try {
     const supabase = await createClient();
-    // Use the new RPC to get only the latest version of each question
-    const { data: questions, error: questionsError } = await supabase.rpc('get_active_latest_questions');
-    if (questionsError) throw questionsError;
+    // Fetch the Weekly Pulse template by type
+    const { data: template, error: templateError } = await supabase
+      .from('templates')
+      .select('id')
+      .eq('type', 'weekly')
+      .single();
+    if (templateError || !template) throw templateError || new Error('Weekly Pulse template not found');
 
+    // Fetch questions for the Weekly Pulse template, ordered by display_order
+    const { data, error } = await supabase
+      .from('template_questions')
+      .select('question_id, questions(*)')
+      .eq('template_id', template.id)
+      .order('display_order', { ascending: true });
+    if (error) throw error;
+
+    // Each row.questions is a FollowUpQuestion, or sometimes an array. Flatten all questions into a single array.
+    const questions = (data || []).flatMap((row: { question_id: string; questions: FollowUpQuestion | FollowUpQuestion[] }) =>
+      Array.isArray(row.questions) ? row.questions : [row.questions]
+    );
     return NextResponse.json({ questions });
   } catch (error) {
     console.error('Error in /api/questions:', error);

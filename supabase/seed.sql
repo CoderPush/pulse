@@ -85,3 +85,19 @@ VALUES
   ('55555555-5555-5555-5555-555555555555', '55555555-5555-5555-5555-555555555555', 1, 'Any changes next week?', 'Mention further milestones/deadlines if applicable', 'textarea', FALSE, 'changesNextWeek', 5),
   ('66666666-6666-6666-6666-666666666666', '66666666-6666-6666-6666-666666666666', 1, 'Anything else to share?', 'Wanting more/fewer challenges? Using more/less AI?', 'textarea', FALSE, 'otherFeedback', 6),
   ('77777777-7777-7777-7777-777777777777', '77777777-7777-7777-7777-777777777777', 1, 'How has reporting the hours each week affected you?', 'Share your experience with weekly hour reporting', 'textarea', TRUE, 'hoursReportingImpact', 7); 
+
+-- Insert Weekly Pulse template
+INSERT INTO public.templates (id, name, description, type)
+VALUES
+  ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'Weekly Pulse', 'The standard weekly pulse check-in form', 'weekly'); 
+
+-- Link questions to the Weekly Pulse template
+INSERT INTO public.template_questions (template_id, question_id, display_order)
+VALUES
+  ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', '11111111-1111-1111-1111-111111111111', 1),
+  ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', '22222222-2222-2222-2222-222222222222', 2),
+  ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', '33333333-3333-3333-3333-333333333333', 3),
+  ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', '44444444-4444-4444-4444-444444444444', 4),
+  ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', '55555555-5555-5555-5555-555555555555', 5),
+  ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', '66666666-6666-6666-6666-666666666666', 6),
+  ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', '77777777-7777-7777-7777-777777777777', 7); 

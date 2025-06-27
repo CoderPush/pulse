@@ -45,6 +45,11 @@ const sidebarItems = [
     title: 'Questions',
     href: '/admin/questions',
     icon: FileQuestion,
+  },
+  {
+    title: 'Follow-up',
+    href: '/admin/follow-up',
+    icon: FileText,
   }
 ];
 

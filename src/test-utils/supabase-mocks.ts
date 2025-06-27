@@ -9,10 +9,12 @@ export const setupSupabaseMocks = () => {
   const mockInsert = vi.fn();
   const mockSelect = vi.fn(); // Mock for regular select
   const mockSelectWithOptions = vi.fn(); // Mock for select with options
+  const mockOr = vi.fn();
+  const mockLte = vi.fn();
   const mockFrom = vi.fn();
   const mockGetUser = vi.fn();
 
-  // Helper to allow .eq().eq().single().order() chaining
+  // Helper to allow .eq().eq().single().order().or().lte().insert().select() chaining
   const makeEqChain = () => {
     const chain = {
       eq: vi.fn(() => chain),
@@ -20,6 +22,10 @@ export const setupSupabaseMocks = () => {
       order: mockOrder,
       in: mockIn,
       gte: mockGte,
+      or: mockOr,
+      lte: mockLte,
+      insert: mockInsert,
+      select: mockSelect,
     };
     return chain;
   };
@@ -40,6 +46,13 @@ export const setupSupabaseMocks = () => {
       return mockSelect(selectArg);
     },
     insert: mockInsert,
+    or: mockOr,
+    lte: mockLte,
+    eq: mockEq,
+    in: mockIn,
+    gte: mockGte,
+    order: mockOrder,
+    single: mockSingle,
   }));
 
   // Default resolutions/chaining setup
@@ -48,6 +61,8 @@ export const setupSupabaseMocks = () => {
   mockSingle.mockResolvedValue({ data: null, error: null });
   mockOrder.mockResolvedValue({ data: null, error: null, count: 0 });
   mockInsert.mockResolvedValue({ data: null, error: null });
+  mockOr.mockReturnValue(makeEqChain());
+  mockLte.mockReturnValue(makeEqChain());
 
   return {
     mockEq,
@@ -58,6 +73,8 @@ export const setupSupabaseMocks = () => {
     mockInsert,
     mockSelect, 
     mockSelectWithOptions,
+    mockOr,
+    mockLte,
     mockFrom,
     mockGetUser,
     mockSupabaseClient,
