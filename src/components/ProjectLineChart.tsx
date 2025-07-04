@@ -7,7 +7,6 @@ import {
   YAxis,
   Tooltip,
   CartesianGrid,
-  Legend,
   ResponsiveContainer,
 } from "recharts";
 import { useMemo, useState, useEffect } from "react";
@@ -208,16 +207,6 @@ export default function ProjectLineChart({ data, weekMeta }: Props) {
                         hoveredProject={hoveredProject}
                       />
                     }
-                  />
-                  <Legend
-                    verticalAlign="top"
-                    height={50}
-                    iconType="circle"
-                    wrapperStyle={{
-                      paddingBottom: "20px",
-                      fontSize: "14px",
-                      fontWeight: 500,
-                    }}
                   />
                   {allProjectNames.map((project) => {
                     if (!visibleProjects[project]) return null;
