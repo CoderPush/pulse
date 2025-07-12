@@ -54,7 +54,7 @@ const DailyPulseFormInner: React.FC<DailyPulseFormInnerProps> = ({
               />
             </div>
           ))}
-          <div className="flex flex-col sm:flex-row gap-2 mt-2">
+          <div className="flex flex-row gap-2 mt-2">
             <Button type="submit" className="bg-green-500 hover:bg-green-600 text-white" disabled={submitting}>
               {submitting ? 'Submitting...' : submitLabel}
             </Button>

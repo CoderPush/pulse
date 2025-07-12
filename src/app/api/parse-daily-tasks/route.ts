@@ -1,4 +1,3 @@
-
 import { NextResponse } from "next/server";
 import { ChatBedrockConverse } from "@langchain/aws";
 
@@ -20,16 +19,18 @@ const model = new ChatBedrockConverse({
 export async function POST(req: Request) {
   const { text } = await req.json();
   const prompt = [
-    'You are an expert assistant for parsing daily work logs.',
+    'Extract task information from the following text. For each task, return a structured object with the following fields:',
     '',
-    'Given the following user input, extract for each line:',
-    '- date (if present, convert to ISO 8601 date string format \"YYYY-MM-DD\", e.g. \"2025-06-26\", or omit if not present)',
-    '- project (from @project-name, [project], or prefix like \"Commun1ty:\")',
-    '- bucket (from #bucket, or from context like \"fix:\", \"feature:\", etc., or omit if not present)',
-    '- hours (from e.g. \"1.5h\", \"2 hours\", \"2 giờ\", or a number at the end of the line)',
-    '- description (the rest of the text, excluding project, bucket, hours, and date)',
+    'date: The date the task was done (format: YYYY-MM-DD, or null if not present).',
+    'project: The project name (can be inferred or matched from context, or null if not present).',
+    'bucket: The type or category of work (e.g., Development, Research, Meeting, or null if not present).',
+    'hours: Number of hours spent (as a number, or null if not present).',
+    'description: A brief description of the task.',
+    'link: Any associated link (if mentioned, or null if not present).',
     '',
-    'Return a JSON array, one object per line, with keys: date, project, bucket, hours, description. If a field is missing, use null. The date field must be in ISO 8601 format if present.',
+    'Support natural language input, including multiple tasks described in one sentence.',
+    '',
+    'Return a JSON array, one object per task, with keys: date, project, bucket, hours, description, link. If a field is missing, use null. The date field must be in ISO 8601 format if present.',
     '',
     'User input:',
     text,

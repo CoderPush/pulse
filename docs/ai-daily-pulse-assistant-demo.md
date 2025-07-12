@@ -39,11 +39,15 @@ Code review for new feature @project-beta #feature 2 hours
 - Total hours per day are calculated and displayed.
 
 ## TODO
-- Validate pasted data
-- Dashboard: Stats & Effort Distribution
-- Weekly View / Monthly View
-- Manager review & approve 
+- Validate pasted data: match with existing projects - low priority
+- Dashboard: Stats & Effort Distribution - Done
+- Weekly View / Monthly View - Done
+- Weekly Review: AI & reflection - OK 
 - Voice note - Nice to have
+- Export CSV
+- Clone Repeating tasks
+- Calendar view -> planner
+- Email reminder
 
 ---
 This feature streamlines daily reporting and makes bulk entry and review fast and intuitive.
