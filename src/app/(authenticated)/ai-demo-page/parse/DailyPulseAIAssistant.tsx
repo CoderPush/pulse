@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useRef } from "react";
 
 export default function DailyPulseAIAssistant({ onParse }: { onParse: (tasks: any[]) => void }) {
   const [input, setInput] = useState("");
@@ -78,7 +78,7 @@ export default function DailyPulseAIAssistant({ onParse }: { onParse: (tasks: an
           hours = parseFloat(hours);
         }
         // Remove all matched tokens for description
-        let desc = line
+        const desc = line
           .replace(/\+(\S+)/, "")
           .replace(/@(\d{4}-\d{2}-\d{2}|today|tmr|ytd)/, "")
           .replace(/#(\w+)/g, "")

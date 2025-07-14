@@ -16,7 +16,7 @@ export default async function DailyPulseLayout({
 
   return (
     <div className="flex min-h-[calc(100vh-4rem)] h-full">
-      <Sidebar pathname="/daily-pulse" />
+      <Sidebar pathname="/ai-demo-page" />
       {/* Main Content */}
       <div className="flex-1 overflow-auto">
         <div className="container mx-auto py-8 px-6">
