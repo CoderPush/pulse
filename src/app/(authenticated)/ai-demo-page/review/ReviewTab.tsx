@@ -1,5 +1,6 @@
 
 import React, { useEffect, useState } from "react";
+import { RefreshCw } from 'lucide-react';
 
 type Task = {
   date?: string | null;
@@ -48,7 +49,7 @@ const ReviewTab: React.FC<ReviewTabProps> = ({ tasks }) => {
       return;
     }
     const localKey = `ai-weekly-insight-${weekKey}`;
-    const cached = typeof window !== 'undefined' ? window.localStorage.getItem(localKey) : null;
+    const cached = !loading && typeof window !== 'undefined' ? window.localStorage.getItem(localKey) : null;
     if (cached) {
       try {
         setSummary(JSON.parse(cached));
@@ -74,11 +75,34 @@ const ReviewTab: React.FC<ReviewTabProps> = ({ tasks }) => {
       })
       .catch((e) => setError(e.message))
       .finally(() => setLoading(false));
-  }, [tasks]);
+  }, [tasks, loading]);
+
+  // Add refresh handler
+  const handleRefresh = () => {
+    const weekKey = getCurrentWeekKey();
+    if (!weekKey) return;
+    const localKey = `ai-weekly-insight-${weekKey}`;
+    if (typeof window !== 'undefined') {
+      window.localStorage.removeItem(localKey);
+    }
+    setLoading(true);
+    setSummary(null);
+  };
 
   return (
     <div className="bg-white rounded-2xl border border-gray-200 shadow p-6">
-      <h2 className="text-xl font-bold mb-4">✨ Weekly Insights</h2>
+      <div className="flex items-center justify-between mb-4">
+        <h2 className="text-xl font-bold">✨ Weekly Insights</h2>
+        <button
+          className={`ml-2 p-2 rounded-full border border-blue-100 bg-blue-50 hover:bg-blue-100 transition-colors ${loading ? 'animate-spin pointer-events-none opacity-60' : ''}`}
+          onClick={handleRefresh}
+          aria-label="Refresh insights"
+          disabled={loading}
+          type="button"
+        >
+          <RefreshCw className="w-5 h-5 text-blue-700" />
+        </button>
+      </div>
       <div className="mb-6 p-4 bg-blue-50 rounded-lg border border-blue-100 min-h-[80px]">
         {loading ? (
           <div className="text-blue-700">Generating summary...</div>
