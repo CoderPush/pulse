@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useEffect, useRef } from "react";
 
 export default function DailyPulseAIAssistant({ onParse }: { onParse: (tasks: any[]) => void }) {
   const [input, setInput] = useState("");
@@ -61,13 +61,44 @@ export default function DailyPulseAIAssistant({ onParse }: { onParse: (tasks: an
         // +project-name
         const projectMatch = line.match(/\+(\S+)/);
         const project = projectMatch ? projectMatch[1] : undefined;
-        // @date or @today/@tmr/@ytd
+        // @date or @today/@tmr/@ytd or @dd/MM, @dd-MM, @dd/MM/yyyy, @dd-MM-yyyy
         let date;
-        const dateMatch = line.match(/@(\d{4}-\d{2}-\d{2}|today|tmr|ytd)/);
+        const dateMatch = line.match(/@(\d{4}-\d{2}-\d{2}|today|tmr|ytd|\d{1,2}[\/\-]\d{1,2}(?:[\/\-]\d{2,4})?)/);
         if (dateMatch) {
           const val = dateMatch[1];
-          date = dateShortcuts[val] || val;
+          if (dateShortcuts[val]) {
+            date = dateShortcuts[val]; // from custom shortcut map
+          } else if (/^\d{4}-\d{2}-\d{2}$/.test(val)) {
+            date = val; // already ISO format
+          } else {
+            // Handle dd/MM, dd-MM, dd/MM/yyyy, dd-MM-yyyy, dd/MM/yy, dd-MM-yy
+            const today = new Date(); // Ensure 'today' is defined
+            const separator = val.includes("-") ? "-" : "/";
+            const parts = val.split(separator).map(p => parseInt(p, 10));
+
+            if (parts.length >= 2 && parts.length <= 3) {
+              const [d, m, rawYear] = parts;
+              let y = rawYear;
+              if (parts.length === 2) {
+                y = today.getFullYear(); // use current year if not provided
+              } else if (y < 100) {
+                y += 2000; // convert 2-digit year to 20xx
+              }
+
+              const parsed = new Date(y, m - 1, d);
+              // Confirm parsed date is valid
+              if (
+                parsed.getFullYear() === y &&
+                parsed.getMonth() === m - 1 &&
+                parsed.getDate() === d
+              ) {
+                const pad = (n: number) => String(n).padStart(2, '0');
+                date = `${y}-${pad(m)}-${pad(d)}`;
+              }
+            }
+          }
         }
+
         // #tags (can be multiple)
         const tagMatches = [...line.matchAll(/#(\w+)/g)].map(m => m[1]);
         // time: 2.5h or h2.5
@@ -78,9 +109,9 @@ export default function DailyPulseAIAssistant({ onParse }: { onParse: (tasks: an
           hours = parseFloat(hours);
         }
         // Remove all matched tokens for description
-        const desc = line
+        let desc = line
           .replace(/\+(\S+)/, "")
-          .replace(/@(\d{4}-\d{2}-\d{2}|today|tmr|ytd)/, "")
+          .replace(/@(\d{4}-\d{2}-\d{2}|today|tmr|ytd|\d{1,2}[\/\-]\d{1,2}(?:[\/\-]\d{2,4})?)/, "")
           .replace(/#(\w+)/g, "")
           .replace(/(\d+(?:\.\d+)?)[ ]*h|h[ ]*(\d+(?:\.\d+)?)/i, "")
           .replace(/\s+/g, " ")
@@ -112,23 +143,6 @@ export default function DailyPulseAIAssistant({ onParse }: { onParse: (tasks: an
     }
   }
 
-  // Helper: parse shortcut date strings ("today", "tmr", "ytd") to ISO date string
-  function parseShortcutDate(str: string): string | undefined {
-    const today = new Date();
-    if (str === "today") return today.toISOString().slice(0, 10);
-    if (str === "tmr") {
-      const tmr = new Date(today);
-      tmr.setDate(today.getDate() + 1);
-      return tmr.toISOString().slice(0, 10);
-    }
-    if (str === "ytd") {
-      const ytd = new Date(today);
-      ytd.setDate(today.getDate() - 1);
-      return ytd.toISOString().slice(0, 10);
-    }
-    return undefined;
-  }
-
   return (
     <div className="mb-8 p-6 rounded-2xl bg-gradient-to-br from-purple-100 to-purple-50 border border-purple-200 shadow flex flex-row gap-6">
       <div className="flex-1 basis-2/3 flex flex-col gap-2 items-stretch min-w-0">
@@ -139,11 +153,11 @@ export default function DailyPulseAIAssistant({ onParse }: { onParse: (tasks: an
           <div className="font-semibold mb-1">Guidelines</div>
           <ul className="list-disc list-inside space-y-1">
             <li>
-              <span className="font-mono bg-purple-50 px-1 rounded">+project-name @date #tag hours Description. Examples:</span>
+              <span className="font-mono bg-purple-50 px-1 rounded">Manual adding: +project-name @date #tag hours Description. Examples:</span>
             </li>
             <ul className="ml-8">
               <li className="list-none text-purple-900">
-                <span className="font-mono">+project-alpha @2025-07-07 #bugfix 2.5h Fixed login bug</span>
+                <span className="font-mono">+project-alpha @15/07 #bugfix 2.5h Fixed login bug</span>
               </li>
               <li className="list-none text-purple-900">
                 <span className="font-mono">+project-beta #feature h2 Code review for new feature</span>
@@ -154,6 +168,9 @@ export default function DailyPulseAIAssistant({ onParse }: { onParse: (tasks: an
             </li>
             <li>
               <span className="font-mono bg-purple-50 px-1 rounded">Cmd/Ctrl + Enter</span> to add manually
+            </li>
+            <li>
+              <span className="font-mono bg-purple-50 px-1 rounded">AI can parse the free text logs</span>
             </li>
           </ul>
         </div>
@@ -181,7 +198,7 @@ export default function DailyPulseAIAssistant({ onParse }: { onParse: (tasks: an
                 setShowSuggest(false);
               }
             }}
-            placeholder={'+project-name @2025-07-07 #bugfix 2.5h Description...'}
+            placeholder={'+project-name @15/07 #bugfix 2.5h Description...'}
             onKeyDown={e => {
               if ((e.metaKey || e.ctrlKey) && e.key === "Enter") {
                 e.preventDefault();
@@ -284,33 +301,34 @@ export default function DailyPulseAIAssistant({ onParse }: { onParse: (tasks: an
         </div>
         {error && <div className="text-red-600 text-base font-semibold mt-2">{error}</div>}
       </div>
-      <div className="basis-1/3 flex flex-col min-w-[220px] max-w-xs">
-      <div className="p-4 rounded-xl bg-yellow-50 border border-yellow-200 text-yellow-900 text-xs shadow-sm">
-        <div className="font-semibold mb-1 mt-2 text-base">Log Time</div>
-        <div className="mb-2">Track time spent on each task or group of tasks. It doesn’t need to be precise — estimates are fine.</div>
-        <div className="font-semibold mb-1 mt-2 text-base">Use Activity Buckets</div>
-        <div className="mb-2">Categorize your time into meaningful activity types (“buckets”) that reflect how you work.</div>
-        <div className="mb-2">Suggested buckets:</div>
-        <ul className="list-disc list-inside ml-4 mb-2">
-          <li className="mb-1">
-            <span className="font-mono bg-purple-100 px-1 rounded mr-1">#feature</span>
-            <b>Features:</b> Work on new product features — from planning to coding, testing, and rollout.
-          </li>
-          <li className="mb-1">
-            <span className="font-mono bg-purple-100 px-1 rounded mr-1">#debt</span>
-            <b>Bugs/Debt:</b> Fixing bugs, refactoring, resolving performance/security issues — anything that improves or repairs existing systems.
-          </li>
-          <li className="mb-1">
-            <span className="font-mono bg-purple-100 px-1 rounded mr-1">#toil</span>
-            <b>Toil:</b> Routine, repetitive tasks — deployments, monitoring, or manual processes that don’t directly add new value.
-          </li>
-        </ul>
-        <div className="font-semibold mb-1 mt-2 text-base">Balance Your Work</div>
-        <div>
-          Aim for a healthy mix across buckets based on team goals.<br />
-          Review and adjust the ratio over time to align with desired outcomes.
+      {/* Right column: hide on mobile, show on md+ */}
+      <div className="basis-1/3 flex-col min-w-[220px] max-w-xs hidden md:flex">
+        <div className="p-4 rounded-xl bg-yellow-50 border border-yellow-200 text-yellow-900 text-xs shadow-sm">
+          <div className="font-semibold mb-1 mt-2 text-base">Log Time</div>
+          <div className="mb-2">Track time spent on each task or group of tasks. It doesn’t need to be precise — estimates are fine.</div>
+          <div className="font-semibold mb-1 mt-2 text-base">Use Activity Buckets</div>
+          <div className="mb-2">Categorize your time into meaningful activity types (“buckets”) that reflect how you work.</div>
+          <div className="mb-2">Suggested buckets:</div>
+          <ul className="list-disc list-inside ml-4 mb-2">
+            <li className="mb-1">
+              <span className="font-mono bg-purple-100 px-1 rounded mr-1">#feature</span>
+              <b>Features:</b> Work on new product features — from planning to coding, testing, and rollout.
+            </li>
+            <li className="mb-1">
+              <span className="font-mono bg-purple-100 px-1 rounded mr-1">#debt</span>
+              <b>Bugs/Debt:</b> Fixing bugs, refactoring, resolving performance/security issues — anything that improves or repairs existing systems.
+            </li>
+            <li className="mb-1">
+              <span className="font-mono bg-purple-100 px-1 rounded mr-1">#toil</span>
+              <b>Toil:</b> Routine, repetitive tasks — deployments, monitoring, or manual processes that don’t directly add new value.
+            </li>
+          </ul>
+          <div className="font-semibold mb-1 mt-2 text-base">Balance Your Work</div>
+          <div>
+            Aim for a healthy mix across buckets based on team goals.<br />
+            Review and adjust the ratio over time to align with desired outcomes.
+          </div>
         </div>
-      </div>
       </div>
     </div>
   );

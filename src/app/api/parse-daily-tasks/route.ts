@@ -47,21 +47,13 @@ export async function POST(req: Request) {
   const content = typeof response.content === "string"
     ? response.content
     : Array.isArray(response.content)
-      ? response.content.map((c) => {
-          if (typeof c === "string") {
-            return c;
-          }
-          if (typeof c === "object" && c !== null && "text" in c && typeof (c as { text: unknown }).text === "string") {
-            return (c as { text: string }).text;
-          }
-          return "";
-        }).join(" ")
+      ? response.content.map(c => (typeof c === "string" ? c : c.text || "")).join(" ")
       : JSON.stringify(response.content);
 
   let tasks = [];
   try {
     // Extract JSON array from the response string
-    const match = content.match(/\\[[\\s\\S]*\\]/);
+    const match = content.match(/\[.*\]/s);
     if (match) {
       tasks = JSON.parse(match[0]);
     } else {

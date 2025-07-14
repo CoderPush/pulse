@@ -53,17 +53,7 @@ export async function POST(req: Request) {
       summaryJson = { summary: response.content };
     }
   } else if (Array.isArray(response.content)) {
-    const joined = response.content
-      .map((c) => {
-        if (typeof c === "string") {
-          return c;
-        }
-        if (typeof c === "object" && c !== null && "text" in c && typeof (c as { text: unknown }).text === "string") {
-          return (c as { text: string }).text;
-        }
-        return "";
-      })
-      .join(" ");
+    const joined = response.content.map(c => (typeof c === "string" ? c : (c as any).text || "")).join(" ");
     try {
       summaryJson = JSON.parse(joined);
     } catch {
