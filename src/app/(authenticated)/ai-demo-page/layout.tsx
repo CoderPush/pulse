@@ -2,7 +2,7 @@ import { createClient } from '@/utils/supabase/server'
 import { redirect } from 'next/navigation'
 import { Sidebar } from '@/components/Sidebar'
 
-export default async function DailyPulseLayout({
+export default async function AiDemoPageLayout({
   children,
 }: {
   children: React.ReactNode
@@ -25,4 +25,4 @@ export default async function DailyPulseLayout({
       </div>
     </div>
   )
-} 
+}

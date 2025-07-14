@@ -15,8 +15,8 @@ const mainSidebarItems: SidebarItem[] = [
     icon: <HeartPulse className="w-5 h-5 text-pink-500" />
   },
   {
-    title: 'My Daily Pulse',
-    href: '/daily-pulse',
+    title: 'My Daily Tasks',
+    href: '/ai-demo-page',
     icon: <CalendarDays className="w-5 h-5 text-green-500" />
   }
 ]
