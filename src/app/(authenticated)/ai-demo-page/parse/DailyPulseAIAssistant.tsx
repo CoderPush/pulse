@@ -109,7 +109,7 @@ export default function DailyPulseAIAssistant({ onParse }: { onParse: (tasks: an
           hours = parseFloat(hours);
         }
         // Remove all matched tokens for description
-        let desc = line
+        const desc = line
           .replace(/\+(\S+)/, "")
           .replace(/@(\d{4}-\d{2}-\d{2}|today|tmr|ytd|\d{1,2}[\/\-]\d{1,2}(?:[\/\-]\d{2,4})?)/, "")
           .replace(/#(\w+)/g, "")
