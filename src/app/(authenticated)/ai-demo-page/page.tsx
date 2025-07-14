@@ -7,8 +7,17 @@ import ReviewTab from "./review/ReviewTab";
 import type { Question } from '@/types/followup';
 import DailyPulseTabs from "./DailyPulseTabs";
 
-// Dummy questions for demo; replace with real questions from your backend
-
+// Define the Task type to match our database schema
+export interface Task {
+  id: string;
+  user_id: string;
+  task_date: string;
+  project: string;
+  bucket: string;
+  hours: number;
+  description: string;
+  created_at: string;
+}
 
 export default function AiDemoPage() {
   // Helper to get current week in yyyy-Wxx format for <input type="week">
@@ -31,9 +40,8 @@ export default function AiDemoPage() {
     { id: "description", title: "Task Description", type: "textarea", required: true }
   ];
 
-  const [forms, setForms] = useState<Array<{ form: Record<string, string>, questions: Question[] }>>([
-    { form: {}, questions: demoQuestions }
-  ]);
+  const [tasks, setTasks] = useState<Task[]>([]);
+  const [loading, setLoading] = useState(true);
   const [editIdx, setEditIdx] = useState<number | null>(null);
   // Track expanded/collapsed state for each date group
   const [expandedDates, setExpandedDates] = useState<Record<string, boolean>>({});
@@ -43,17 +51,38 @@ export default function AiDemoPage() {
   const [filterType, setFilterType] = useState<'week' | 'month'>("week");
   const [filterValue, setFilterValue] = useState<string>(getCurrentWeek());
 
-  // On mount, load from localStorage if available (client only)
+  // On mount, load from the database instead of localStorage
   useEffect(() => {
-    try {
-      const stored = window.localStorage.getItem("ai-demo-tasks");
-      if (stored) {
-        setForms(JSON.parse(stored));
+    const fetchTasks = async () => {
+      setLoading(true);
+      try {
+        const res = await fetch("/api/daily-tasks");
+        if (!res.ok) throw new Error("Failed to fetch tasks");
+        const { tasks: fetchedTasks } = await res.json();
+        setTasks(fetchedTasks || []);
+      } catch (e) {
+        console.error(e);
+      } finally {
+        setLoading(false);
       }
-    } catch (e) {
-      // Ignore parse errors
-    }
+    };
+    fetchTasks();
   }, []);
+
+  // This function is kept for now to map tasks to the old 'forms' structure
+  // for child components. We will refactor them next.
+  const forms = tasks.map(task => ({
+      form: {
+        id: task.id,
+        date: task.task_date,
+        project: task.project,
+        bucket: task.bucket,
+        hours: String(task.hours),
+        description: task.description,
+      },
+      questions: demoQuestions,
+  }));
+
 
   // Group tasks by date, attach _idx for edit, and filter out empty/unknown tasks
   const groupedByDate: Record<string, Array<{ form: Record<string, string>, questions: Question[], _idx: number }>> = {};
@@ -73,12 +102,19 @@ export default function AiDemoPage() {
     return tasks.every(isTaskEmpty);
   }
 
-  // Centralized save method for localStorage and future DB
-  function saveTasks(tasks: Array<{ form: Record<string, string>, questions: Question[] }>) {
-    try {
-      window.localStorage.setItem("ai-demo-tasks", JSON.stringify(tasks));
-    } catch (e) {}
-    // TODO: Extend here to save to database via API
+  // Helper for new Task model
+  const isTaskEmptyForTask = (task: Task) => {
+    return !task.description && !task.project && (!task.hours || task.hours === 0);
+  }
+  const isGroupEmptyForTasks = (tasks: Task[]) => {
+    return tasks.every(isTaskEmptyForTask);
+  }
+
+
+  // The saveTasks function is no longer needed and will be removed from props.
+  // Components will be updated to call the API directly.
+  function saveTasks(tasksToSave: Array<{ form: Record<string, string>, questions: Question[] }>) {
+    // This function is now a no-op and will be removed.
   }
 
 
@@ -89,15 +125,13 @@ export default function AiDemoPage() {
 
       {tab === "parse" && (
         <ParseTab
-          demoQuestions={demoQuestions}
-          forms={forms}
-          setForms={setForms}
+          tasks={tasks}
+          setTasks={setTasks}
           editIdx={editIdx}
           setEditIdx={setEditIdx}
           expandedDates={expandedDates}
           setExpandedDates={setExpandedDates}
-          saveTasks={saveTasks}
-          isGroupEmpty={isGroupEmpty}
+          isGroupEmpty={isGroupEmptyForTasks}
         />
       )}
 
@@ -121,7 +155,7 @@ export default function AiDemoPage() {
               const date = f.form.date;
               if (!date) return false;
               // Get ISO week string for the task
-              const d = new Date(date);
+              const d = new Date(f.form.date);
               const year = d.getFullYear();
               const jan4 = new Date(year, 0, 4);
               const dayOfYear = ((d.getTime() - new Date(year, 0, 1).getTime()) / 86400000) + 1;
