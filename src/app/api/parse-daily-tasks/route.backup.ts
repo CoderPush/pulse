@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 
 // Simple parser using regex for demo; replace with LLM call for production
-function parseTaskLine(line) {
+function parseTaskLine(line: string) {
   // Example: "Fixed login bug @project-alpha #bugfix 1.5h"
   const projectMatch = line.match(/@([\w-]+)/);
   const bucketMatch = line.match(/#(\w+)/);
@@ -15,9 +15,9 @@ function parseTaskLine(line) {
   };
 }
 
-export async function POST(req) {
+export async function POST(req: Request) {
   const { text } = await req.json();
-  const lines = text.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+  const lines = text.split(/\r?\n/).map((l: string) => l.trim()).filter(Boolean);
   const tasks = lines.map(parseTaskLine);
   return NextResponse.json({ tasks });
 }
