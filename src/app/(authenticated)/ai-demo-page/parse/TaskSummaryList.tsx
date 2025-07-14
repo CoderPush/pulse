@@ -22,7 +22,7 @@ const TaskSummaryList: React.FC<TaskSummaryListProps> = ({
   setEditIdx,
   setForms,
   saveTasks,
-  isGroupEmpty,
+  isGroupEmpty
 }) => {
   return (
     <div className="md:w-2/3 w-full">

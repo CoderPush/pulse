@@ -47,15 +47,15 @@ export async function POST(req: Request) {
   const content = typeof response.content === "string"
     ? response.content
     : Array.isArray(response.content)
-      ? response.content.map((c) => {
-          if (typeof c === "string") {
-            return c;
-          }
-          if (typeof c === "object" && c !== null && "text" in c && typeof (c as { text: unknown }).text === "string") {
-            return (c as { text: string }).text;
-          }
+    ? response.content.map((c) => {
+        if (typeof c === "string") {
+          return c;
+        }
+        if (typeof c === "object" && c !== null && "text" in c && typeof (c as { text: unknown }).text === "string") {
+          return (c as { text: string }).text;
+        }
           return "";
-        }).join(" ")
+      }).join(" ")
       : JSON.stringify(response.content);
 
   let tasks = [];
