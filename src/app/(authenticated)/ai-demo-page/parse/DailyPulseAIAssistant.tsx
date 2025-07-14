@@ -130,11 +130,11 @@ export default function DailyPulseAIAssistant({ onParse }: { onParse: (tasks: an
   }
 
   return (
-    <div className="mb-8 p-6 rounded-2xl bg-gradient-to-br from-purple-100 to-purple-50 border border-purple-200 shadow flex flex-col gap-4">
-      <div className="font-extrabold text-2xl text-purple-800 mb-1 flex items-center gap-2">
-        <span role="img" aria-label="sparkles">✨</span> AI Assistant
-      </div>
-      <div className="flex flex-col gap-2 items-stretch">
+    <div className="mb-8 p-6 rounded-2xl bg-gradient-to-br from-purple-100 to-purple-50 border border-purple-200 shadow flex flex-row gap-6">
+      <div className="flex-1 basis-2/3 flex flex-col gap-2 items-stretch min-w-0">
+        <div className="font-extrabold text-2xl text-purple-800 mb-1 flex items-center gap-2">
+          <span role="img" aria-label="sparkles">✨</span> AI Assistant
+        </div>
         <div className="text-purple-700 text-sm mb-2">
           <div className="font-semibold mb-1">Guidelines</div>
           <ul className="list-disc list-inside space-y-1">
@@ -158,6 +158,7 @@ export default function DailyPulseAIAssistant({ onParse }: { onParse: (tasks: an
           </ul>
         </div>
         <div className="relative">
+          {/* ...existing code for textarea and suggestions... */}
           <textarea
             ref={textareaRef}
             className="w-full border border-purple-300 rounded-lg p-3 text-base focus:outline-none focus:ring-2 focus:ring-purple-400 transition"
@@ -281,8 +282,36 @@ export default function DailyPulseAIAssistant({ onParse }: { onParse: (tasks: an
             Add Manually
           </button>
         </div>
+        {error && <div className="text-red-600 text-base font-semibold mt-2">{error}</div>}
       </div>
-      {error && <div className="text-red-600 text-base font-semibold mt-2">{error}</div>}
+      <div className="basis-1/3 flex flex-col min-w-[220px] max-w-xs">
+      <div className="p-4 rounded-xl bg-yellow-50 border border-yellow-200 text-yellow-900 text-xs shadow-sm">
+        <div className="font-semibold mb-1 mt-2 text-base">Log Time</div>
+        <div className="mb-2">Track time spent on each task or group of tasks. It doesn’t need to be precise — estimates are fine.</div>
+        <div className="font-semibold mb-1 mt-2 text-base">Use Activity Buckets</div>
+        <div className="mb-2">Categorize your time into meaningful activity types (“buckets”) that reflect how you work.</div>
+        <div className="mb-2">Suggested buckets:</div>
+        <ul className="list-disc list-inside ml-4 mb-2">
+          <li className="mb-1">
+            <span className="font-mono bg-purple-100 px-1 rounded mr-1">#feature</span>
+            <b>Features:</b> Work on new product features — from planning to coding, testing, and rollout.
+          </li>
+          <li className="mb-1">
+            <span className="font-mono bg-purple-100 px-1 rounded mr-1">#debt</span>
+            <b>Bugs/Debt:</b> Fixing bugs, refactoring, resolving performance/security issues — anything that improves or repairs existing systems.
+          </li>
+          <li className="mb-1">
+            <span className="font-mono bg-purple-100 px-1 rounded mr-1">#toil</span>
+            <b>Toil:</b> Routine, repetitive tasks — deployments, monitoring, or manual processes that don’t directly add new value.
+          </li>
+        </ul>
+        <div className="font-semibold mb-1 mt-2 text-base">Balance Your Work</div>
+        <div>
+          Aim for a healthy mix across buckets based on team goals.<br />
+          Review and adjust the ratio over time to align with desired outcomes.
+        </div>
+      </div>
+      </div>
     </div>
   );
 }
