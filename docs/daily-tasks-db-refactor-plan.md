@@ -96,7 +96,11 @@ To encourage consistent daily logging, we will implement an automated reminder s
 
 -   **Action:** Create a new scheduled cron job.
 -   **File:** `src/app/api/cron/daily-task-reminders/route.ts`
--   **Logic:**
+-   **Logic (Phase 1 - Simple Reminder):**
+    1.  The job will run twice a week (e.g., Monday and Thursday at 9 AM).
+    2.  It will fetch all users who have `wants_daily_reminders` set to `TRUE`.
+    3.  It will trigger a reminder email to every user on this list.
+-   **Logic (Phase 2 - Intelligent Reminder):**
     1.  The job will run daily (e.g., at 4 PM).
     2.  It will fetch all users who have `wants_daily_reminders` set to `TRUE`.
     3.  For each user, it will check if an entry exists in the `daily_tasks` table for the current date.

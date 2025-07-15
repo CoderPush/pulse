@@ -13,6 +13,8 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
 import ImportDialog from '@/components/admin/ImportDialog';
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 import { useToast } from '@/components/ui/use-toast';
@@ -23,6 +25,7 @@ interface User {
   name: string | null;
   is_admin: boolean;
   created_at: string;
+  wants_daily_reminders: boolean;
 }
 
 export default function UsersPage() {
@@ -31,6 +34,7 @@ export default function UsersPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const [showOnlyReminderUsers, setShowOnlyReminderUsers] = useState(false);
   const [isImportDialogOpen, setIsImportDialogOpen] = useState(false);
   const [editingUserId, setEditingUserId] = useState<string | null>(null);
   const [editingName, setEditingName] = useState<string>('');
@@ -42,6 +46,7 @@ export default function UsersPage() {
       setLoading(true);
       const params = new URLSearchParams();
       if (search) params.append('search', search);
+      if (showOnlyReminderUsers) params.append('wants_daily_reminders', 'true');
       
       const response = await fetch(`/api/admin/users?${params}`);
       const data = await response.json();
@@ -82,6 +87,26 @@ export default function UsersPage() {
       fetchUsers(searchQuery);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to update user');
+    }
+  };
+
+  const toggleReminderStatus = async (userId: string, newStatus: boolean) => {
+    try {
+      const response = await fetch('/api/admin/users', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId, wants_daily_reminders: newStatus }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || 'Failed to update user reminder status');
+      
+      // Update local state for instant feedback
+      setUsers(users => users.map(u => u.id === userId ? { ...u, wants_daily_reminders: newStatus } : u));
+      toast({ title: 'Success', description: `Daily reminder status updated.`, variant: 'default' });
+    } catch (err) {
+      toast({ title: 'Error', description: err instanceof Error ? err.message : 'An unknown error occurred.', variant: 'destructive' });
+      // Re-fetch to revert optimistic update on failure
+      fetchUsers(searchQuery);
     }
   };
 
@@ -138,7 +163,7 @@ export default function UsersPage() {
     }, 300);
 
     return () => clearTimeout(debounceTimer);
-  }, [searchQuery]);
+  }, [searchQuery, showOnlyReminderUsers]);
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -165,8 +190,8 @@ export default function UsersPage() {
         </div>
       </div>
 
-      {/* Search */}
-      <div className="px-4 py-4">
+      {/* Search & Filter */}
+      <div className="px-4 py-4 flex items-center space-x-4">
         <Input
           type="text"
           placeholder="Search by email or name..."
@@ -174,6 +199,14 @@ export default function UsersPage() {
           onChange={(e) => setSearchQuery(e.target.value)}
           className="max-w-md"
         />
+        <div className="flex items-center space-x-2">
+          <Switch
+            id="daily-reminder-filter"
+            checked={showOnlyReminderUsers}
+            onCheckedChange={setShowOnlyReminderUsers}
+          />
+          <Label htmlFor="daily-reminder-filter">Show users with daily reminders</Label>
+        </div>
       </div>
 
       {/* Users Table */}
@@ -199,6 +232,7 @@ export default function UsersPage() {
                   <TableHead>Name</TableHead>
                   <TableHead>Created At</TableHead>
                   <TableHead>Admin Status</TableHead>
+                  <TableHead>Daily Reminder</TableHead>
                   <TableHead>Actions</TableHead>
                 </TableRow>
               </TableHeader>
@@ -272,24 +306,40 @@ export default function UsersPage() {
                       {new Date(user.created_at).toLocaleDateString()}
                     </TableCell>
                     <TableCell>
-                      {user.is_admin ? (
-                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                          Admin
-                        </span>
-                      ) : (
-                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
-                          User
-                        </span>
-                      )}
+                      <Tooltip>
+                        <TooltipTrigger>
+                          <Switch
+                            checked={user.is_admin}
+                            onCheckedChange={(newStatus) =>
+                              toggleAdminStatus(user.id, newStatus)
+                            }
+                          />
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          {user.is_admin
+                            ? 'Admin status is ON'
+                            : 'Admin status is OFF'}
+                        </TooltipContent>
+                      </Tooltip>
                     </TableCell>
                     <TableCell>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => toggleAdminStatus(user.id, !user.is_admin)}
-                      >
-                        {user.is_admin ? 'Remove Admin' : 'Make Admin'}
-                      </Button>
+                      <Tooltip>
+                          <TooltipTrigger>
+                              <Switch
+                                  checked={user.wants_daily_reminders}
+                                  onCheckedChange={(newStatus) =>
+                                      toggleReminderStatus(user.id, newStatus)
+                                  }
+                              />
+                          </TooltipTrigger>
+                          <TooltipContent>
+                              {user.wants_daily_reminders
+                                  ? 'Daily reminder is ON'
+                                  : 'Daily reminder is OFF'}
+                          </TooltipContent>
+                      </Tooltip>
+                    </TableCell>
+                    <TableCell>
                     </TableCell>
                   </TableRow>
                 ))}
