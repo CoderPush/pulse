@@ -98,6 +98,18 @@ const DailyPulseFormInner: React.FC<DailyPulseFormInnerProps> = ({
               placeholder="What did you work on?"
             />
           </div>
+          <div>
+            <label className="block text-sm font-medium mb-1 text-gray-700">Link (Optional)</label>
+            <input
+              name="link"
+              value={task.link || ''}
+              onChange={onChange}
+              className="border rounded px-2 py-1 w-full"
+              disabled={submitting}
+              type="url"
+              placeholder="https://github.com/org/example/issues/123"
+            />
+          </div>
           <div className="flex flex-row gap-2 mt-2">
             <Button type="submit" className="bg-green-500 hover:bg-green-600 text-white" disabled={submitting}>
               {submitting ? 'Submitting...' : submitLabel}

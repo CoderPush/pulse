@@ -1,4 +1,4 @@
-import { CalendarDays, ChevronDown, ChevronRight } from "lucide-react";
+import { CalendarDays, ChevronDown, ChevronRight, Link as LinkIcon } from "lucide-react";
 import React from "react";
 import { Task } from "../page";
 
@@ -99,6 +99,19 @@ const TaskSummaryList: React.FC<TaskSummaryListProps> = ({
                             <span>{task.project || <span className="italic">No project</span>}</span>
                             {task.bucket && <span className="text-gray-400">• {task.bucket}</span>}
                           </div>
+                          {task.link && (
+                              <div className="text-gray-500 text-sm flex items-center gap-1 mt-1 truncate">
+                                  <LinkIcon className="w-3 h-3 flex-shrink-0" />
+                                  <a
+                                      href={task.link}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="text-blue-600 hover:underline"
+                                  >
+                                      {task.link}
+                                  </a>
+                              </div>
+                          )}
                         </div>
                       </div>
                       <div className="ml-auto flex flex-row gap-2">

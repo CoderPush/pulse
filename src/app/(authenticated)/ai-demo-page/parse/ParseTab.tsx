@@ -31,6 +31,7 @@ const ParseTab: React.FC<ParseTabProps> = ({
         bucket: Array.isArray(task.bucket) ? task.bucket.join(', ') : task.bucket,
         hours: task.hours,
         description: task.description,
+        link: task.link,
     }));
 
     try {
