@@ -170,7 +170,7 @@ export default function DailyPulseAIAssistant({ onParse }: { onParse: (tasks: an
               <span className="font-mono bg-purple-50 px-1 rounded">Cmd/Ctrl + Enter</span> to add manually
             </li>
             <li>
-              <span className="font-mono bg-purple-50 px-1 rounded">AI can parse the free text logs</span>
+              <span className="font-mono bg-purple-50 px-1 rounded">AI can parse the pasted free text logs</span>
             </li>
           </ul>
         </div>
