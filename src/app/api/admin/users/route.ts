@@ -29,6 +29,7 @@ export async function GET(request: Request) {
 
     const { searchParams } = new URL(request.url);
     const search = searchParams.get('search');
+    const wantsDailyReminders = searchParams.get('wants_daily_reminders');
 
     // Build the query
     let query = supabase
@@ -39,6 +40,10 @@ export async function GET(request: Request) {
     // Apply search filter if provided
     if (search) {
       query = query.or(`email.ilike.%${search}%,name.ilike.%${search}%`);
+    }
+
+    if (wantsDailyReminders === 'true') {
+      query = query.eq('wants_daily_reminders', true);
     }
 
     const { data: users, error } = await query;
@@ -88,12 +93,14 @@ export async function PATCH(request: Request) {
       );
     }
 
-    const { userId, is_admin, name } = await request.json();
+    const { userId, is_admin, name, wants_daily_reminders } = await request.json();
     const trimmedName = typeof name === 'string' ? name.trim() : undefined;
 
     if (
       !userId ||
-      (typeof is_admin !== 'boolean' && typeof trimmedName !== 'string') ||
+      (typeof is_admin !== 'boolean' && 
+       typeof trimmedName !== 'string' &&
+       typeof wants_daily_reminders !== 'boolean') ||
       trimmedName === ''
     ) {
       return NextResponse.json(
@@ -113,6 +120,7 @@ export async function PATCH(request: Request) {
     // Build update object
     const updateData: Record<string, unknown> = {};
     if (typeof is_admin === 'boolean') updateData.is_admin = is_admin;
+    if (typeof wants_daily_reminders === 'boolean') updateData.wants_daily_reminders = wants_daily_reminders;
     if (typeof trimmedName === 'string' && trimmedName !== '') updateData.name = trimmedName;
 
     const { error } = await supabase
