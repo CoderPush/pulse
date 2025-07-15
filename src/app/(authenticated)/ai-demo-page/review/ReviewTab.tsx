@@ -75,7 +75,7 @@ const ReviewTab: React.FC<ReviewTabProps> = ({ tasks }) => {
       })
       .catch((e) => setError(e.message))
       .finally(() => setLoading(false));
-  }, [tasks, loading]);
+  }, [tasks, loading, getCurrentWeekKey]);
 
   // Add refresh handler
   const handleRefresh = () => {

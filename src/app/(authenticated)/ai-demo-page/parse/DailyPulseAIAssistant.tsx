@@ -108,12 +108,17 @@ export default function DailyPulseAIAssistant({ onParse }: { onParse: (tasks: an
           hours = timeMatch[1] || timeMatch[2];
           hours = parseFloat(hours);
         }
+        // link: https://...
+        const linkMatch = line.match(/(https?:\/\/\S+)/);
+        const link = linkMatch ? linkMatch[0] : undefined;
+        
         // Remove all matched tokens for description
         const desc = line
           .replace(/\+(\S+)/, "")
           .replace(/@(\d{4}-\d{2}-\d{2}|today|tmr|ytd|\d{1,2}[\/\-]\d{1,2}(?:[\/\-]\d{2,4})?)/, "")
           .replace(/#(\w+)/g, "")
           .replace(/(\d+(?:\.\d+)?)[ ]*h|h[ ]*(\d+(?:\.\d+)?)/i, "")
+          .replace(/(https?:\/\/\S+)/, "")
           .replace(/\s+/g, " ")
           .trim();
         return {
@@ -121,7 +126,8 @@ export default function DailyPulseAIAssistant({ onParse }: { onParse: (tasks: an
           date: date || today.toISOString().slice(0, 10),
           bucket: tagMatches,
           hours,
-          description: desc
+          description: desc,
+          link,
         };
       });
 
@@ -153,14 +159,14 @@ export default function DailyPulseAIAssistant({ onParse }: { onParse: (tasks: an
           <div className="font-semibold mb-1">Guidelines</div>
           <ul className="list-disc list-inside space-y-1">
             <li>
-              <span className="font-mono bg-purple-50 px-1 rounded">Manual adding: +project-name @date #tag hours Description. Examples:</span>
+              <span className="font-mono bg-purple-50 px-1 rounded">Manual adding: +project-name @date #tag hours Description Link. Examples:</span>
             </li>
             <ul className="ml-8">
               <li className="list-none text-purple-900">
-                <span className="font-mono">+project-alpha @15/07 #bugfix 2.5h Fixed login bug</span>
+                <span className="font-mono">+project-alpha @15/07 #bugfix 2.5h Fixed login bug https://github.com/org/repo/issues/123</span>
               </li>
               <li className="list-none text-purple-900">
-                <span className="font-mono">+project-beta #feature h2 Code review for new feature</span>
+                <span className="font-mono">+project-beta #feature h2 Code review for new feature https://github.com/org/repo/issues/123</span>
               </li>
             </ul>
             <li>
@@ -170,7 +176,7 @@ export default function DailyPulseAIAssistant({ onParse }: { onParse: (tasks: an
               <span className="font-mono bg-purple-50 px-1 rounded">Cmd/Ctrl + Enter</span> to add manually
             </li>
             <li>
-              <span className="font-mono bg-purple-50 px-1 rounded">AI can parse the free text logs</span>
+              <span className="font-mono bg-purple-50 px-1 rounded">AI can parse the pasted free text logs</span>
             </li>
           </ul>
         </div>

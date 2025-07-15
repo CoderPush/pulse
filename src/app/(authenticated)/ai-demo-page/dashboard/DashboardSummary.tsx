@@ -183,6 +183,7 @@ export default function DashboardSummary({ forms, filterType, filterValue }: {
                 <th className="px-2 py-1 border">Bucket</th>
                 <th className="px-2 py-1 border">Hours</th>
                 <th className="px-2 py-1 border">Description</th>
+                <th className="px-2 py-1 border">Link</th>
               </tr>
             </thead>
             <tbody>
@@ -198,6 +199,18 @@ export default function DashboardSummary({ forms, filterType, filterValue }: {
                   <td className="px-2 py-1 border">{f.form.bucket}</td>
                   <td className="px-2 py-1 border">{f.form.hours}</td>
                   <td className="px-2 py-1 border">{f.form.description}</td>
+                  <td className="px-2 py-1 border">
+                    {f.form.link && (
+                      <a
+                        href={f.form.link}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-blue-600 hover:underline"
+                      >
+                        {f.form.link}
+                      </a>
+                    )}
+                  </td>
                 </tr>
               ))}
             </tbody>
