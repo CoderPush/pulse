@@ -1,5 +1,7 @@
 import React from "react";
 import { Bar } from 'react-chartjs-2';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 import {
   Chart as ChartJS,
   BarElement,
@@ -63,6 +65,29 @@ export default function DashboardSummary({ forms, filterType, filterValue }: {
     if (f.form.project) byProject[f.form.project] = (byProject[f.form.project] || 0) + (isNaN(h) ? 0 : h);
     if (f.form.bucket) byBucket[f.form.bucket] = (byBucket[f.form.bucket] || 0) + (isNaN(h) ? 0 : h);
   });
+
+  const handleExportPDF = () => {
+    const doc = new jsPDF();
+    doc.text("Daily Tasks Summary", 14, 20);
+    doc.setFontSize(10);
+    doc.text(`Filter: ${filterType} - ${filterValue}`, 14, 28);
+    doc.text(`Total Hours: ${totalHours}`, 14, 34);
+
+    autoTable(doc, {
+      startY: 40,
+      head: [['Date', 'Project', 'Bucket', 'Hours', 'Description', 'Link']],
+      body: filtered.map(f => [
+        f.form.date,
+        f.form.project,
+        f.form.bucket,
+        f.form.hours,
+        f.form.description,
+        f.form.link || ''
+      ]),
+    });
+
+    doc.save(`daily-tasks-${filterValue}.pdf`);
+  };
 
   // Chart data for projects (Bar)
   const projectChartData = {
@@ -173,7 +198,15 @@ export default function DashboardSummary({ forms, filterType, filterValue }: {
 
       {/* Detail Section: List of all tasks matching filter */}
       <div>
-        <h3 className="font-semibold mb-2">Details</h3>
+        <div className="flex justify-between items-center mb-2">
+            <h3 className="font-semibold">Details</h3>
+            <button
+                onClick={handleExportPDF}
+                className="bg-gray-600 hover:bg-gray-700 text-white font-semibold text-sm px-3 py-1 rounded-md shadow-sm transition"
+            >
+                Export PDF
+            </button>
+        </div>
         <div className="overflow-x-auto">
           <table className="min-w-full border text-sm">
             <thead>
