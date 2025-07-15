@@ -49,6 +49,7 @@ export async function POST(request: Request) {
     bucket: string;
     hours: number;
     description: string;
+    link?: string;
   };
 
   const tasksWithUserId = tasks.map((task: Task) => ({

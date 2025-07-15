@@ -17,6 +17,7 @@ export interface Task {
   hours: number;
   description: string;
   created_at: string;
+  link?: string;
 }
 
 export default function AiDemoPage() {
