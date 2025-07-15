@@ -80,6 +80,7 @@ export default function AiDemoPage() {
         bucket: task.bucket,
         hours: String(task.hours),
         description: task.description,
+        link: task.link || '',
       },
       questions: demoQuestions,
   }));
