@@ -54,6 +54,8 @@
     "dompurify": "^3.2.6",
     "framer-motion": "^12.10.0",
     "jsonwebtoken": "^9.0.2",
+    "jspdf": "^3.0.1",
+    "jspdf-autotable": "^5.0.2",
     "langchain": "^0.3.27",
     "langsmith": "^0.3.31",
     "lucide-react": "^0.503.0",
