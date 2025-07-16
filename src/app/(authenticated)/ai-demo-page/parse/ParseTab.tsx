@@ -1,7 +1,7 @@
 import DailyPulseAIAssistant from "./DailyPulseAIAssistant";
 import TaskSummaryList from "./TaskSummaryList";
 import TaskEditForm from "./TaskEditForm";
-import React from "react";
+import React, { useState } from "react";
 import { Task } from "../page";
 
 interface ParseTabProps {
@@ -23,6 +23,17 @@ const ParseTab: React.FC<ParseTabProps> = ({
   setExpandedDates,
   isGroupEmpty,
 }) => {
+  // Month filter state
+  const [selectedMonth, setSelectedMonth] = useState(() => {
+    const now = new Date();
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+  });
+
+  // Filter tasks by selected month
+  const filteredTasks = tasks.filter(task =>
+    task.task_date && task.task_date.startsWith(selectedMonth)
+  );
+
   const handleParse = async (parsedTasks: any[]) => {
     const today = new Date().toISOString().slice(0, 10);
     const tasksToSave = parsedTasks.map(task => ({
@@ -52,9 +63,21 @@ const ParseTab: React.FC<ParseTabProps> = ({
   return (
     <>
       <DailyPulseAIAssistant onParse={handleParse} />
+      <div className="flex items-center gap-3 bg-gray-50 border border-gray-200 rounded-lg px-4 py-2 mb-6 w-fit shadow-sm">
+        <label htmlFor="month-filter" className="font-medium text-gray-700">
+          Filter by month:
+        </label>
+        <input
+          id="month-filter"
+          type="month"
+          value={selectedMonth}
+          onChange={e => setSelectedMonth(e.target.value)}
+          className="border border-gray-300 rounded px-2 py-1 focus:ring-2 focus:ring-blue-400 focus:border-blue-400 transition"
+        />
+      </div>
       <div className="mt-8 w-full">
         <TaskSummaryList
-            tasks={tasks}
+            tasks={filteredTasks}
             setTasks={setTasks}
             expandedDates={expandedDates}
             setExpandedDates={setExpandedDates}
@@ -77,7 +100,7 @@ const ParseTab: React.FC<ParseTabProps> = ({
             <div className="flex-1 overflow-y-auto px-6 py-4">
               <TaskEditForm
                 editIdx={editIdx}
-                tasks={tasks}
+                tasks={filteredTasks}
                 setTasks={setTasks}
                 setEditIdx={setEditIdx}
               />
