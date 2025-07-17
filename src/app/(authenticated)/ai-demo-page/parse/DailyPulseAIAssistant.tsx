@@ -159,14 +159,14 @@ export default function DailyPulseAIAssistant({ onParse }: { onParse: (tasks: an
           <div className="font-semibold mb-1">Guidelines</div>
           <ul className="list-disc list-inside space-y-1">
             <li>
-              <span className="font-mono bg-purple-50 px-1 rounded">Manual adding: +project-name @date #tag hours Description Link. Examples:</span>
+              <span className="font-mono bg-purple-50 px-1 rounded">AI Parse: Paste or type natural multi-line text — the AI will automatically extract tasks</span>
+            </li>
+            <li>
+              <span className="font-mono bg-purple-50 px-1 rounded">Add manually syntax: +project-name @date #tag hours Description Link. Example (you can add multiple lines):</span>
             </li>
             <ul className="ml-8">
               <li className="list-none text-purple-900">
                 <span className="font-mono">+project-alpha @15/07 #bugfix 2.5h Fixed login bug https://github.com/org/repo/issues/123</span>
-              </li>
-              <li className="list-none text-purple-900">
-                <span className="font-mono">+project-beta #feature h2 Code review for new feature https://github.com/org/repo/issues/123</span>
               </li>
             </ul>
             <li>
@@ -175,9 +175,7 @@ export default function DailyPulseAIAssistant({ onParse }: { onParse: (tasks: an
             <li>
               <span className="font-mono bg-purple-50 px-1 rounded">Cmd/Ctrl + Enter</span> to add manually
             </li>
-            <li>
-              <span className="font-mono bg-purple-50 px-1 rounded">AI can parse the pasted free text logs</span>
-            </li>
+            
           </ul>
         </div>
         <div className="relative">
