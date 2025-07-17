@@ -5,6 +5,17 @@ import { useParams } from 'next/navigation';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Pagination, PaginationContent, PaginationItem, PaginationLink } from '@/components/ui/pagination';
 
+type AdminDailyTask = {
+  id: string;
+  user_id: string;
+  task_date: string;
+  project: string;
+  bucket: string;
+  hours: number;
+  description: string;
+  link?: string;
+};
+
 export default function AdminUserDailyTasksPage() {
   const params = useParams();
   const userId = params?.id as string;
@@ -13,7 +24,7 @@ export default function AdminUserDailyTasksPage() {
   const [monthFilter, setMonthFilter] = useState('');
   const [weekFilter, setWeekFilter] = useState('');
   const [page, setPage] = useState(1);
-  const [tasks, setTasks] = useState<any[]>([]);
+  const [tasks, setTasks] = useState<AdminDailyTask[]>([]);
   const [totalPages, setTotalPages] = useState(1);
   const [loading, setLoading] = useState(false);
 
@@ -112,7 +123,7 @@ export default function AdminUserDailyTasksPage() {
             ) : tasks.length === 0 ? (
               <TableRow><TableCell colSpan={6} className="text-center text-gray-400">No tasks found</TableCell></TableRow>
             ) : (
-              tasks.map((task: any) => (
+              tasks.map((task) => (
                 <TableRow key={task.id}>
                   <TableCell>{task.task_date}</TableCell>
                   <TableCell>{task.project}</TableCell>

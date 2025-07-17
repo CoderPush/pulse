@@ -11,25 +11,6 @@ export async function GET(request: Request) {
   const pageSize = 20;
   const offset = (page - 1) * pageSize;
 
-  // Build filters
-  let filters = '';
-  if (user) {
-    filters += `&user=ilike.%${user}%`;
-  }
-  // For month: YYYY-MM
-  if (month) {
-    filters += `&task_date=gte.${month}-01&task_date=lte.${month}-31`;
-  }
-  // For week: YYYY-Wxx
-  if (week) {
-    // Convert week to date range
-    const [year, weekNum] = week.split('-W');
-    const firstDay = getDateOfISOWeek(Number(weekNum), Number(year));
-    const lastDay = new Date(firstDay);
-    lastDay.setDate(firstDay.getDate() + 6);
-    filters += `&task_date=gte.${firstDay.toISOString().slice(0, 10)}&task_date=lte.${lastDay.toISOString().slice(0, 10)}`;
-  }
-
   // Query daily_tasks with user info
   let query = supabase
     .from('daily_tasks')
