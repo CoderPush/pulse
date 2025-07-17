@@ -18,6 +18,7 @@ import { Label } from '@/components/ui/label';
 import ImportDialog from '@/components/admin/ImportDialog';
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 import { useToast } from '@/components/ui/use-toast';
+import Link from 'next/link';
 
 interface User {
   id: string;
@@ -340,6 +341,12 @@ export default function UsersPage() {
                       </Tooltip>
                     </TableCell>
                     <TableCell>
+                      <Link
+                        href={`/admin/users/${user.id}/daily-tasks`}
+                        className="text-blue-600 hover:underline text-sm ml-2"
+                      >
+                        View Daily Tasks
+                      </Link>
                     </TableCell>
                   </TableRow>
                 ))}

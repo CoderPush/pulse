@@ -50,6 +50,11 @@ const sidebarItems = [
     title: 'Follow-up',
     href: '/admin/follow-up',
     icon: FileText,
+  },
+  {
+    title: 'Daily Tasks',
+    href: '/admin/daily-tasks',
+    icon: ListTodo,
   }
 ];
 
