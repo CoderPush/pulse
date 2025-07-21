@@ -341,12 +341,11 @@ export default function UsersPage() {
                       </Tooltip>
                     </TableCell>
                     <TableCell>
-                      <Link
-                        href={`/admin/users/${user.id}/daily-tasks`}
-                        className="text-blue-600 hover:underline text-sm ml-2"
-                      >
-                        View Daily Tasks
-                      </Link>
+                      <Button asChild variant="secondary" size="sm" className="ml-2">
+                        <Link href={`/admin/users/${user.id}/daily-tasks`}>
+                          View Daily Tasks
+                        </Link>
+                      </Button>
                     </TableCell>
                   </TableRow>
                 ))}
