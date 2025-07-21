@@ -1,6 +1,8 @@
 import { useState, useEffect, useRef } from "react";
+import { useToast } from "@/components/ui/use-toast";
 
 export default function DailyPulseAIAssistant({ onParse }: { onParse: (tasks: any[]) => void }) {
+  const { toast } = useToast();
   const [input, setInput] = useState("");
   const [parsing, setParsing] = useState(false);
   const [error, setError] = useState("");
@@ -33,6 +35,14 @@ export default function DailyPulseAIAssistant({ onParse }: { onParse: (tasks: an
       if (!res.ok) throw new Error("Failed to parse tasks");
       const { tasks } = await res.json();
       onParse(tasks);
+      
+      // Show success toast and clear input
+      toast({
+        title: "AI Parsing Successful!",
+        description: `Successfully parsed ${tasks.length} task${tasks.length !== 1 ? 's' : ''}`,
+        variant: "default",
+      });
+      setInput("");
     } catch (e) {
       setError("Could not parse tasks. Please check your input or try again.");
     } finally {
@@ -143,6 +153,13 @@ export default function DailyPulseAIAssistant({ onParse }: { onParse: (tasks: an
       localStorage.setItem("pulse_projects", JSON.stringify(newProjects));
 
       onParse(tasks);
+      
+      // Show success toast and clear input
+      toast({
+        title: "Manual Addition Successful!",
+        description: `Successfully added ${tasks.length} task${tasks.length !== 1 ? 's' : ''}`,
+        variant: "default",
+      });
       setInput("");
     } catch (e) {
       setError("Manual add failed. Please check your input.");
