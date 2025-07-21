@@ -19,7 +19,7 @@ export async function GET(request: Request) {
     .range(offset, offset + pageSize - 1);
 
   if (user) {
-    query = query.ilike('user.email', `%${user}%`);
+    query = query.eq('user_id', user);
   }
   if (month) {
     query = query.gte('task_date', `${month}-01`).lte('task_date', `${month}-31`);
