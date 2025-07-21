@@ -30,6 +30,7 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
     const search = searchParams.get('search');
     const wantsDailyReminders = searchParams.get('wants_daily_reminders');
+    const userId = searchParams.get('userId');
 
     // Build the query
     let query = supabase
@@ -37,13 +38,18 @@ export async function GET(request: Request) {
       .select('*')
       .order('created_at', { ascending: false });
 
-    // Apply search filter if provided
-    if (search) {
-      query = query.or(`email.ilike.%${search}%,name.ilike.%${search}%`);
-    }
+    // If userId is provided, get specific user
+    if (userId) {
+      query = query.eq('id', userId);
+    } else {
+      // Apply search filter if provided
+      if (search) {
+        query = query.or(`email.ilike.%${search}%,name.ilike.%${search}%`);
+      }
 
-    if (wantsDailyReminders === 'true') {
-      query = query.eq('wants_daily_reminders', true);
+      if (wantsDailyReminders === 'true') {
+        query = query.eq('wants_daily_reminders', true);
+      }
     }
 
     const { data: users, error } = await query;
