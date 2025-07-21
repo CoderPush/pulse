@@ -14,7 +14,7 @@ export async function GET(request: Request) {
   // Query daily_tasks with user info
   let query = supabase
     .from('daily_tasks')
-    .select('*, user:users(id, email, name)')
+    .select('*, user:users(id, email, name)', { count: 'exact' })
     .order('task_date', { ascending: false })
     .range(offset, offset + pageSize - 1);
 

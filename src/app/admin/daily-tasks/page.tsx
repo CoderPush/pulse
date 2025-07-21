@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Pagination, PaginationContent, PaginationItem, PaginationLink } from '@/components/ui/pagination';
+import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationPrevious, PaginationNext } from '@/components/ui/pagination';
 import { Command, CommandInput, CommandList, CommandItem } from '@/components/ui/command';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 
@@ -203,33 +203,38 @@ export default function AdminDailyTasksPage() {
         <Pagination>
           <PaginationContent>
             <PaginationItem>
-              <PaginationLink
-                onClick={() => page > 1 && handlePageChange(page - 1)}
-                isActive={false}
-                className={`cursor-pointer${page === 1 ? ' pointer-events-none opacity-50' : ''}`}
-              >
-                Previous
-              </PaginationLink>
+              <PaginationPrevious
+                href="#"
+                onClick={e => {
+                  e.preventDefault();
+                  if (page > 1) handlePageChange(page - 1);
+                }}
+                className={page === 1 ? "pointer-events-none opacity-50" : ""}
+              />
             </PaginationItem>
             {Array.from({ length: totalPages }, (_, i) => (
               <PaginationItem key={i + 1}>
                 <PaginationLink
+                  href="#"
                   isActive={page === i + 1}
-                  onClick={() => handlePageChange(i + 1)}
-                  className="cursor-pointer"
+                  onClick={e => {
+                    e.preventDefault();
+                    handlePageChange(i + 1);
+                  }}
                 >
                   {i + 1}
                 </PaginationLink>
               </PaginationItem>
             ))}
             <PaginationItem>
-              <PaginationLink
-                onClick={() => page < totalPages && handlePageChange(page + 1)}
-                isActive={false}
-                className={`cursor-pointer${page === totalPages ? ' pointer-events-none opacity-50' : ''}`}
-              >
-                Next
-              </PaginationLink>
+              <PaginationNext
+                href="#"
+                onClick={e => {
+                  e.preventDefault();
+                  if (page < totalPages) handlePageChange(page + 1);
+                }}
+                className={page === totalPages ? "pointer-events-none opacity-50" : ""}
+              />
             </PaginationItem>
           </PaginationContent>
         </Pagination>
