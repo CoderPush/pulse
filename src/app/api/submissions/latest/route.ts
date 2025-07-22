@@ -1,32 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
-
-// Helper to check if the origin is allowed
-function isAllowedOrigin(origin: string | null) {
-  if (!origin) return false;
-  try {
-    const { hostname } = new URL(origin);
-    return hostname.endsWith('.coderbase.dev') || hostname === 'coderbase.dev';
-  } catch {
-    return false;
-  }
-}
+import { isAllowedOrigin, corsHeaders } from '../../../../utils/cors';
 
 // Placeholder for your actual data fetching logic
 async function getLatestSubmissionByEmail(email: string) {
   // TODO: Replace with real data fetching (e.g., from Supabase)
   return { id: 'example-id', email, content: 'Latest submission', createdAt: new Date().toISOString() };
-}
-
-function corsHeaders(origin: string | null): Record<string, string> {
-  if (isAllowedOrigin(origin)) {
-    return {
-      'Access-Control-Allow-Origin': origin!,
-      'Access-Control-Allow-Methods': 'GET, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-    };
-  }
-  // Return an empty object, not undefined values
-  return {};
 }
 
 export async function GET(req: NextRequest) {
