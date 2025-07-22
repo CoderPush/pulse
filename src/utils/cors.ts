@@ -1,16 +1,31 @@
-const ALLOWED_CORS_DOMAIN_SUFFIX = process.env.ALLOWED_CORS_DOMAIN_SUFFIX || '.coderbase.dev';
+const rawDomains = process.env.ALLOWED_CORS_DOMAINS || ".coderbase.dev";
+const ALLOWED_DOMAINS = rawDomains
+  .split(",")
+  .map((d) => d.trim())
+  .filter(Boolean);
 
 /**
- * Checks if the given origin is allowed (matches *<ALLOWED_CORS_DOMAIN_SUFFIX> or the base domain).
+ * Checks if the given origin is allowed based on domain suffix or exact match.
  */
 export function isAllowedOrigin(origin: string | null): boolean {
   if (!origin) return false;
+
   try {
     const { hostname } = new URL(origin);
-    const baseDomain = ALLOWED_CORS_DOMAIN_SUFFIX.startsWith('.')
-      ? ALLOWED_CORS_DOMAIN_SUFFIX.slice(1)
-      : ALLOWED_CORS_DOMAIN_SUFFIX;
-    return hostname.endsWith(ALLOWED_CORS_DOMAIN_SUFFIX) || hostname === baseDomain;
+
+    return ALLOWED_DOMAINS.some((domain) => {
+      if (domain.startsWith(".")) {
+        const base = domain.slice(1);
+        return hostname === base || hostname.endsWith(`.${base}`);
+      }
+
+      try {
+        const allowedHostname = new URL(domain).hostname;
+        return hostname === allowedHostname;
+      } catch {
+        return hostname === domain;
+      }
+    });
   } catch {
     return false;
   }
@@ -22,9 +37,9 @@ export function isAllowedOrigin(origin: string | null): boolean {
 export function corsHeaders(origin: string | null): Record<string, string> {
   if (isAllowedOrigin(origin)) {
     return {
-      'Access-Control-Allow-Origin': origin!,
-      'Access-Control-Allow-Methods': 'GET, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+      "Access-Control-Allow-Origin": origin!,
+      "Access-Control-Allow-Methods": "GET, OPTIONS",
+      "Access-Control-Allow-Headers": "Content-Type, Authorization",
     };
   }
   return {};
