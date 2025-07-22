@@ -30,20 +30,19 @@ function corsHeaders(origin: string | null): Record<string, string> {
 }
 
 export async function GET(req: NextRequest) {
-  const { searchParams } = new URL(req.url);
-  const email = searchParams.get('email');
+  const email = req.nextUrl.searchParams.get('email');
   const origin = req.headers.get('origin');
 
   if (!isAllowedOrigin(origin)) {
-    return new NextResponse(
-      JSON.stringify({ error: 'CORS forbidden' }),
+    return NextResponse.json(
+      { error: 'CORS forbidden' },
       { status: 403 }
     );
   }
 
   if (!email) {
-    return new NextResponse(
-      JSON.stringify({ error: 'Missing email' }),
+    return NextResponse.json(
+      { error: 'Missing email' },
       {
         status: 400,
         headers: corsHeaders(origin),
@@ -54,21 +53,23 @@ export async function GET(req: NextRequest) {
   try {
     const data = await getLatestSubmissionByEmail(email);
     if (!data) {
-      return new NextResponse(
-        JSON.stringify({ error: 'No submission found' }),
+      return NextResponse.json(
+        { error: 'No submission found' },
         {
           status: 404,
           headers: corsHeaders(origin),
         }
       );
     }
-    return new NextResponse(JSON.stringify(data), {
+    return NextResponse.json(data, {
       status: 200,
       headers: corsHeaders(origin),
     });
-  } catch {
-    return new NextResponse(
-      JSON.stringify({ error: 'Internal server error' }),
+  } catch (error) {
+    // Log the error for server-side debugging and monitoring
+    console.error('Error in GET /api/submissions/latest:', error);
+    return NextResponse.json(
+      { error: 'Internal server error' },
       {
         status: 500,
         headers: corsHeaders(origin),
