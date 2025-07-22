@@ -1,13 +1,54 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { isAllowedOrigin, corsHeaders } from '../../../../utils/cors';
+import { createClient } from '../../../../utils/supabase/server';
 
-// Placeholder for your actual data fetching logic
+// Fetch the latest submission (pulse) for a user by email from Supabase
 async function getLatestSubmissionByEmail(email: string) {
-  // TODO: Replace with real data fetching (e.g., from Supabase)
-  return { id: 'example-id', email, content: 'Latest submission', createdAt: new Date().toISOString() };
+  const supabase = await createClient();
+
+  // Step 1: Get the user ID from the users table
+  const { data: user, error: userError } = await supabase
+    .from('users')
+    .select('id')
+    .eq('email', email)
+    .maybeSingle();
+
+  if (userError) throw userError;
+  if (!user) return null;
+
+  // Step 2: Get the latest submission using that user_id
+  const { data: submission, error: submissionError } = await supabase
+    .from('submissions')
+    .select('*')
+    .eq('user_id', user.id)
+    .order('submitted_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (submissionError) throw submissionError;
+
+  return submission;
+}
+
+function isAuthorized(req: NextRequest): boolean {
+  const authHeader = req.headers.get('authorization');
+  const expected = process.env.CODERPUSH_PULSE_SECRET_KEY;
+  if (!authHeader || !expected) return false;
+  // Support 'Bearer <token>' or just the token
+  const token = authHeader.startsWith('Bearer ')
+    ? authHeader.slice(7)
+    : authHeader;
+  return token === expected;
 }
 
 export async function GET(req: NextRequest) {
+  if (!isAuthorized(req)) {
+    return NextResponse.json(
+      { error: 'Unauthorized' },
+      { status: 401 }
+    );
+  }
+
   const email = req.nextUrl.searchParams.get('email');
   const origin = req.headers.get('origin');
 
