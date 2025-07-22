@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-// Helper function to check if the origin is allowed
+// Helper to check if the origin is allowed
 function isAllowedOrigin(origin: string | null) {
   if (!origin) return false;
   try {
@@ -11,9 +11,9 @@ function isAllowedOrigin(origin: string | null) {
   }
 }
 
-// Placeholder for actual data fetching logic
+// Placeholder for your actual data fetching logic
 async function getLatestSubmissionByEmail(email: string) {
-  // TO DO: Replace with real data fetching from Supabase
+  // TODO: Replace with real data fetching (e.g., from Supabase)
   return { id: 'example-id', email, content: 'Latest submission', createdAt: new Date().toISOString() };
 }
 
@@ -25,7 +25,7 @@ function corsHeaders(origin: string | null): Record<string, string> {
       'Access-Control-Allow-Headers': 'Content-Type, Authorization',
     };
   }
-  // Return an empty object instead of undefined values
+  // Return an empty object, not undefined values
   return {};
 }
 
@@ -66,7 +66,7 @@ export async function GET(req: NextRequest) {
       status: 200,
       headers: corsHeaders(origin),
     });
-  } catch (error) {
+  } catch {
     return new NextResponse(
       JSON.stringify({ error: 'Internal server error' }),
       {
