@@ -161,11 +161,11 @@ export default function AdminDailyTasksPage() {
           <TableHeader>
             <TableRow>
               <TableHead>User</TableHead>
-              <TableHead className="w-1/12">Date</TableHead>
-              <TableHead className="w-1/12">Project</TableHead>
-              <TableHead className="w-1/12">Bucket</TableHead>
-              <TableHead className="w-1/12">Hours</TableHead>
-              <TableHead className="w-1/12">Description</TableHead>
+              <TableHead className="w-[120px]">Date</TableHead>
+              <TableHead className="w-[150px]">Project</TableHead>
+              <TableHead className="w-[100px]">Bucket</TableHead>
+              <TableHead className="w-[80px]">Hours</TableHead>
+              <TableHead className="w-[300px]">Description</TableHead>
               <TableHead>Link</TableHead>
             </TableRow>
           </TableHeader>
