@@ -230,12 +230,12 @@ export default function DashboardSummary({ forms, filterType, filterValue }: {
           <table className="min-w-full border text-sm">
             <thead>
               <tr className="bg-gray-100">
-                <th className="px-2 py-1 border w-[100px]">Date</th>
-                <th className="px-2 py-1 border w-1/6">Project</th>
-                <th className="px-2 py-1 border w-1/6">Bucket</th>
-                <th className="px-2 py-1 border w-1/12">Hours</th>
-                <th className="px-2 py-1 border">Description</th>
-                <th className="px-2 py-1 border">Link</th>
+                <th className="px-2 py-1 border w-[120px]">Date</th>
+                <th className="px-2 py-1 border w-[150px]">Project</th>
+                <th className="px-2 py-1 border w-[100px]">Bucket</th>
+                <th className="px-2 py-1 border w-[80px]">Hours</th>
+                <th className="px-2 py-1 border w-[300px]">Description</th>
+                <th className="px-2 py-1 border w-[200px]">Link</th>
               </tr>
             </thead>
             <tbody>
