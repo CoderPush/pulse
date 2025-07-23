@@ -1,6 +1,7 @@
-import { CalendarDays, ChevronDown, ChevronRight, Link as LinkIcon } from "lucide-react";
+import { CalendarDays, ChevronDown, ChevronRight, Link as LinkIcon, Copy } from "lucide-react";
 import React from "react";
 import { Task } from "../page";
+import { useToast } from "@/components/ui/use-toast";
 
 interface TaskSummaryListProps {
   tasks: Task[];
@@ -21,6 +22,8 @@ const TaskSummaryList: React.FC<TaskSummaryListProps> = ({
   setExpandedDates,
   isGroupEmpty,
 }) => {
+  const { toast } = useToast();
+
   const handleDelete = async (taskId: string) => {
     const originalTasks = tasks;
     setTasks(prevTasks => prevTasks.filter(task => task.id !== taskId));
@@ -34,6 +37,68 @@ const TaskSummaryList: React.FC<TaskSummaryListProps> = ({
     } catch (error) {
       setTasks(originalTasks);
       console.error("Error deleting task:", error);
+    }
+  };
+
+  const handleCopyDayTasks = async (date: string, taskItems: Array<Task & { _idx: number }>) => {
+    if (taskItems.length === 0) {
+      toast({
+        title: "No tasks to copy",
+        description: "There are no tasks available for this day to copy.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const totalHours = taskItems.reduce((sum, task) => {
+      const h = Number(task.hours || "0");
+      return sum + (isNaN(h) ? 0 : h);
+    }, 0);
+
+    let displayDate = date;
+    if (date !== "Unknown" && /^\d{4}-\d{2}-\d{2}$/.test(date)) {
+      const d = new Date(date);
+      if (!isNaN(d.getTime())) {
+        displayDate = d.toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'short', day: 'numeric' });
+      }
+    }
+
+    let formattedText = `${displayDate} - Daily Tasks (${totalHours}h total)\n`;
+    formattedText += "=".repeat(displayDate.length + 25) + "\n\n";
+
+    taskItems.forEach((task) => {
+      formattedText += `• ${task.hours || "0"}h - ${task.description || "No description"}`;
+      if (task.project) {
+        formattedText += ` (${task.project})`;
+      }
+      if (task.bucket) {
+        formattedText += ` [${task.bucket}]`;
+      }
+      if (task.link) {
+        formattedText += ` - ${task.link}`;
+      }
+      formattedText += "\n";
+    });
+
+    try {
+      await navigator.clipboard.writeText(formattedText);
+      toast({
+        title: "Tasks copied!",
+        description: `Tasks for ${displayDate} have been copied to your clipboard.`,
+      });
+    } catch (error) {
+      console.error("Failed to copy to clipboard:", error);
+      // Fallback: create a temporary textarea
+      const textarea = document.createElement("textarea");
+      textarea.value = formattedText;
+      document.body.appendChild(textarea);
+      textarea.select();
+      document.execCommand("copy");
+      document.body.removeChild(textarea);
+      toast({
+        title: "Tasks copied!",
+        description: `Tasks for ${displayDate} have been copied to your clipboard.`,
+      });
     }
   };
 
@@ -77,6 +142,18 @@ const TaskSummaryList: React.FC<TaskSummaryListProps> = ({
                     {totalHours} <span className="ml-1">hours</span>
                   </span>
                 </div>
+                {/* Copy button for this day */}
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleCopyDayTasks(date, taskItems);
+                  }}
+                  className="flex items-center gap-1 bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded-lg text-sm font-medium transition-colors"
+                  title={`Copy tasks for ${displayDate}`}
+                >
+                  <Copy className="w-3 h-3" />
+                  Copy
+                </button>
               </div>
               {expanded && (
                 <div className="flex flex-col gap-3">
