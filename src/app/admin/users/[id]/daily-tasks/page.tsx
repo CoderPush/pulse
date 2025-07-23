@@ -105,6 +105,38 @@ export default function AdminUserDailyTasksPage() {
     if (newPage >= 1 && newPage <= totalPages) setPage(newPage);
   };
 
+  const handleExportCSV = () => {
+    const params = new URLSearchParams();
+    params.append('user', userId);
+    if (filterMode === 'month' && monthFilter) params.append('month', monthFilter);
+    if (filterMode === 'week' && weekFilter) params.append('week', weekFilter);
+    
+    // Create download link
+    const url = `/api/admin/daily-tasks/export?${params}`;
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = ''; // Let the server set the filename
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const handleExportPDF = () => {
+    const params = new URLSearchParams();
+    params.append('user', userId);
+    if (filterMode === 'month' && monthFilter) params.append('month', monthFilter);
+    if (filterMode === 'week' && weekFilter) params.append('week', weekFilter);
+    
+    // Create download link
+    const url = `/api/admin/daily-tasks/export-pdf?${params}`;
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = ''; // Let the server set the filename
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   return (
     <div className="mx-auto py-8">
       <h1 className="text-2xl font-bold mb-2">User Daily Tasks</h1>
@@ -190,6 +222,24 @@ export default function AdminUserDailyTasksPage() {
             />
           </div>
         )}
+        <div>
+          <label className="block text-sm font-medium mb-1">&nbsp;</label>
+          <button
+            onClick={handleExportCSV}
+            className="bg-green-600 hover:bg-green-700 text-white font-semibold px-4 py-2 rounded-md shadow-sm transition-colors"
+          >
+            Export CSV
+          </button>
+        </div>
+        <div>
+          <label className="block text-sm font-medium mb-1">&nbsp;</label>
+          <button
+            onClick={handleExportPDF}
+            className="bg-purple-600 hover:bg-purple-700 text-white font-semibold px-4 py-2 rounded-md shadow-sm transition-colors"
+          >
+            Export PDF
+          </button>
+        </div>
       </div>
       <div className="bg-white rounded-lg shadow overflow-x-auto">
         <Table>
