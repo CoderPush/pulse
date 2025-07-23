@@ -11,6 +11,7 @@ interface User {
   id: string;
   email: string;
   name?: string | null;
+  wants_daily_reminders?: boolean;
 }
 
 type AdminDailyTask = {
@@ -44,6 +45,9 @@ export default function AdminDailyTasksPage() {
       .then(res => res.json())
       .then(data => setUserList(data.data || []));
   }, []);
+
+  // Only show users who want daily reminders
+  const filteredUserList = userList.filter(user => user.wants_daily_reminders);
 
   // Fetch tasks from backend
   useEffect(() => {
@@ -94,7 +98,7 @@ export default function AdminDailyTasksPage() {
               <Command>
                 <CommandInput placeholder="Search user..." />
                 <CommandList>
-                  {userList.map(user => (
+                  {filteredUserList.map(user => (
                     <CommandItem
                       key={user.id}
                       onSelect={() => {
@@ -106,7 +110,7 @@ export default function AdminDailyTasksPage() {
                       {user.email} {user.name && `(${user.name})`}
                     </CommandItem>
                   ))}
-                  {userList.length === 0 && (
+                  {filteredUserList.length === 0 && (
                     <CommandItem disabled>No users found</CommandItem>
                   )}
                 </CommandList>
