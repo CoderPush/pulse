@@ -84,6 +84,25 @@ export default function DashboardSummary({ forms, filterType, filterValue }: {
         f.form.description,
         f.form.link || ''
       ]),
+      columnStyles: {
+        0: { cellWidth: 25 }, // Date - wider
+        1: { cellWidth: 30 }, // Project - wider
+        2: { cellWidth: 30 }, // Bucket - standard
+        3: { cellWidth: 15 }, // Hours - smaller
+        4: { cellWidth: 40 }, // Description - wider
+        5: { cellWidth: 50 }  // Link - same as description
+      },
+      styles: {
+        fontSize: 8,
+        cellPadding: 2,
+        overflow: 'linebreak',
+        halign: 'left'
+      },
+      headStyles: {
+        fillColor: [75, 85, 99], // gray-600
+        textColor: 255,
+        fontStyle: 'bold'
+      }
     });
 
     doc.save(`daily-tasks-${filterValue}.pdf`);
@@ -211,10 +230,10 @@ export default function DashboardSummary({ forms, filterType, filterValue }: {
           <table className="min-w-full border text-sm">
             <thead>
               <tr className="bg-gray-100">
-                <th className="px-2 py-1 border">Date</th>
-                <th className="px-2 py-1 border">Project</th>
-                <th className="px-2 py-1 border">Bucket</th>
-                <th className="px-2 py-1 border">Hours</th>
+                <th className="px-2 py-1 border w-[100px]">Date</th>
+                <th className="px-2 py-1 border w-1/6">Project</th>
+                <th className="px-2 py-1 border w-1/6">Bucket</th>
+                <th className="px-2 py-1 border w-1/12">Hours</th>
                 <th className="px-2 py-1 border">Description</th>
                 <th className="px-2 py-1 border">Link</th>
               </tr>

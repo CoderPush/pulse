@@ -33,6 +33,14 @@ export default function AiDemoPage() {
     return `${year}-W${week.toString().padStart(2, '0')}`;
   }
 
+  // Helper to get current month in yyyy-MM format for <input type="month">
+  function getCurrentMonth() {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = (now.getMonth() + 1).toString().padStart(2, '0');
+    return `${year}-${month}`;
+  }
+
   const demoQuestions: Question[] = [
     { id: "date", title: "Date", type: "date", required: true },
     { id: "project", title: "Project", type: "text", required: true },
@@ -48,9 +56,9 @@ export default function AiDemoPage() {
   const [expandedDates, setExpandedDates] = useState<Record<string, boolean>>({});
   // Tabs: "parse", "dashboard", or "review"
   const [tab, setTab] = useState<string>("parse");
-  // Dashboard filters
-  const [filterType, setFilterType] = useState<'week' | 'month'>("week");
-  const [filterValue, setFilterValue] = useState<string>(getCurrentWeek());
+  // Dashboard filters - default to month with current month
+  const [filterType, setFilterType] = useState<'week' | 'month'>("month");
+  const [filterValue, setFilterValue] = useState<string>(getCurrentMonth());
 
   // On mount, load from the database instead of localStorage
   useEffect(() => {
