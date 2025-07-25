@@ -16,7 +16,7 @@ const mainSidebarItems: SidebarItem[] = [
   },
   {
     title: 'My Daily Tasks',
-    href: '/ai-demo-page',
+    href: '/daily-tasks',
     icon: <CalendarDays className="w-5 h-5 text-green-500" />
   }
 ]

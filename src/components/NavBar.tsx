@@ -73,7 +73,7 @@ export default function NavBar({ user }: NavBarProps) {
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild>
                   <Link
-                    href="/ai-demo-page"
+                    href="/daily-tasks"
                     className="flex items-center gap-2 px-4 py-2 rounded-lg font-semibold text-green-700 hover:bg-green-50 transition-all duration-150 group"
                   >
                     <CalendarDays className="h-4 w-4 text-green-500 group-hover:animate-bounce" />

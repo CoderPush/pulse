@@ -38,7 +38,7 @@ export async function POST(request: Request) {
 
   const emailHtml = getDailyTaskReminderEmail({
     userName: user.name || user.email,
-    pulseUrl: `${baseUrl}/ai-demo-page`
+    pulseUrl: `${baseUrl}/daily-tasks`
   });
 
   const result = await sendEmail({

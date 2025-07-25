@@ -10,6 +10,7 @@ export async function GET(request: Request) {
   const page = parseInt(searchParams.get('page') || '1', 10);
   const pageSize = 20;
   const offset = (page - 1) * pageSize;
+  const project = searchParams.get('project');
 
   // Query daily_tasks with user info
   let query = supabase
@@ -30,6 +31,9 @@ export async function GET(request: Request) {
     const lastDay = new Date(firstDay);
     lastDay.setDate(firstDay.getDate() + 6);
     query = query.gte('task_date', firstDay.toISOString().slice(0, 10)).lte('task_date', lastDay.toISOString().slice(0, 10));
+  }
+  if (project) {
+    query = query.eq('project', project);
   }
 
   const { data: tasks, error, count } = await query;

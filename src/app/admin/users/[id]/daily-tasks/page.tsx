@@ -4,6 +4,14 @@ import React, { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationPrevious, PaginationNext } from '@/components/ui/pagination';
+import { Label } from '@/components/ui/label';
+import {
+  Select,
+  SelectTrigger,
+  SelectValue,
+  SelectContent,
+  SelectItem
+} from '@/components/ui/select';
 
 type AdminDailyTask = {
   id: string;
@@ -33,6 +41,8 @@ export default function AdminUserDailyTasksPage() {
     return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
   });
   const [weekFilter, setWeekFilter] = useState('');
+  const [projectFilter, setProjectFilter] = useState('all');
+  const [projectOptions, setProjectOptions] = useState<string[]>([]);
   const [page, setPage] = useState(1);
   const [tasks, setTasks] = useState<AdminDailyTask[]>([]);
   const [totalPages, setTotalPages] = useState(1);
@@ -54,6 +64,19 @@ export default function AdminUserDailyTasksPage() {
       });
   }, [userId]);
 
+  // Fetch available projects for this user (and current month/week filter)
+  useEffect(() => {
+    const params = new URLSearchParams();
+    params.append('user', userId);
+    if (filterMode === 'month' && monthFilter) params.append('month', monthFilter);
+    if (filterMode === 'week' && weekFilter) params.append('week', weekFilter);
+    fetch(`/api/admin/daily-tasks/projects?${params}`)
+      .then(res => res.json())
+      .then(data => {
+        setProjectOptions(data.projects || []);
+      });
+  }, [userId, filterMode, monthFilter, weekFilter]);
+
   // Fetch tasks for this user
   useEffect(() => {
     setLoading(true);
@@ -61,6 +84,7 @@ export default function AdminUserDailyTasksPage() {
     params.append('user', userId);
     if (filterMode === 'month' && monthFilter) params.append('month', monthFilter);
     if (filterMode === 'week' && weekFilter) params.append('week', weekFilter);
+    if (projectFilter && projectFilter !== 'all') params.append('project', projectFilter);
     params.append('page', String(page));
     params.append('pageSize', String(pageSize)); // Add pageSize to params
     fetch(`/api/admin/daily-tasks?${params}`)
@@ -76,7 +100,7 @@ export default function AdminUserDailyTasksPage() {
         setPageSize(20); // Reset to default on error
       })
       .finally(() => setLoading(false));
-  }, [userId, filterMode, monthFilter, weekFilter, page, pageSize]);
+  }, [userId, filterMode, monthFilter, weekFilter, projectFilter, page, pageSize]);
 
   // Fetch summary data separately (no pagination)
   useEffect(() => {
@@ -84,7 +108,7 @@ export default function AdminUserDailyTasksPage() {
     params.append('user', userId);
     if (filterMode === 'month' && monthFilter) params.append('month', monthFilter);
     if (filterMode === 'week' && weekFilter) params.append('week', weekFilter);
-    
+    if (projectFilter && projectFilter !== 'all') params.append('project', projectFilter);
     fetch(`/api/admin/daily-tasks/summary?${params}`)
       .then(res => res.json())
       .then(data => {
@@ -103,7 +127,7 @@ export default function AdminUserDailyTasksPage() {
           byBucket: {}
         });
       });
-  }, [userId, filterMode, monthFilter, weekFilter]);
+  }, [userId, filterMode, monthFilter, weekFilter, projectFilter]);
 
   const handlePageChange = (newPage: number) => {
     if (newPage >= 1 && newPage <= totalPages) setPage(newPage);
@@ -114,6 +138,7 @@ export default function AdminUserDailyTasksPage() {
     params.append('user', userId);
     if (filterMode === 'month' && monthFilter) params.append('month', monthFilter);
     if (filterMode === 'week' && weekFilter) params.append('week', weekFilter);
+    if (projectFilter && projectFilter !== 'all') params.append('project', projectFilter);
     
     // Create download link
     const url = `/api/admin/daily-tasks/export?${params}`;
@@ -130,6 +155,7 @@ export default function AdminUserDailyTasksPage() {
     params.append('user', userId);
     if (filterMode === 'month' && monthFilter) params.append('month', monthFilter);
     if (filterMode === 'week' && weekFilter) params.append('week', weekFilter);
+    if (projectFilter && projectFilter !== 'all') params.append('project', projectFilter);
     
     // Create download link
     const url = `/api/admin/daily-tasks/export-pdf?${params}`;
@@ -209,7 +235,7 @@ export default function AdminUserDailyTasksPage() {
                 setMonthFilter(e.target.value);
                 setPage(1); // Reset to first page when changing filter
               }}
-              className="w-36 border rounded px-2 py-2 h-10"
+              className="w-56 border rounded px-2 py-2 h-10"
             />
           </div>
         ) : (
@@ -222,10 +248,32 @@ export default function AdminUserDailyTasksPage() {
                 setWeekFilter(e.target.value);
                 setPage(1); // Reset to first page when changing filter
               }}
-              className="w-36 border rounded px-2 py-2 h-10"
+              className="w-56 border rounded px-2 py-2 h-10"
             />
           </div>
         )}
+
+        {/* Project filter dropdown */}
+        <div>
+          <Label htmlFor="project-select" className="block text-sm font-medium mb-1">Project</Label>
+          <Select
+            value={projectFilter}
+            onValueChange={value => {
+              setProjectFilter(value);
+              setPage(1);
+            }}
+          >
+            <SelectTrigger id="project-select" className="w-36">
+              <SelectValue placeholder="All" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All</SelectItem>
+              {projectOptions.map(project => (
+                <SelectItem key={project} value={project}>{project}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
         <div>
           <label className="block text-sm font-medium mb-1">&nbsp;</label>
           <button
