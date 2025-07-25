@@ -47,6 +47,8 @@ export async function GET(request: Request) {
     })),
     totalPages,
     page,
+    pageSize,
+    totalTasks: count || 0,
   });
 }
 

@@ -6,6 +6,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationPrevious, PaginationNext } from '@/components/ui/pagination';
 import { Command, CommandInput, CommandList, CommandItem } from '@/components/ui/command';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import UserOverview from './UserOverview';
 
 interface User {
   id: string;
@@ -31,11 +32,16 @@ export default function AdminDailyTasksPage() {
   const [userList, setUserList] = useState<User[]>([]);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [filterMode, setFilterMode] = useState<'month' | 'week'>('month');
-  const [monthFilter, setMonthFilter] = useState('');
+  const [monthFilter, setMonthFilter] = useState(() => {
+    const now = new Date();
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+  });
   const [weekFilter, setWeekFilter] = useState('');
   const [page, setPage] = useState(1);
   const [tasks, setTasks] = useState<AdminDailyTask[]>([]);
   const [totalPages, setTotalPages] = useState(1);
+  const [totalTasks, setTotalTasks] = useState(0); // Add total tasks count
+  const [pageSize, setPageSize] = useState(20); // Default to 20, will be updated from API
   const [loading, setLoading] = useState(false);
   const [userPopoverOpen, setUserPopoverOpen] = useState(false);
 
@@ -57,18 +63,23 @@ export default function AdminDailyTasksPage() {
     if (filterMode === 'month' && monthFilter) params.append('month', monthFilter);
     if (filterMode === 'week' && weekFilter) params.append('week', weekFilter);
     params.append('page', String(page));
+    params.append('limit', String(pageSize)); // Append pageSize
     fetch(`/api/admin/daily-tasks?${params}`)
       .then(res => res.json())
       .then(data => {
         setTasks(data.tasks || []);
         setTotalPages(data.totalPages || 1);
+        setPageSize(data.pageSize || 20); // Update pageSize from API
+        setTotalTasks(data.totalTasks || data.tasks?.length || 0); // Get total count
       })
       .catch(() => {
         setTasks([]);
         setTotalPages(1);
+        setPageSize(20); // Reset to default on error
+        setTotalTasks(0);
       })
       .finally(() => setLoading(false));
-  }, [selectedUser, filterMode, monthFilter, weekFilter, page]);
+  }, [selectedUser, filterMode, monthFilter, weekFilter, page, pageSize]);
 
   // Pagination handler
   const handlePageChange = (newPage: number) => {
@@ -84,7 +95,7 @@ export default function AdminDailyTasksPage() {
           <Popover open={userPopoverOpen} onOpenChange={setUserPopoverOpen}>
             <PopoverTrigger asChild>
               <button
-                className="w-56 h-10 border rounded px-2 py-2 text-left bg-white"
+                className="w-96 h-10 border rounded px-2 py-2 text-left bg-white"
                 type="button"
               >
                 {selectedUser ? (
@@ -94,7 +105,7 @@ export default function AdminDailyTasksPage() {
                 )}
               </button>
             </PopoverTrigger>
-            <PopoverContent className="w-56 p-0">
+            <PopoverContent className="w-96 p-0">
               <Command>
                 <CommandInput placeholder="Search user..." />
                 <CommandList>
@@ -155,15 +166,24 @@ export default function AdminDailyTasksPage() {
               type="week"
               value={weekFilter}
               onChange={e => setWeekFilter(e.target.value)}
-              className="w-36 border rounded px-2 py-2 h-10"
+              className="w-36 border rounded px-2 py-2 h-10 w-56"
             />
           </div>
         )}
       </div>
+      {selectedUser && (
+        <UserOverview 
+          user={selectedUser}
+          filterMode={filterMode}
+          monthFilter={monthFilter}
+          weekFilter={weekFilter}
+        />
+      )}
       <div className="bg-white rounded-lg shadow overflow-x-auto">
         <Table>
           <TableHeader>
             <TableRow>
+              <TableHead>#</TableHead>
               <TableHead>User</TableHead>
               <TableHead className="w-[120px]">Date</TableHead>
               <TableHead className="w-[150px]">Project</TableHead>
@@ -175,12 +195,13 @@ export default function AdminDailyTasksPage() {
           </TableHeader>
           <TableBody>
             {loading ? (
-              <TableRow><TableCell colSpan={7} className="text-center">Loading...</TableCell></TableRow>
+              <TableRow><TableCell colSpan={8} className="text-center">Loading...</TableCell></TableRow>
             ) : tasks.length === 0 ? (
-              <TableRow><TableCell colSpan={7} className="text-center text-gray-400">No tasks found</TableCell></TableRow>
+              <TableRow><TableCell colSpan={8} className="text-center text-gray-400">No tasks found</TableCell></TableRow>
             ) : (
-              tasks.map((task) => (
+              tasks.map((task, index) => (
                 <TableRow key={task.id}>
+                  <TableCell>{pageSize * (page - 1) + index + 1}</TableCell>
                   <TableCell>
                     <Link href={`/admin/users/${task.user_id}/daily-tasks`} className="text-blue-600 hover:underline">
                       {task.user_email || task.user_name || task.user_id}
@@ -243,6 +264,11 @@ export default function AdminDailyTasksPage() {
           </PaginationContent>
         </Pagination>
       </div>
+      {tasks.length > 0 && (
+        <div className="text-center text-sm text-gray-600 mt-4">
+          Showing {pageSize * (page - 1) + 1} to {Math.min(pageSize * page, totalTasks)} of {totalTasks} tasks
+        </div>
+      )}
     </div>
   );
 } 

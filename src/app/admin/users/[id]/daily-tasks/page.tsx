@@ -36,6 +36,7 @@ export default function AdminUserDailyTasksPage() {
   const [page, setPage] = useState(1);
   const [tasks, setTasks] = useState<AdminDailyTask[]>([]);
   const [totalPages, setTotalPages] = useState(1);
+  const [pageSize, setPageSize] = useState(20); // Default to 20, will be updated from API
   const [loading, setLoading] = useState(false);
   const [summary, setSummary] = useState<TaskSummary>({
     totalHours: 0,
@@ -61,18 +62,21 @@ export default function AdminUserDailyTasksPage() {
     if (filterMode === 'month' && monthFilter) params.append('month', monthFilter);
     if (filterMode === 'week' && weekFilter) params.append('week', weekFilter);
     params.append('page', String(page));
+    params.append('pageSize', String(pageSize)); // Add pageSize to params
     fetch(`/api/admin/daily-tasks?${params}`)
       .then(res => res.json())
       .then(data => {
         setTasks(data.tasks || []);
         setTotalPages(data.totalPages || 1);
+        setPageSize(data.pageSize || 20); // Update pageSize from API response
       })
       .catch(() => {
         setTasks([]);
         setTotalPages(1);
+        setPageSize(20); // Reset to default on error
       })
       .finally(() => setLoading(false));
-  }, [userId, filterMode, monthFilter, weekFilter, page]);
+  }, [userId, filterMode, monthFilter, weekFilter, page, pageSize]);
 
   // Fetch summary data separately (no pagination)
   useEffect(() => {
@@ -245,6 +249,7 @@ export default function AdminUserDailyTasksPage() {
         <Table>
           <TableHeader>
             <TableRow>
+              <TableHead className="w-12">#</TableHead>
               <TableHead className="w-1/12">Date</TableHead>
               <TableHead className="w-1/12">Project</TableHead>
               <TableHead className="w-1/12">Bucket</TableHead>
@@ -255,27 +260,38 @@ export default function AdminUserDailyTasksPage() {
           </TableHeader>
           <TableBody>
             {loading ? (
-              <TableRow><TableCell colSpan={6} className="text-center">Loading...</TableCell></TableRow>
+              <TableRow><TableCell colSpan={7} className="text-center">Loading...</TableCell></TableRow>
             ) : tasks.length === 0 ? (
-              <TableRow><TableCell colSpan={6} className="text-center text-gray-400">No tasks found</TableCell></TableRow>
+              <TableRow><TableCell colSpan={7} className="text-center text-gray-400">No tasks found</TableCell></TableRow>
             ) : (
-              tasks.map((task) => (
-                <TableRow key={task.id}>
-                  <TableCell>{task.task_date}</TableCell>
-                  <TableCell>{task.project}</TableCell>
-                  <TableCell>{task.bucket}</TableCell>
-                  <TableCell>{task.hours}</TableCell>
-                  <TableCell>{task.description}</TableCell>
-                  <TableCell>
-                    {task.link && (
-                      <a href={task.link} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">{task.link}</a>
-                    )}
-                  </TableCell>
-                </TableRow>
-              ))
+              tasks.map((task, index) => {
+                // Calculate ordinal number based on current page
+                const ordinalNumber = (page - 1) * pageSize + index + 1; // Use pageSize from state
+                return (
+                  <TableRow key={task.id}>
+                    <TableCell className="text-center text-sm text-gray-500">{ordinalNumber}</TableCell>
+                    <TableCell>{task.task_date}</TableCell>
+                    <TableCell>{task.project}</TableCell>
+                    <TableCell>{task.bucket}</TableCell>
+                    <TableCell>{task.hours}</TableCell>
+                    <TableCell>{task.description}</TableCell>
+                    <TableCell>
+                      {task.link && (
+                        <a href={task.link} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">{task.link}</a>
+                      )}
+                    </TableCell>
+                  </TableRow>
+                );
+              })
             )}
           </TableBody>
         </Table>
+      </div>
+      {/* Task count display */}
+      <div className="flex justify-between items-center mt-4">
+        <div className="text-sm text-gray-600">
+          Showing {tasks.length > 0 ? (page - 1) * pageSize + 1 : 0} - {Math.min(page * pageSize, summary.totalTasks)} of {summary.totalTasks} tasks
+        </div>
       </div>
       {/* shadcn Pagination */}
       <div className="flex justify-center mt-6">
