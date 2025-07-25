@@ -7,6 +7,7 @@ export async function GET(request: Request) {
   const user = searchParams.get('user');
   const month = searchParams.get('month');
   const week = searchParams.get('week');
+  const project = searchParams.get('project'); // <-- Add this line
 
   // Query daily_tasks without pagination for summary
   let query = supabase
@@ -26,6 +27,9 @@ export async function GET(request: Request) {
     const lastDay = new Date(firstDay);
     lastDay.setDate(firstDay.getDate() + 6);
     query = query.gte('task_date', firstDay.toISOString().slice(0, 10)).lte('task_date', lastDay.toISOString().slice(0, 10));
+  }
+  if (project) {
+    query = query.eq('project', project);
   }
 
   const { data: tasks, error } = await query;

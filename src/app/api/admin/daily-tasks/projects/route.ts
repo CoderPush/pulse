@@ -7,13 +7,13 @@ export async function GET(request: Request) {
   const user = searchParams.get('user');
   const month = searchParams.get('month');
   const week = searchParams.get('week');
-  const project = searchParams.get('project'); // <-- Add this line
 
-  // Query daily_tasks without pagination for CSV export
   let query = supabase
     .from('daily_tasks')
-    .select('*, user:users(id, email, name)')
-    .order('task_date', { ascending: false });
+    .select('project')
+    .neq('project', null)
+    .neq('project', '')
+    .order('project', { ascending: true });
 
   if (user) {
     query = query.eq('user_id', user);
@@ -28,45 +28,14 @@ export async function GET(request: Request) {
     lastDay.setDate(firstDay.getDate() + 6);
     query = query.gte('task_date', firstDay.toISOString().slice(0, 10)).lte('task_date', lastDay.toISOString().slice(0, 10));
   }
-  if (project) {
-    query = query.eq('project', project);
-  }
 
-  const { data: tasks, error } = await query;
+  const { data, error } = await query;
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
-
-  // Generate CSV content
-  const csvHeaders = ['Date', 'User Email', 'User Name', 'Project', 'Bucket', 'Hours', 'Description', 'Link'];
-  const csvRows = tasks?.map(task => [
-    task.task_date,
-    task.user?.email || '',
-    task.user?.name || '',
-    task.project || '',
-    task.bucket || '',
-    task.hours || 0,
-    `"${(task.description || '').replace(/"/g, '""')}"`, // Escape quotes in description
-    task.link || ''
-  ]) || [];
-
-  const csvContent = [csvHeaders, ...csvRows]
-    .map(row => row.join(','))
-    .join('\n');
-
-  // Generate filename based on filter
-  let filename = 'daily-tasks';
-  if (user) filename += '-user';
-  if (month) filename += `-${month}`;
-  if (week) filename += `-${week}`;
-  filename += '.csv';
-
-  return new NextResponse(csvContent, {
-    headers: {
-      'Content-Type': 'text/csv',
-      'Content-Disposition': `attachment; filename="${filename}"`,
-    },
-  });
+  // Get unique projects
+  const projects = Array.from(new Set(((data || []) as { project: string }[]).map((t) => t.project)));
+  return NextResponse.json({ projects });
 }
 
 // Helper: get first day of ISO week
