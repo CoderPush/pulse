@@ -36,6 +36,7 @@ export default function AdminUsersPage() {
   const [adminFilter, setAdminFilter] = useState<'all' | 'yes' | 'no'>('all');
   const [sortField, setSortField] = useState<'email' | 'created_at'>('email');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
+  const [updatingUserIds, setUpdatingUserIds] = useState<Set<string>>(new Set());
   const { toast } = useToast();
 
   useEffect(() => {
@@ -121,6 +122,7 @@ export default function AdminUsersPage() {
   };
 
   const updateUser = async (userId: string, updates: Partial<User>) => {
+    setUpdatingUserIds(prev => new Set(prev).add(userId));
     try {
       // Optimistic UI update
       setUsers(prevUsers =>
@@ -163,6 +165,12 @@ export default function AdminUsersPage() {
       const res = await fetch('/api/admin/users');
       const data = await res.json();
       setUsers(data.data || []);
+    } finally {
+      setUpdatingUserIds(prev => {
+        const next = new Set(prev);
+        next.delete(userId);
+        return next;
+      });
     }
   };
 
@@ -287,18 +295,21 @@ export default function AdminUsersPage() {
                   <TableCell>
                     <Switch
                       checked={user.is_active !== false}
+                      disabled={updatingUserIds.has(user.id)}
                       onCheckedChange={(checked) => updateUser(user.id, { is_active: checked })}
                     />
                   </TableCell>
                   <TableCell>
                     <Switch
                       checked={user.is_admin}
+                      disabled={updatingUserIds.has(user.id)}
                       onCheckedChange={(checked) => updateUser(user.id, { is_admin: checked })}
                     />
                   </TableCell>
                   <TableCell>
                     <Switch
                       checked={!!user.wants_daily_reminders}
+                      disabled={updatingUserIds.has(user.id)}
                       onCheckedChange={(checked) => updateUser(user.id, { wants_daily_reminders: checked })}
                     />
 
@@ -307,7 +318,7 @@ export default function AdminUsersPage() {
                     {new Date(user.created_at).toLocaleDateString()}
                   </TableCell>
                   <TableCell>
-                    <Button asChild variant="outline" size="sm">
+                    <Button asChild variant="outline" size="sm" disabled={updatingUserIds.has(user.id)}>
                       <Link href={`/admin/users/${user.id}/daily-tasks`}>
                         View Tasks
                       </Link>
