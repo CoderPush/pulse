@@ -5,9 +5,10 @@ import Link from 'next/link';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
+import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/components/ui/use-toast';
+import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '@/components/ui/tooltip';
 import {
   Select,
   SelectContent,
@@ -15,7 +16,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Loader2, ChevronUp, ChevronDown } from 'lucide-react';
+import { Loader2, ChevronUp, ChevronDown, Shield, ShieldOff, Bell, BellOff, UserCheck, UserX } from 'lucide-react';
 
 interface User {
   id: string;
@@ -287,45 +288,100 @@ export default function AdminUsersPage() {
                 </TableCell>
               </TableRow>
             ) : (
-              filteredUsers.map((user, index) => (
-                <TableRow key={user.id} className={user.is_active === false ? 'bg-gray-100 text-gray-500' : ''}>
-                  <TableCell className="text-center text-sm text-gray-500">{index + 1}</TableCell>
-                  <TableCell className="font-medium">{user.email}</TableCell>
-                  <TableCell>{user.name || '-'}</TableCell>
-                  <TableCell>
-                    <Switch
-                      checked={user.is_active !== false}
-                      disabled={updatingUserIds.has(user.id)}
-                      onCheckedChange={(checked) => updateUser(user.id, { is_active: checked })}
-                    />
-                  </TableCell>
-                  <TableCell>
-                    <Switch
-                      checked={user.is_admin}
-                      disabled={updatingUserIds.has(user.id)}
-                      onCheckedChange={(checked) => updateUser(user.id, { is_admin: checked })}
-                    />
-                  </TableCell>
-                  <TableCell>
-                    <Switch
-                      checked={!!user.wants_daily_reminders}
-                      disabled={updatingUserIds.has(user.id)}
-                      onCheckedChange={(checked) => updateUser(user.id, { wants_daily_reminders: checked })}
-                    />
-
-                  </TableCell>
-                  <TableCell className="text-sm text-gray-600">
-                    {new Date(user.created_at).toLocaleDateString()}
-                  </TableCell>
-                  <TableCell>
-                    <Button asChild variant="outline" size="sm" disabled={updatingUserIds.has(user.id)}>
-                      <Link href={`/admin/users/${user.id}/daily-tasks`}>
-                        View Tasks
-                      </Link>
-                    </Button>
-                  </TableCell>
-                </TableRow>
-              ))
+              <TooltipProvider>
+                {filteredUsers.map((user, index) => (
+                  <TableRow key={user.id} className={user.is_active === false ? 'bg-gray-100 text-gray-500' : ''}>
+                    <TableCell className="text-center text-sm text-gray-500">{index + 1}</TableCell>
+                    <TableCell className="font-medium">{user.email}</TableCell>
+                    <TableCell>{user.name || '-'}</TableCell>
+                    <TableCell>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <div className="flex items-center gap-2">
+                            <Badge 
+                              variant={user.is_active === false ? "destructive" : "default"}
+                              className={user.is_active === false ? "bg-red-100 text-red-800 border-red-200" : "bg-green-100 text-green-800 border-green-200"}
+                            >
+                              {user.is_active === false ? "Inactive" : "Active"}
+                            </Badge>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => updateUser(user.id, { is_active: !user.is_active })}
+                              disabled={updatingUserIds.has(user.id)}
+                            >
+                              {user.is_active === false ? <UserX className="w-4 h-4" /> : <UserCheck className="w-4 h-4" />}
+                            </Button>
+                          </div>
+                        </TooltipTrigger>
+                        <TooltipContent side="top" className="bg-gray-900 text-white">
+                          <p>Click to toggle user activation status</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TableCell>
+                    <TableCell>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <div className="flex items-center gap-2">
+                            <Badge 
+                              variant={user.is_admin ? "default" : "secondary"}
+                              className={user.is_admin ? "bg-blue-100 text-blue-800 border-blue-200" : "bg-gray-100 text-gray-600 border-gray-200"}
+                            >
+                              {user.is_admin ? "Admin" : "User"}
+                            </Badge>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => updateUser(user.id, { is_admin: !user.is_admin })}
+                              disabled={updatingUserIds.has(user.id)}
+                            >
+                              {user.is_admin ? <ShieldOff className="w-4 h-4" /> : <Shield className="w-4 h-4" />}
+                            </Button>
+                          </div>
+                        </TooltipTrigger>
+                        <TooltipContent side="top" className="bg-gray-900 text-white">
+                          <p>Click to toggle admin privileges</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TableCell>
+                    <TableCell>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <div className="flex items-center gap-2">
+                            <Badge 
+                              variant={user.wants_daily_reminders ? "default" : "secondary"}
+                              className={user.wants_daily_reminders ? "bg-purple-100 text-purple-800 border-purple-200" : "bg-gray-100 text-gray-600 border-gray-200"}
+                            >
+                              {user.wants_daily_reminders ? "Reminder" : "No Reminder"}
+                            </Badge>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => updateUser(user.id, { wants_daily_reminders: !user.wants_daily_reminders })}
+                              disabled={updatingUserIds.has(user.id)}
+                            >
+                              {user.wants_daily_reminders ? <Bell className="w-4 h-4" /> : <BellOff className="w-4 h-4" />}
+                            </Button>
+                          </div>
+                        </TooltipTrigger>
+                        <TooltipContent side="top" className="bg-gray-900 text-white">
+                          <p>Click to toggle daily reminders</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TableCell>
+                    <TableCell className="text-sm text-gray-600">
+                      {new Date(user.created_at).toLocaleDateString()}
+                    </TableCell>
+                    <TableCell>
+                      <Button asChild variant="outline" size="sm" disabled={updatingUserIds.has(user.id)}>
+                        <Link href={`/admin/users/${user.id}/daily-tasks`}>
+                          View Tasks
+                        </Link>
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TooltipProvider>
             )}
           </TableBody>
         </Table>
