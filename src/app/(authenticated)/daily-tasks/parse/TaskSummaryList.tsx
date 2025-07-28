@@ -109,14 +109,23 @@ const TaskSummaryList: React.FC<TaskSummaryListProps> = ({
     groupedByDate[date].push({ ...task, _idx: idx });
   });
 
+  // Sort dates in descending order (latest first)
+  const sortedDates = Object.keys(groupedByDate).sort((a, b) => {
+    if (a === "Unknown") return 1; // Put Unknown at the end
+    if (b === "Unknown") return -1;
+    return new Date(b).getTime() - new Date(a).getTime(); // Latest first
+  });
+
   return (
     <div className="md:w-2/3 w-full">
-      {Object.entries(groupedByDate)
-        .filter(([date, taskItems]) => {
+      {sortedDates
+        .filter((date) => {
+          const taskItems = groupedByDate[date];
           if (date !== "Unknown") return true;
           return taskItems && taskItems.length > 0 && !isGroupEmpty(taskItems);
         })
-        .map(([date, taskItems]) => {
+        .map((date) => {
+          const taskItems = groupedByDate[date];
           const totalHours = taskItems.reduce((sum, task) => {
             const h = Number(task.hours || "0");
             return sum + (isNaN(h) ? 0 : h);
