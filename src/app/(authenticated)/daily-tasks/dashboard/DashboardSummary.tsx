@@ -55,7 +55,20 @@ export default function DashboardSummary({ forms, filterType, filterValue }: {
   const sortedFiltered = filtered.sort((a, b) => {
     const dateA = new Date(a.form.date);
     const dateB = new Date(b.form.date);
-    return dateB.getTime() - dateA.getTime(); // Latest first
+    
+    // Check if dates are valid
+    const isValidA = !isNaN(dateA.getTime());
+    const isValidB = !isNaN(dateB.getTime());
+    
+    // If both dates are invalid, maintain original order
+    if (!isValidA && !isValidB) return 0;
+    
+    // If only one date is invalid, put invalid dates at the end (oldest)
+    if (!isValidA) return 1; // Invalid date goes to end
+    if (!isValidB) return -1; // Invalid date goes to end
+    
+    // Both dates are valid, compare normally (latest first)
+    return dateB.getTime() - dateA.getTime();
   });
 
   // Summary calculations
