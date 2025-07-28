@@ -51,8 +51,28 @@ export default function DashboardSummary({ forms, filterType, filterValue }: {
     return true;
   });
 
+  // Sort filtered tasks by date (latest first)
+  const sortedFiltered = filtered.sort((a, b) => {
+    const dateA = new Date(a.form.date);
+    const dateB = new Date(b.form.date);
+    
+    // Check if dates are valid
+    const isValidA = !isNaN(dateA.getTime());
+    const isValidB = !isNaN(dateB.getTime());
+    
+    // If both dates are invalid, maintain original order
+    if (!isValidA && !isValidB) return 0;
+    
+    // If only one date is invalid, put invalid dates at the end (oldest)
+    if (!isValidA) return 1; // Invalid date goes to end
+    if (!isValidB) return -1; // Invalid date goes to end
+    
+    // Both dates are valid, compare normally (latest first)
+    return dateB.getTime() - dateA.getTime();
+  });
+
   // Summary calculations
-  const totalHours = filtered.reduce((sum, f) => {
+  const totalHours = sortedFiltered.reduce((sum, f) => {
     const h = parseFloat(f.form.hours || "0");
     return sum + (isNaN(h) ? 0 : h);
   }, 0);
@@ -60,7 +80,7 @@ export default function DashboardSummary({ forms, filterType, filterValue }: {
   // Distribution by project
   const byProject: Record<string, number> = {};
   const byBucket: Record<string, number> = {};
-  filtered.forEach(f => {
+  sortedFiltered.forEach(f => {
     const h = parseFloat(f.form.hours || "0");
     if (f.form.project) byProject[f.form.project] = (byProject[f.form.project] || 0) + (isNaN(h) ? 0 : h);
     if (f.form.bucket) byBucket[f.form.bucket] = (byBucket[f.form.bucket] || 0) + (isNaN(h) ? 0 : h);
@@ -76,7 +96,7 @@ export default function DashboardSummary({ forms, filterType, filterValue }: {
     autoTable(doc, {
       startY: 40,
       head: [['Date', 'Project', 'Bucket', 'Hours', 'Description', 'Link']],
-      body: filtered.map(f => [
+      body: sortedFiltered.map(f => [
         f.form.date,
         f.form.project,
         f.form.bucket,
@@ -239,12 +259,12 @@ export default function DashboardSummary({ forms, filterType, filterValue }: {
               </tr>
             </thead>
             <tbody>
-              {filtered.length === 0 && (
+              {sortedFiltered.length === 0 && (
                 <tr>
                   <td colSpan={5} className="text-center text-gray-400 py-4">No tasks found</td>
                 </tr>
               )}
-              {filtered.map((f, idx) => (
+              {sortedFiltered.map((f, idx) => (
                 <tr key={idx} className="border-t">
                   <td className="px-2 py-1 border">{f.form.date}</td>
                   <td className="px-2 py-1 border">{f.form.project}</td>
