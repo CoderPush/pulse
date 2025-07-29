@@ -27,7 +27,7 @@ export default async function SharedDailyTasksPage({ searchParams }: SharedPageP
   let userId: string;
   try {
     userId = decodeUserId(decodeURIComponent(token));
-  } catch (error) {
+  } catch {
     notFound();
   }
 

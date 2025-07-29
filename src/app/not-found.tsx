@@ -16,7 +16,7 @@ export default function NotFound() {
         <CardContent className="space-y-6 pt-8 pb-6 px-6 flex flex-col items-center">
           <div className="text-center space-y-2">
             <p className="text-gray-600 text-lg">
-              Sorry, the page you're looking for doesn't exist.
+              Sorry, the page you&apos;re looking for doesn&apos;t exist.
             </p>
             <p className="text-gray-500 text-sm">
               The link might be broken, expired, or the page has been moved.
