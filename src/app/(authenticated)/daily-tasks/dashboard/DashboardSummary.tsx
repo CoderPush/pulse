@@ -10,6 +10,7 @@ import {
   Tooltip,
   Legend
 } from 'chart.js';
+import { normalizeVietnameseString } from "@/lib/utils/string";
 
 ChartJS.register(BarElement, CategoryScale, LinearScale, Tooltip, Legend);
 import type { Question } from '@/types/followup';
@@ -98,10 +99,10 @@ export default function DashboardSummary({ forms, filterType, filterValue }: {
       head: [['Date', 'Project', 'Bucket', 'Hours', 'Description', 'Link']],
       body: sortedFiltered.map(f => [
         f.form.date,
-        f.form.project,
-        f.form.bucket,
+        normalizeVietnameseString(f.form.project),
+        normalizeVietnameseString(f.form.bucket),
         f.form.hours,
-        f.form.description,
+        normalizeVietnameseString(f.form.description),
         f.form.link || ''
       ]),
       columnStyles: {
