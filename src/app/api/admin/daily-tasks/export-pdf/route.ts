@@ -51,30 +51,63 @@ export async function GET(request: Request) {
   const totalHours = tasks?.reduce((sum, task) => sum + (task.hours || 0), 0) || 0;
   const totalTasks = tasks?.length || 0;
 
+  // Project summary calculation
+  const byProject: Record<string, number> = {};
+  tasks?.forEach(task => {
+    if (task.project) {
+      byProject[task.project] = (byProject[task.project] || 0) + (task.hours || 0);
+    }
+  });
+
   // Create PDF
   const doc = new jsPDF();
   
   // Header
   doc.setFontSize(16);
   doc.text("Daily Tasks Report", 14, 20);
-  doc.setFontSize(10);
   
+  // Info Section
+  doc.setFontSize(10);
+  let lastY = 28;
+
   if (tasks && tasks.length > 0 && tasks[0].user) {
-    doc.text(`User: ${normalizeVietnameseString(tasks[0].user.name || tasks[0].user.email)}`, 14, 28);
+    doc.text(`User: ${normalizeVietnameseString(tasks[0].user.name || tasks[0].user.email)}`, 14, lastY);
+    lastY += 8;
   }
   
   if (month) {
-    doc.text(`Period: Month - ${month}`, 14, 36);
+    doc.text(`Period: Month - ${month}`, 14, lastY);
+    lastY += 8;
   } else if (week) {
-    doc.text(`Period: Week - ${week}`, 14, 36);
+    doc.text(`Period: Week - ${week}`, 14, lastY);
+    lastY += 8;
+  }
+
+  // Projects list (comma-separated)
+  if (Object.keys(byProject).length > 0) {
+    const projectNames = Object.keys(byProject).map(p => normalizeVietnameseString(p)).join(', ');
+    const projectsString = `Projects: ${projectNames}`;
+    
+    const splitText = doc.splitTextToSize(projectsString, doc.internal.pageSize.width - 28);
+    
+    doc.text(splitText, 14, lastY);
+    
+    // Advance Y position based on number of lines, using the standard 8-unit spacing.
+    lastY += splitText.length * 8;
   }
   
-  doc.text(`Total Hours: ${totalHours}`, 14, 44);
-  doc.text(`Total Tasks: ${totalTasks}`, 14, 52);
+  doc.text(`Total Hours: ${totalHours}`, 14, lastY);
+  lastY += 8;
+  doc.text(`Total Tasks: ${totalTasks}`, 14, lastY);
+
+
+  // Task Details Table
+  doc.setFontSize(12);
+  doc.text("Task Details", 14, lastY + 10);
 
   // Table
   autoTable(doc, {
-    startY: 60,
+    startY: lastY + 12,
     head: [['Date', 'Project', 'Bucket', 'Hours', 'Description', 'Link']],
     body: tasks?.map(task => [
       task.task_date,
