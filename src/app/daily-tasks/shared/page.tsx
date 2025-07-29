@@ -1,23 +1,53 @@
 import { createClient } from "@/utils/supabase/server";
 import { notFound } from "next/navigation";
 import DashboardSummary from "@/app/(authenticated)/daily-tasks/dashboard/DashboardSummary";
+import { decodeUserId } from "@/lib/utils/string";
 
 interface SharedPageProps {
-  searchParams: Promise<{ type?: string; value?: string; user?: string }>;
+  searchParams: Promise<{ type?: string; value?: string; token?: string }>;
+}
+
+// Helper function to validate UUID format
+function isValidUUID(uuid: string): boolean {
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+  return uuidRegex.test(uuid);
 }
 
 export default async function SharedDailyTasksPage({ searchParams }: SharedPageProps) {
-  const { type, value, user } = await searchParams;
+  const { type, value, token } = await searchParams;
 
-  if (!type || !value || !user) {
+  if (!type || !value || !token) {
     notFound();
   }
 
   const filterType = type as 'week' | 'month';
   const filterValue = decodeURIComponent(value);
-  const userId = decodeURIComponent(user);
+  
+  // Decode the user ID from the URL parameter
+  let userId: string;
+  try {
+    userId = decodeUserId(decodeURIComponent(token));
+  } catch (error) {
+    notFound();
+  }
+
+  // Validate that the decoded user ID is a valid UUID
+  if (!isValidUUID(userId)) {
+    notFound();
+  }
 
   const supabase = await createClient();
+
+  // First, check if the user exists
+  const { data: userData, error: userError } = await supabase
+    .from("users")
+    .select("id, name, email")
+    .eq("id", userId)
+    .single();
+
+  if (userError || !userData) {
+    notFound();
+  }
 
   // Get the tasks for the specified user with the specified filter
   let query = supabase
@@ -41,6 +71,7 @@ export default async function SharedDailyTasksPage({ searchParams }: SharedPageP
 
   const { data: tasks, error: tasksError } = await query;
 
+  // If no tasks found or error, show not found
   if (tasksError || !tasks || tasks.length === 0) {
     notFound();
   }

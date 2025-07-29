@@ -13,7 +13,7 @@ import {
   Legend
 } from 'chart.js';
 import { useToast } from "@/components/ui/use-toast";
-import { normalizeVietnameseString } from "@/lib/utils/string";
+import { normalizeVietnameseString, encodeUserId } from "@/lib/utils/string";
 
 ChartJS.register(BarElement, CategoryScale, LinearScale, Tooltip, Legend);
 import type { Question } from '@/types/followup';
@@ -160,7 +160,8 @@ export default function DashboardSummary({ forms, filterType, filterValue, showA
 
       // Create the share URL with parameters
       const baseUrl = window.location.origin;
-      const shareUrl = `${baseUrl}/daily-tasks/shared?type=${filterType}&value=${encodeURIComponent(filterValue)}&user=${encodeURIComponent(user.id)}`;
+      const encodedUserId = encodeUserId(user.id);
+      const shareUrl = `${baseUrl}/daily-tasks/shared?type=${filterType}&value=${encodeURIComponent(filterValue)}&token=${encodeURIComponent(encodedUserId)}`;
 
       // Copy to clipboard
       await navigator.clipboard.writeText(shareUrl);

@@ -1,3 +1,21 @@
+// Base64 encoding/decoding for user IDs in shared links
+export function encodeUserId(userId: string): string {
+  return Buffer.from(userId, 'utf8').toString('base64')
+    .replace(/\+/g, '-')
+    .replace(/\//g, '_')
+    .replace(/=/g, '');
+}
+
+export function decodeUserId(encodedId: string): string {
+  // Restore padding and URL-safe characters
+  let restored = encodedId.replace(/-/g, '+').replace(/_/g, '/');
+  while (restored.length % 4) {
+    restored += '=';
+  }
+  return Buffer.from(restored, 'base64').toString('utf8');
+}
+
+// Vietnamese character normalization
 export function normalizeVietnameseString(str: string | undefined | null): string {
   if (!str) {
     return "";
