@@ -1,4 +1,6 @@
-import React from "react";
+"use client";
+
+import React, { useState } from "react";
 import { Bar } from 'react-chartjs-2';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
@@ -10,7 +12,8 @@ import {
   Tooltip,
   Legend
 } from 'chart.js';
-import { normalizeVietnameseString } from "@/lib/utils/string";
+import { useToast } from "@/components/ui/use-toast";
+import { normalizeVietnameseString, encodeUserId } from "@/lib/utils/string";
 
 ChartJS.register(BarElement, CategoryScale, LinearScale, Tooltip, Legend);
 import type { Question } from '@/types/followup';
@@ -34,11 +37,14 @@ function getMonth(dateStr: string) {
   return `${d.getFullYear()}-${(d.getMonth()+1).toString().padStart(2,"0")}`;
 }
 
-export default function DashboardSummary({ forms, filterType, filterValue }: {
+export default function DashboardSummary({ forms, filterType, filterValue, showActions = true }: {
   forms: FormType[],
   filterType: 'week' | 'month',
-  filterValue: string
+  filterValue: string,
+  showActions?: boolean
 }) {
+  const { toast } = useToast();
+  const [isCreatingShare, setIsCreatingShare] = useState(false);
   // Filter tasks by week or month
   const filtered = forms.filter(f => {
     const date = f.form.date;
@@ -127,6 +133,53 @@ export default function DashboardSummary({ forms, filterType, filterValue }: {
     });
 
     doc.save(`daily-tasks-${filterValue}.pdf`);
+  };
+
+  const handleCopyLink = async () => {
+    if (!filterValue) {
+      toast({
+        title: "No filter selected",
+        description: "Please select a week or month to share.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsCreatingShare(true);
+    try {
+      // Get current user ID from the server
+      const response = await fetch('/api/auth/user');
+      if (!response.ok) {
+        throw new Error("Unable to get user information");
+      }
+      const { user } = await response.json();
+      
+      if (!user?.id) {
+        throw new Error("User not authenticated");
+      }
+
+      // Create the share URL with parameters
+      const baseUrl = window.location.origin;
+      const encodedUserId = encodeUserId(user.id);
+      const shareUrl = `${baseUrl}/daily-tasks/shared?type=${filterType}&value=${encodeURIComponent(filterValue)}&token=${encodeURIComponent(encodedUserId)}`;
+
+      // Copy to clipboard
+      await navigator.clipboard.writeText(shareUrl);
+
+      toast({
+        title: "Link copied!",
+        description: "The public link has been copied to your clipboard.",
+      });
+    } catch (error) {
+      console.error("Error copying link:", error);
+      toast({
+        title: "Error",
+        description: "Failed to copy link. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsCreatingShare(false);
+    }
   };
 
   // Chart data for projects (Bar)
@@ -240,12 +293,23 @@ export default function DashboardSummary({ forms, filterType, filterValue }: {
       <div>
         <div className="flex justify-between items-center mb-2">
             <h3 className="font-semibold">Details</h3>
-            <button
-                onClick={handleExportPDF}
-                className="bg-gray-600 hover:bg-gray-700 text-white font-semibold text-sm px-3 py-1 rounded-md shadow-sm transition"
-            >
-                Export PDF
-            </button>
+            {showActions && (
+              <div className="flex gap-2">
+                  <button
+                      onClick={handleCopyLink}
+                      disabled={isCreatingShare}
+                      className="bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white font-semibold text-sm px-3 py-1 rounded-md shadow-sm transition"
+                  >
+                      {isCreatingShare ? "Creating..." : "Copy Link"}
+                  </button>
+                  <button
+                      onClick={handleExportPDF}
+                      className="bg-gray-600 hover:bg-gray-700 text-white font-semibold text-sm px-3 py-1 rounded-md shadow-sm transition"
+                  >
+                      Export PDF
+                  </button>
+              </div>
+            )}
         </div>
         <div className="overflow-x-auto">
           <table className="min-w-full border text-sm">
