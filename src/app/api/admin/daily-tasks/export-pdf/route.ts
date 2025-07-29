@@ -2,6 +2,7 @@ import { createClient } from '@/utils/supabase/server';
 import { NextResponse } from 'next/server';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import { normalizeVietnameseString } from '@/lib/utils/string';
 
 export async function GET(request: Request) {
   const supabase = await createClient();
@@ -43,7 +44,7 @@ export async function GET(request: Request) {
   let userInfo = '';
   if (tasks && tasks.length > 0 && tasks[0].user) {
     const userName = tasks[0].user.name || tasks[0].user.email;
-    userInfo = `-${userName.replace(/[^a-zA-Z0-9]/g, '-')}`;
+    userInfo = `-${normalizeVietnameseString(userName).replace(/[^a-zA-Z0-9]/g, '-')}`;
   }
 
   // Calculate summary
@@ -59,7 +60,7 @@ export async function GET(request: Request) {
   doc.setFontSize(10);
   
   if (tasks && tasks.length > 0 && tasks[0].user) {
-    doc.text(`User: ${tasks[0].user.name || tasks[0].user.email}`, 14, 28);
+    doc.text(`User: ${normalizeVietnameseString(tasks[0].user.name || tasks[0].user.email)}`, 14, 28);
   }
   
   if (month) {
@@ -77,10 +78,10 @@ export async function GET(request: Request) {
     head: [['Date', 'Project', 'Bucket', 'Hours', 'Description', 'Link']],
     body: tasks?.map(task => [
       task.task_date,
-      task.project || '',
-      task.bucket || '',
+      normalizeVietnameseString(task.project || ''),
+      normalizeVietnameseString(task.bucket || ''),
       task.hours || 0,
-      task.description || '',
+      normalizeVietnameseString(task.description || ''),
       task.link || ''
     ]) || [],
     columnStyles: {

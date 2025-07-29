@@ -1,5 +1,6 @@
 import { createClient } from '@/utils/supabase/server';
 import { NextResponse } from 'next/server';
+import { normalizeVietnameseString } from '@/lib/utils/string';
 
 export async function GET(request: Request) {
   const supabase = await createClient();
@@ -42,11 +43,11 @@ export async function GET(request: Request) {
   const csvRows = tasks?.map(task => [
     task.task_date,
     task.user?.email || '',
-    task.user?.name || '',
-    task.project || '',
-    task.bucket || '',
+    normalizeVietnameseString(task.user?.name || ''),
+    normalizeVietnameseString(task.project || ''),
+    normalizeVietnameseString(task.bucket || ''),
     task.hours || 0,
-    `"${(task.description || '').replace(/"/g, '""')}"`, // Escape quotes in description
+    `"${normalizeVietnameseString((task.description || '')).replace(/"/g, '""')}"`, // Escape quotes in description
     task.link || ''
   ]) || [];
 
