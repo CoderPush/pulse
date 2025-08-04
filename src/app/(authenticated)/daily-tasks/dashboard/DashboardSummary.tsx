@@ -93,46 +93,78 @@ export default function DashboardSummary({ forms, filterType, filterValue, showA
     if (f.form.bucket) byBucket[f.form.bucket] = (byBucket[f.form.bucket] || 0) + (isNaN(h) ? 0 : h);
   });
 
-  const handleExportPDF = () => {
-    const doc = new jsPDF();
-    doc.text("Daily Tasks Summary", 14, 20);
-    doc.setFontSize(10);
-    doc.text(`Filter: ${filterType} - ${filterValue}`, 14, 28);
-    doc.text(`Total Hours: ${totalHours}`, 14, 34);
-
-    autoTable(doc, {
-      startY: 40,
-      head: [['Date', 'Project', 'Bucket', 'Hours', 'Description', 'Link']],
-      body: sortedFiltered.map(f => [
-        f.form.date,
-        normalizeVietnameseString(f.form.project),
-        normalizeVietnameseString(f.form.bucket),
-        f.form.hours,
-        normalizeVietnameseString(f.form.description),
-        f.form.link || ''
-      ]),
-      columnStyles: {
-        0: { cellWidth: 25 }, // Date - wider
-        1: { cellWidth: 30 }, // Project - wider
-        2: { cellWidth: 30 }, // Bucket - standard
-        3: { cellWidth: 15 }, // Hours - smaller
-        4: { cellWidth: 40 }, // Description - wider
-        5: { cellWidth: 50 }  // Link - same as description
-      },
-      styles: {
-        fontSize: 8,
-        cellPadding: 2,
-        overflow: 'linebreak',
-        halign: 'left'
-      },
-      headStyles: {
-        fillColor: [75, 85, 99], // gray-600
-        textColor: 255,
-        fontStyle: 'bold'
+  const handleExportPDF = async () => {
+    try {
+      // Get current user information
+      const response = await fetch('/api/auth/user');
+      if (!response.ok) {
+        throw new Error("Unable to get user information");
       }
-    });
+      const { user } = await response.json();
+      
+      const doc = new jsPDF();
+      
+      // Header
+      doc.setFontSize(16);
+      doc.text("Daily Tasks Summary", 14, 20);
+      
+      // User and filter info
+      doc.setFontSize(10);
+      const userName = normalizeVietnameseString(user?.name || user?.email || 'Unknown User');
+      doc.text(`User: ${userName}`, 14, 30);
+      doc.text(`Filter: ${filterType} - ${filterValue}`, 14, 38);
+      doc.text(`Total Hours: ${totalHours}`, 14, 46);
 
-    doc.save(`daily-tasks-${filterValue}.pdf`);
+      autoTable(doc, {
+        startY: 54,
+        head: [['Date', 'Project', 'Bucket', 'Hours', 'Description', 'Link']],
+        body: sortedFiltered.map(f => [
+          f.form.date,
+          normalizeVietnameseString(f.form.project),
+          normalizeVietnameseString(f.form.bucket),
+          f.form.hours,
+          normalizeVietnameseString(f.form.description),
+          f.form.link || ''
+        ]),
+        columnStyles: {
+          0: { cellWidth: 25 }, // Date - wider
+          1: { cellWidth: 30 }, // Project - wider
+          2: { cellWidth: 30 }, // Bucket - standard
+          3: { cellWidth: 15 }, // Hours - smaller
+          4: { cellWidth: 40 }, // Description - wider
+          5: { cellWidth: 50 }  // Link - same as description
+        },
+        styles: {
+          fontSize: 8,
+          cellPadding: 2,
+          overflow: 'linebreak',
+          halign: 'left'
+        },
+        headStyles: {
+          fillColor: [75, 85, 99], // gray-600
+          textColor: 255,
+          fontStyle: 'bold'
+        }
+      });
+
+      // Generate filename with user name and period
+      const safeUserName = normalizeVietnameseString(user?.name || user?.email || 'user').replace(/[^a-zA-Z0-9]/g, '-');
+      const filename = `daily-tasks-${safeUserName}-${filterValue}.pdf`;
+      
+      doc.save(filename);
+      
+      toast({
+        title: "PDF exported successfully",
+        description: `Downloaded as ${filename}`,
+      });
+    } catch (error) {
+      console.error("Error exporting PDF:", error);
+      toast({
+        title: "Export failed",
+        description: "Failed to export PDF. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
   const handleCopyLink = async () => {

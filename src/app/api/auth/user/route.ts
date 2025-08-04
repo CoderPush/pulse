@@ -13,5 +13,34 @@ export async function GET() {
     });
   }
 
-  return NextResponse.json({ user });
+  // Try to get name from various sources
+  let name = null;
+  
+  // 1. Check if name exists in users table
+  const { data: userData } = await supabase
+    .from('users')
+    .select('name')
+    .eq('id', user.id)
+    .single();
+  
+  if (userData?.name) {
+    name = userData.name;
+  } else {
+    // 2. Fall back to Google OAuth metadata
+    const googleName = user.user_metadata?.full_name || 
+                      user.user_metadata?.name || 
+                      user.identities?.[0]?.identity_data?.full_name ||
+                      user.identities?.[0]?.identity_data?.name;
+    
+    if (googleName) {
+      name = googleName;
+    }
+  }
+
+  return NextResponse.json({ 
+    user: {
+      ...user,
+      name: name
+    }
+  });
 } 
