@@ -6,6 +6,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationPrevious, PaginationNext } from '@/components/ui/pagination';
 import { Command, CommandInput, CommandList, CommandItem } from '@/components/ui/command';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Badge } from '@/components/ui/badge';
+import { X } from 'lucide-react';
 import UserOverview from './UserOverview';
 
 interface User {
@@ -31,6 +33,8 @@ type AdminDailyTask = {
 export default function AdminDailyTasksPage() {
   const [userList, setUserList] = useState<User[]>([]);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
+  const [projectList, setProjectList] = useState<string[]>([]);
+  const [selectedProjects, setSelectedProjects] = useState<string[]>([]);
   const [filterMode, setFilterMode] = useState<'month' | 'week'>('month');
   const [monthFilter, setMonthFilter] = useState(() => {
     const now = new Date();
@@ -44,12 +48,19 @@ export default function AdminDailyTasksPage() {
   const [pageSize, setPageSize] = useState(20); // Default to 20, will be updated from API
   const [loading, setLoading] = useState(false);
   const [userPopoverOpen, setUserPopoverOpen] = useState(false);
+  const [projectPopoverOpen, setProjectPopoverOpen] = useState(false);
 
   // Fetch user list on mount
   useEffect(() => {
     fetch('/api/admin/users?limit=1000')
       .then(res => res.json())
       .then(data => setUserList(data.data || []));
+  }, []);
+
+  useEffect(() => {
+    fetch('/api/admin/daily-tasks/projects')
+      .then(res => res.json())
+      .then(data => setProjectList(data || []));
   }, []);
 
   // Only show users who want daily reminders
@@ -60,6 +71,7 @@ export default function AdminDailyTasksPage() {
     setLoading(true);
     const params = new URLSearchParams();
     if (selectedUser) params.append('user', selectedUser.id);
+    if (selectedProjects.length > 0) params.append('projects', selectedProjects.join(','));
     if (filterMode === 'month' && monthFilter) params.append('month', monthFilter);
     if (filterMode === 'week' && weekFilter) params.append('week', weekFilter);
     params.append('page', String(page));
@@ -79,7 +91,7 @@ export default function AdminDailyTasksPage() {
         setTotalTasks(0);
       })
       .finally(() => setLoading(false));
-  }, [selectedUser, filterMode, monthFilter, weekFilter, page, pageSize]);
+  }, [selectedUser, selectedProjects, filterMode, monthFilter, weekFilter, page, pageSize]);
 
   // Pagination handler
   const handlePageChange = (newPage: number) => {
@@ -89,7 +101,7 @@ export default function AdminDailyTasksPage() {
   return (
     <div className="mx-auto py-8">
       <h1 className="text-2xl font-bold mb-6">Daily Tasks (Admin)</h1>
-      <div className="flex flex-wrap gap-4 mb-6 items-end">
+      <div className="flex flex-wrap gap-4 mb-6 items-start">
         <div>
           <label className="block text-sm font-medium mb-1">User</label>
           <Popover open={userPopoverOpen} onOpenChange={setUserPopoverOpen}>
@@ -138,6 +150,99 @@ export default function AdminDailyTasksPage() {
             </button>
           )}
         </div>
+        
+        <div>
+          <label className="block text-sm font-medium mb-1">Projects</label>
+          <Popover open={projectPopoverOpen} onOpenChange={setProjectPopoverOpen}>
+            <PopoverTrigger asChild>
+              <button
+                className="w-96 h-10 border rounded px-3 py-2 text-left bg-white hover:bg-gray-50 flex items-center justify-between focus:outline-none focus:ring-2 focus:ring-blue-500"
+                type="button"
+              >
+                <span className="text-sm text-gray-700">
+                  {selectedProjects.length > 0
+                    ? `${selectedProjects.length} project${selectedProjects.length === 1 ? '' : 's'} selected`
+                    : 'Select projects...'}
+                </span>
+                <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+              </button>
+            </PopoverTrigger>
+            <PopoverContent className="w-96 p-0" align="start">
+              <Command>
+                <CommandInput placeholder="Search projects..." className="h-9" />
+                <CommandList>
+                  {projectList.map(project => (
+                    <CommandItem
+                      key={project}
+                      onSelect={() => {
+                        setSelectedProjects(prev =>
+                          prev.includes(project)
+                            ? prev.filter(p => p !== project)
+                            : [...prev, project]
+                        );
+                      }}
+                      className="flex items-center space-x-2 px-3 py-2"
+                    >
+                      <div className={`h-4 w-4 rounded border-2 flex items-center justify-center ${
+                        selectedProjects.includes(project) 
+                          ? 'bg-blue-600 border-blue-600' 
+                          : 'border-gray-300'
+                      }`}>
+                        {selectedProjects.includes(project) && (
+                          <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
+                            <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                          </svg>
+                        )}
+                      </div>
+                      <span className="flex-1">{project}</span>
+                    </CommandItem>
+                  ))}
+                  {projectList.length === 0 && (
+                    <CommandItem disabled className="px-3 py-2 text-gray-500">
+                      No projects found
+                    </CommandItem>
+                  )}
+                </CommandList>
+              </Command>
+            </PopoverContent>
+          </Popover>
+          
+          {selectedProjects.length > 0 && (
+            <div className="mt-3 flex flex-wrap gap-2">
+              {selectedProjects.map(project => (
+                <Badge 
+                  key={project} 
+                  variant="secondary" 
+                  className="flex items-center gap-1.5 px-2.5 py-1 bg-blue-100 text-blue-800 border border-blue-200 hover:bg-blue-200 transition-colors"
+                >
+                  <span className="text-xs font-medium">{project}</span>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      setSelectedProjects(prev => prev.filter(p => p !== project));
+                    }}
+                    className="hover:bg-blue-300 rounded-full p-0.5 transition-colors"
+                    aria-label={`Remove ${project}`}
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                </Badge>
+              ))}
+              <button
+                type="button"
+                onClick={() => setSelectedProjects([])}
+                className="text-xs text-gray-500 hover:text-red-600 underline px-1"
+              >
+                Clear all
+              </button>
+            </div>
+          )}
+        </div>
+
         <div>
           <label className="block text-sm font-medium mb-1">Filter by:</label>
           <select

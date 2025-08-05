@@ -7,12 +7,11 @@ export async function GET(request: Request) {
   const user = searchParams.get('user');
   const month = searchParams.get('month');
   const week = searchParams.get('week');
+  const projects = searchParams.get('projects')?.split(',');
   const page = parseInt(searchParams.get('page') || '1', 10);
   const pageSize = 20;
   const offset = (page - 1) * pageSize;
-  const project = searchParams.get('project');
 
-  // Query daily_tasks with user info
   let query = supabase
     .from('daily_tasks')
     .select('*, user:users(id, email, name)', { count: 'exact' })
@@ -32,8 +31,8 @@ export async function GET(request: Request) {
     lastDay.setDate(firstDay.getDate() + 6);
     query = query.gte('task_date', firstDay.toISOString().slice(0, 10)).lte('task_date', lastDay.toISOString().slice(0, 10));
   }
-  if (project) {
-    query = query.eq('project', project);
+  if (projects && projects.length > 0) {
+    query = query.in('project', projects);
   }
 
   const { data: tasks, error, count } = await query;

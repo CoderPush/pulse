@@ -64,18 +64,15 @@ export default function AdminUserDailyTasksPage() {
       });
   }, [userId]);
 
-  // Fetch available projects for this user (and current month/week filter)
+  // Fetch available projects for this user
   useEffect(() => {
-    const params = new URLSearchParams();
-    params.append('user', userId);
-    if (filterMode === 'month' && monthFilter) params.append('month', monthFilter);
-    if (filterMode === 'week' && weekFilter) params.append('week', weekFilter);
-    fetch(`/api/admin/daily-tasks/projects?${params}`)
+    if (!userId) return;
+    fetch(`/api/admin/users/${userId}/projects`)
       .then(res => res.json())
       .then(data => {
-        setProjectOptions(data.projects || []);
+        setProjectOptions(data || []);
       });
-  }, [userId, filterMode, monthFilter, weekFilter]);
+  }, [userId]);
 
   // Fetch tasks for this user
   useEffect(() => {
