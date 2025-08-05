@@ -16,7 +16,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Loader2, ChevronUp, ChevronDown, Shield, ShieldOff, Bell, BellOff, UserCheck, UserX } from 'lucide-react';
+import { Loader2, ChevronUp, ChevronDown, Shield, ShieldOff, Bell, BellOff, UserCheck, UserX, Edit2, Check, X } from 'lucide-react';
 
 interface User {
   id: string;
@@ -38,6 +38,8 @@ export default function AdminUsersPage() {
   const [sortField, setSortField] = useState<'email' | 'created_at'>('email');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
   const [updatingUserIds, setUpdatingUserIds] = useState<Set<string>>(new Set());
+  const [editingNameUserId, setEditingNameUserId] = useState<string | null>(null);
+  const [editingNameValue, setEditingNameValue] = useState<string>('');
   const { toast } = useToast();
 
   useEffect(() => {
@@ -175,6 +177,31 @@ export default function AdminUsersPage() {
     }
   };
 
+  const startEditingName = (userId: string, currentName: string) => {
+    setEditingNameUserId(userId);
+    setEditingNameValue(currentName || '');
+  };
+
+  const cancelEditingName = () => {
+    setEditingNameUserId(null);
+    setEditingNameValue('');
+  };
+
+  const saveUserName = async (userId: string) => {
+    if (editingNameValue.trim() === '') {
+      toast({
+        title: "Error",
+        description: "Name cannot be empty.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    await updateUser(userId, { name: editingNameValue.trim() });
+    setEditingNameUserId(null);
+    setEditingNameValue('');
+  };
+
   return (
     <div className="container mx-auto py-10">
       <h1 className="text-3xl font-bold mb-6">User Management</h1>
@@ -293,7 +320,52 @@ export default function AdminUsersPage() {
                   <TableRow key={user.id} className={user.is_active === false ? 'bg-gray-100 text-gray-500' : ''}>
                     <TableCell className="text-center text-sm text-gray-500">{index + 1}</TableCell>
                     <TableCell className="font-medium">{user.email}</TableCell>
-                    <TableCell>{user.name || '-'}</TableCell>
+                    <TableCell>
+                      {editingNameUserId === user.id ? (
+                        <div className="flex items-center gap-2">
+                          <Input
+                            value={editingNameValue}
+                            onChange={(e) => setEditingNameValue(e.target.value)}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') {
+                                saveUserName(user.id);
+                              } else if (e.key === 'Escape') {
+                                cancelEditingName();
+                              }
+                            }}
+                            className="w-32"
+                            autoFocus
+                          />
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => saveUserName(user.id)}
+                            disabled={updatingUserIds.has(user.id)}
+                          >
+                            <Check className="w-3 h-3" />
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={cancelEditingName}
+                          >
+                            <X className="w-3 h-3" />
+                          </Button>
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-2">
+                          <span className="min-w-0 flex-1">{user.name || '-'}</span>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => startEditingName(user.id, user.name || '')}
+                            disabled={updatingUserIds.has(user.id)}
+                          >
+                            <Edit2 className="w-3 h-3" />
+                          </Button>
+                        </div>
+                      )}
+                    </TableCell>
                     <TableCell>
                       <Tooltip>
                         <TooltipTrigger asChild>
