@@ -1,5 +1,5 @@
-const rawDomains = process.env.ALLOWED_CORS_DOMAINS || ".coderbase.dev";
-const ALLOWED_DOMAINS = rawDomains
+const rawSuffix = process.env.ALLOWED_CORS_DOMAIN_SUFFIX || ".coderbase.dev";
+const ALLOWED_SUFFIXES = rawSuffix
   .split(",")
   .map((d) => d.trim())
   .filter(Boolean);
@@ -10,10 +10,14 @@ const ALLOWED_DOMAINS = rawDomains
 export function isAllowedOrigin(origin: string | null): boolean {
   if (!origin) return false;
 
+  if (ALLOWED_SUFFIXES.includes("*")) {
+    return true;
+  }
+
   try {
     const { hostname } = new URL(origin);
 
-    return ALLOWED_DOMAINS.some((domain) => {
+    return ALLOWED_SUFFIXES.some((domain) => {
       if (domain.startsWith(".")) {
         const base = domain.slice(1);
         return hostname === base || hostname.endsWith(`.${base}`);
