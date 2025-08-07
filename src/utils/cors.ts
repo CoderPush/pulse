@@ -30,7 +30,7 @@ export function isAllowedOrigin(origin: string | null): boolean {
         return hostname === domain;
       }
     });
-  } catch (error) {
+  } catch {
     return false;
   }
 }
