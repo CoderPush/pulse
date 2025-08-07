@@ -1,365 +1,463 @@
-'use client';
+"use client";
 
-import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
-import { ArrowLeft, Upload, Pencil, Check, X, Loader2 } from 'lucide-react';
-import { Input } from '@/components/ui/input';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
-import { Button } from '@/components/ui/button';
-import { Switch } from '@/components/ui/switch';
-import { Label } from '@/components/ui/label';
-import ImportDialog from '@/components/admin/ImportDialog';
-import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
-import { useToast } from '@/components/ui/use-toast';
+import React, { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Badge } from '@/components/ui/badge';
+import { useToast } from '@/components/ui/use-toast';
+import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '@/components/ui/tooltip';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Loader2, ChevronUp, ChevronDown, Shield, ShieldOff, Bell, BellOff, UserCheck, UserX, Edit2, Check, X } from 'lucide-react';
 
 interface User {
   id: string;
   email: string;
-  name: string | null;
+  name?: string | null;
   is_admin: boolean;
+  wants_daily_reminders?: boolean;
+  is_active?: boolean;
   created_at: string;
-  wants_daily_reminders: boolean;
 }
 
-export default function UsersPage() {
-  const router = useRouter();
+export default function AdminUsersPage() {
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
-  const [showOnlyReminderUsers, setShowOnlyReminderUsers] = useState(false);
-  const [isImportDialogOpen, setIsImportDialogOpen] = useState(false);
-  const [editingUserId, setEditingUserId] = useState<string | null>(null);
-  const [editingName, setEditingName] = useState<string>('');
-  const [savingName, setSavingName] = useState(false);
+  const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive'>('active');
+  const [reminderFilter, setReminderFilter] = useState<'all' | 'yes' | 'no'>('all');
+  const [adminFilter, setAdminFilter] = useState<'all' | 'yes' | 'no'>('all');
+  const [sortField, setSortField] = useState<'email' | 'created_at'>('email');
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
+  const [updatingUserIds, setUpdatingUserIds] = useState<Set<string>>(new Set());
+  const [editingNameUserId, setEditingNameUserId] = useState<string | null>(null);
+  const [editingNameValue, setEditingNameValue] = useState<string>('');
   const { toast } = useToast();
 
-  const fetchUsers = async (search?: string) => {
-    try {
+  useEffect(() => {
+    async function fetchUsers() {
       setLoading(true);
-      const params = new URLSearchParams();
-      if (search) params.append('search', search);
-      if (showOnlyReminderUsers) params.append('wants_daily_reminders', 'true');
-      
-      const response = await fetch(`/api/admin/users?${params}`);
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || 'Failed to fetch users');
+      try {
+        const response = await fetch('/api/admin/users');
+        if (!response.ok) {
+          throw new Error('Failed to fetch users');
+        }
+        const data = await response.json();
+        setUsers(data.data || []);
+      } catch {
+        toast({
+          title: "Error",
+          description: "Could not load user data.",
+          variant: "destructive",
+        });
+      } finally {
+        setLoading(false);
       }
-
-      setUsers(data.data);
-      setError(null);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred');
-    } finally {
-      setLoading(false);
     }
-  };
+    fetchUsers();
+  }, [toast]);
 
-  const toggleAdminStatus = async (userId: string, newStatus: boolean) => {
-    try {
-      const response = await fetch('/api/admin/users', {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          userId,
-          is_admin: newStatus,
-        }),
+  const filteredUsers = useMemo(() => {
+    const filtered = users
+      .filter(user => {
+        // Status filter
+        if (statusFilter === 'active') return user.is_active !== false;
+        if (statusFilter === 'inactive') return user.is_active === false;
+        return true;
+      })
+      .filter(user => {
+        // Reminder filter
+        if (reminderFilter === 'yes') return !!user.wants_daily_reminders;
+        if (reminderFilter === 'no') return !user.wants_daily_reminders;
+        return true;
+      })
+      .filter(user => {
+        // Admin filter
+        if (adminFilter === 'yes') return user.is_admin;
+        if (adminFilter === 'no') return !user.is_admin;
+        return true;
+      })
+      .filter(user => {
+        // Search filter
+        const search = searchQuery.toLowerCase();
+        return (
+          user.email.toLowerCase().includes(search) ||
+          (user.name && user.name.toLowerCase().includes(search))
+        );
       });
 
-      const data = await response.json();
+    // Sort the filtered results
+    filtered.sort((a, b) => {
+      let aValue: string | Date;
+      let bValue: string | Date;
 
-      if (!response.ok) {
-        throw new Error(data.error || 'Failed to update user');
+      if (sortField === 'email') {
+        aValue = a.email.toLowerCase();
+        bValue = b.email.toLowerCase();
+      } else {
+        aValue = new Date(a.created_at);
+        bValue = new Date(b.created_at);
       }
 
-      // Refresh the users list
-      fetchUsers(searchQuery);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to update user');
+      if (aValue < bValue) return sortDirection === 'asc' ? -1 : 1;
+      if (aValue > bValue) return sortDirection === 'asc' ? 1 : -1;
+      return 0;
+    });
+
+    return filtered;
+  }, [users, searchQuery, statusFilter, reminderFilter, adminFilter, sortField, sortDirection]);
+
+  const handleSort = (field: 'email' | 'created_at') => {
+    if (sortField === field) {
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortField(field);
+      setSortDirection('asc');
     }
   };
 
-  const toggleReminderStatus = async (userId: string, newStatus: boolean) => {
+  const updateUser = async (userId: string, updates: Partial<User>) => {
+    setUpdatingUserIds(prev => new Set(prev).add(userId));
     try {
-      const response = await fetch('/api/admin/users', {
+      // Optimistic UI update
+      setUsers(prevUsers =>
+        prevUsers.map(user =>
+          user.id === userId ? { ...user, ...updates } : user
+        )
+      );
+
+      const response = await fetch(`/api/admin/users/${userId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId, wants_daily_reminders: newStatus }),
+        body: JSON.stringify(updates),
       });
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.error || 'Failed to update user reminder status');
+
+      if (!response.ok) {
+        throw new Error('Failed to update user');
+      }
+
+      const updatedUser = await response.json();
       
-      // Update local state for instant feedback
-      setUsers(users => users.map(u => u.id === userId ? { ...u, wants_daily_reminders: newStatus } : u));
-      toast({ title: 'Success', description: `Daily reminder status updated.`, variant: 'default' });
-    } catch (err) {
-      toast({ title: 'Error', description: err instanceof Error ? err.message : 'An unknown error occurred.', variant: 'destructive' });
-      // Re-fetch to revert optimistic update on failure
-      fetchUsers(searchQuery);
+      // Final update with server data
+      setUsers(prevUsers =>
+        prevUsers.map(user =>
+          user.id === userId ? { ...user, ...updatedUser.data } : user
+        )
+      );
+      
+      toast({
+        title: "Success",
+        description: "User updated successfully.",
+      });
+
+    } catch {
+      toast({
+        title: "Error",
+        description: "Failed to update user. Reverting changes.",
+        variant: "destructive",
+      });
+       // Re-fetch to revert optimistic update on failure
+      const res = await fetch('/api/admin/users');
+      const data = await res.json();
+      setUsers(data.data || []);
+    } finally {
+      setUpdatingUserIds(prev => {
+        const next = new Set(prev);
+        next.delete(userId);
+        return next;
+      });
     }
   };
 
-  const handleNameEdit = (user: User) => {
-    setEditingUserId(user.id);
-    setEditingName(user.name || '');
+  const startEditingName = (userId: string, currentName: string) => {
+    setEditingNameUserId(userId);
+    setEditingNameValue(currentName || '');
   };
 
-  const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setEditingName(e.target.value);
+  const cancelEditingName = () => {
+    setEditingNameUserId(null);
+    setEditingNameValue('');
   };
 
-  const handleNameSave = async (user: User) => {
-    const newName = editingName.trim();
-    if (newName === '' || newName === user.name) {
-      setEditingUserId(null);
+  const saveUserName = async (userId: string) => {
+    if (editingNameValue.trim() === '') {
+      toast({
+        title: "Error",
+        description: "Name cannot be empty.",
+        variant: "destructive",
+      });
       return;
     }
-    setSavingName(true);
-    try {
-      const response = await fetch('/api/admin/users', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId: user.id, name: newName }),
-      });
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.error || 'Failed to update name');
-      setEditingUserId(null);
-      fetchUsers(searchQuery);
-      toast({ title: 'Name updated', description: `User name updated successfully.`, variant: 'default' });
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to update name');
-      toast({ title: 'Error', description: 'Failed to update name', variant: 'destructive' });
-    } finally {
-      setSavingName(false);
-    }
+
+    await updateUser(userId, { name: editingNameValue.trim() });
+    setEditingNameUserId(null);
+    setEditingNameValue('');
   };
-
-  const handleNameCancel = () => {
-    setEditingUserId(null);
-  };
-
-  const handleNameInputKeyDown = (e: React.KeyboardEvent<HTMLInputElement>, user: User) => {
-    if (e.key === 'Enter') {
-      handleNameSave(user);
-    } else if (e.key === 'Escape') {
-      handleNameCancel();
-    }
-  };
-
-  useEffect(() => {
-    const debounceTimer = setTimeout(() => {
-      fetchUsers(searchQuery);
-    }, 300);
-
-    return () => clearTimeout(debounceTimer);
-  }, [searchQuery, showOnlyReminderUsers]);
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <div className="bg-white shadow">
-        <div className="px-4 py-4 flex items-center justify-between">
-          <div className="flex items-center space-x-4">
-            <button
-              onClick={() => router.push('/admin')}
-              className="p-2 rounded-full hover:bg-gray-100 cursor-pointer"
-            >
-              <ArrowLeft className="w-5 h-5" />
-            </button>
-            <h1 className="text-xl font-semibold">User Management</h1>
-          </div>
-          <Button
-            variant="outline"
-            onClick={() => setIsImportDialogOpen(true)}
-            className="flex items-center gap-2"
-          >
-            <Upload className="w-4 h-4" />
-            Import Users
-          </Button>
-        </div>
-      </div>
+    <div className="container mx-auto py-10">
+      <h1 className="text-3xl font-bold mb-6">User Management</h1>
 
-      {/* Search & Filter */}
-      <div className="px-4 py-4 flex items-center space-x-4">
-        <Input
-          type="text"
-          placeholder="Search by email or name..."
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          className="max-w-md"
-        />
-        <div className="flex items-center space-x-2">
-          <Switch
-            id="daily-reminder-filter"
-            checked={showOnlyReminderUsers}
-            onCheckedChange={setShowOnlyReminderUsers}
+      <div className="flex flex-col md:flex-row gap-4 mb-6 items-center">
+        <div className="flex-grow">
+          <Label htmlFor="search" className="sr-only">Search</Label>
+          <Input
+            id="search"
+            placeholder="Search by name or email..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full md:w-80"
           />
-          <Label htmlFor="daily-reminder-filter">Show users with daily reminders</Label>
+        </div>
+        <div className="text-sm text-gray-600 pt-3">
+          Showing {filteredUsers.length} users
+        </div>
+        <div className="flex items-center gap-4 flex-wrap">
+          <div>
+            <Label htmlFor="status-filter" className="text-sm font-medium">Status</Label>
+            <Select value={statusFilter} onValueChange={(value: string) => setStatusFilter(value as 'all' | 'active' | 'inactive')}>
+              <SelectTrigger id="status-filter" className="w-[120px]">
+                <SelectValue placeholder="Filter by status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All</SelectItem>
+                <SelectItem value="active">Active</SelectItem>
+                <SelectItem value="inactive">Inactive</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
+            <Label htmlFor="reminder-filter" className="text-sm font-medium">Daily Reminder</Label>
+            <Select value={reminderFilter} onValueChange={(value: string) => setReminderFilter(value as 'all' | 'yes' | 'no')}>
+              <SelectTrigger id="reminder-filter" className="w-[120px]">
+                <SelectValue placeholder="Filter by reminder" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All</SelectItem>
+                <SelectItem value="yes">Yes</SelectItem>
+                <SelectItem value="no">No</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+           <div>
+            <Label htmlFor="admin-filter" className="text-sm font-medium">Admin</Label>
+            <Select value={adminFilter} onValueChange={(value: string) => setAdminFilter(value as 'all' | 'yes' | 'no')}>
+              <SelectTrigger id="admin-filter" className="w-[120px]">
+                <SelectValue placeholder="Filter by admin" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All</SelectItem>
+                <SelectItem value="yes">Yes</SelectItem>
+                <SelectItem value="no">No</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
         </div>
       </div>
-
-      {/* Users Table */}
-      <div className="px-4 py-4">
-        <div className="bg-white rounded-lg shadow overflow-hidden">
-          {loading ? (
-            <div className="p-8 text-center text-gray-500">
-              Loading users...
-            </div>
-          ) : error ? (
-            <div className="p-8 text-center text-red-500">
-              {error}
-            </div>
-          ) : users.length === 0 ? (
-            <div className="p-8 text-center text-gray-500">
-              No users found
-            </div>
-          ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Email</TableHead>
-                  <TableHead>Name</TableHead>
-                  <TableHead>Created At</TableHead>
-                  <TableHead>Admin Status</TableHead>
-                  <TableHead>Daily Reminder</TableHead>
-                  <TableHead>Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {users.map((user) => (
-                  <TableRow key={user.id}>
-                    <TableCell>{user.email}</TableCell>
+      
+      <div className="bg-white rounded-lg shadow overflow-x-auto">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead className="w-12"></TableHead>
+              <TableHead 
+                className="cursor-pointer hover:bg-gray-50 select-none"
+                onClick={() => handleSort('email')}
+              >
+                <div className="flex items-center gap-1">
+                  Email
+                  {sortField === 'email' ? (
+                    sortDirection === 'asc' ? 
+                      <ChevronUp className="w-4 h-4 text-blue-600" /> : 
+                      <ChevronDown className="w-4 h-4 text-blue-600" />
+                  ) : (
+                    <ChevronUp className="w-4 h-4 text-gray-300" />
+                  )}
+                </div>
+              </TableHead>
+              <TableHead>Name</TableHead>
+              <TableHead>Active</TableHead>
+              <TableHead>Admin</TableHead>
+              <TableHead>Daily Reminder</TableHead>
+              <TableHead 
+                className="cursor-pointer hover:bg-gray-50 select-none"
+                onClick={() => handleSort('created_at')}
+              >
+                <div className="flex items-center gap-1">
+                  Created At
+                  {sortField === 'created_at' ? (
+                    sortDirection === 'asc' ? 
+                      <ChevronUp className="w-4 h-4 text-blue-600" /> : 
+                      <ChevronDown className="w-4 h-4 text-blue-600" />
+                  ) : (
+                    <ChevronUp className="w-4 h-4 text-gray-300" />
+                  )}
+                </div>
+              </TableHead>
+              <TableHead>Actions</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {loading ? (
+              <TableRow><TableCell colSpan={8} className="text-center py-8"><Loader2 className="h-8 w-8 animate-spin mx-auto" /></TableCell></TableRow>
+            ) : filteredUsers.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={8} className="text-center text-gray-500 py-8">
+                  No users match the current filters.
+                </TableCell>
+              </TableRow>
+            ) : (
+              <TooltipProvider>
+                {filteredUsers.map((user, index) => (
+                  <TableRow key={user.id} className={user.is_active === false ? 'bg-gray-100 text-gray-500' : ''}>
+                    <TableCell className="text-center text-sm text-gray-500">{index + 1}</TableCell>
+                    <TableCell className="font-medium">{user.email}</TableCell>
                     <TableCell>
-                      {editingUserId === user.id ? (
+                      {editingNameUserId === user.id ? (
                         <div className="flex items-center gap-2">
-                          <input
-                            id={`edit-user-name-${user.id}`}
-                            name={`edit-user-name-${user.id}`}
-                            type="text"
-                            value={editingName}
-                            onChange={handleNameChange}
-                            onKeyDown={(e) => handleNameInputKeyDown(e, user)}
-                            className="border rounded px-2 py-1 w-full text-sm focus:ring-2 focus:ring-blue-500"
+                          <Input
+                            value={editingNameValue}
+                            onChange={(e) => setEditingNameValue(e.target.value)}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') {
+                                saveUserName(user.id);
+                              } else if (e.key === 'Escape') {
+                                cancelEditingName();
+                              }
+                            }}
+                            className="w-32"
                             autoFocus
-                            disabled={savingName}
-                            aria-label="Edit user name"
-                            autoComplete="off"
                           />
                           <Button
-                            size="icon"
-                            variant="ghost"
-                            onClick={() => handleNameSave(user)}
-                            disabled={savingName}
-                            aria-label="Save name"
+                            size="sm"
+                            variant="outline"
+                            onClick={() => saveUserName(user.id)}
+                            disabled={updatingUserIds.has(user.id)}
                           >
-                            {savingName ? (
-                              <Loader2 className="w-4 h-4 animate-spin" />
-                            ) : (
-                              <Check className="w-4 h-4 text-green-600" />
-                            )}
+                            <Check className="w-3 h-3" />
                           </Button>
                           <Button
-                            size="icon"
-                            variant="ghost"
-                            onClick={handleNameCancel}
-                            disabled={savingName}
-                            aria-label="Cancel edit"
+                            size="sm"
+                            variant="outline"
+                            onClick={cancelEditingName}
                           >
-                            <X className="w-4 h-4 text-gray-400 hover:text-red-500 transition-colors" />
+                            <X className="w-3 h-3" />
                           </Button>
                         </div>
                       ) : (
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <button
-                              type="button"
-                              className="group cursor-pointer hover:bg-blue-50 focus:bg-blue-50 rounded px-2 py-1 inline-flex items-center gap-1 transition-colors w-full"
-                              onClick={() => handleNameEdit(user)}
-                              tabIndex={0}
-                              aria-label="Edit user name"
-                            >
-                              <span className="group-hover:underline text-left flex-1">{user.name || '-'}</span>
-                              <Pencil
-                                className="w-4 h-4 text-gray-300 group-hover:text-blue-500 group-focus:text-blue-500 transition-all opacity-0 group-hover:opacity-100 group-focus:opacity-100 scale-90 group-hover:scale-100 group-focus:scale-100"
-                                aria-hidden="true"
-                              />
-                            </button>
-                          </TooltipTrigger>
-                          <TooltipContent sideOffset={4}>
-                            Click to edit name
-                          </TooltipContent>
-                        </Tooltip>
+                        <div className="flex items-center gap-2">
+                          <span className="min-w-0 flex-1">{user.name || '-'}</span>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => startEditingName(user.id, user.name || '')}
+                            disabled={updatingUserIds.has(user.id)}
+                          >
+                            <Edit2 className="w-3 h-3" />
+                          </Button>
+                        </div>
                       )}
                     </TableCell>
                     <TableCell>
-                      {new Date(user.created_at).toLocaleDateString()}
-                    </TableCell>
-                    <TableCell>
                       <Tooltip>
-                        <TooltipTrigger>
-                          <Switch
-                            checked={user.is_admin}
-                            onCheckedChange={(newStatus) =>
-                              toggleAdminStatus(user.id, newStatus)
-                            }
-                          />
+                        <TooltipTrigger asChild>
+                          <div className="flex items-center gap-2">
+                            <Badge 
+                              variant={user.is_active === false ? "destructive" : "default"}
+                              className={user.is_active === false ? "bg-red-100 text-red-800 border-red-200" : "bg-green-100 text-green-800 border-green-200"}
+                            >
+                              {user.is_active === false ? "Inactive" : "Active"}
+                            </Badge>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => updateUser(user.id, { is_active: !user.is_active })}
+                              disabled={updatingUserIds.has(user.id)}
+                            >
+                              {user.is_active === false ? <UserX className="w-4 h-4" /> : <UserCheck className="w-4 h-4" />}
+                            </Button>
+                          </div>
                         </TooltipTrigger>
-                        <TooltipContent>
-                          {user.is_admin
-                            ? 'Admin status is ON'
-                            : 'Admin status is OFF'}
+                        <TooltipContent side="top" className="bg-gray-900 text-white">
+                          <p>Click to toggle user activation status</p>
                         </TooltipContent>
                       </Tooltip>
                     </TableCell>
                     <TableCell>
                       <Tooltip>
-                          <TooltipTrigger>
-                              <Switch
-                                  checked={user.wants_daily_reminders}
-                                  onCheckedChange={(newStatus) =>
-                                      toggleReminderStatus(user.id, newStatus)
-                                  }
-                              />
-                          </TooltipTrigger>
-                          <TooltipContent>
-                              {user.wants_daily_reminders
-                                  ? 'Daily reminder is ON'
-                                  : 'Daily reminder is OFF'}
-                          </TooltipContent>
+                        <TooltipTrigger asChild>
+                          <div className="flex items-center gap-2">
+                            <Badge 
+                              variant={user.is_admin ? "default" : "secondary"}
+                              className={user.is_admin ? "bg-blue-100 text-blue-800 border-blue-200" : "bg-gray-100 text-gray-600 border-gray-200"}
+                            >
+                              {user.is_admin ? "Admin" : "User"}
+                            </Badge>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => updateUser(user.id, { is_admin: !user.is_admin })}
+                              disabled={updatingUserIds.has(user.id)}
+                            >
+                              {user.is_admin ? <ShieldOff className="w-4 h-4" /> : <Shield className="w-4 h-4" />}
+                            </Button>
+                          </div>
+                        </TooltipTrigger>
+                        <TooltipContent side="top" className="bg-gray-900 text-white">
+                          <p>Click to toggle admin privileges</p>
+                        </TooltipContent>
                       </Tooltip>
                     </TableCell>
                     <TableCell>
-                      <Button asChild variant="secondary" size="sm" className="ml-2">
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <div className="flex items-center gap-2">
+                            <Badge 
+                              variant={user.wants_daily_reminders ? "default" : "secondary"}
+                              className={user.wants_daily_reminders ? "bg-purple-100 text-purple-800 border-purple-200" : "bg-gray-100 text-gray-600 border-gray-200"}
+                            >
+                              {user.wants_daily_reminders ? "Reminder" : "No Reminder"}
+                            </Badge>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => updateUser(user.id, { wants_daily_reminders: !user.wants_daily_reminders })}
+                              disabled={updatingUserIds.has(user.id)}
+                            >
+                              {user.wants_daily_reminders ? <Bell className="w-4 h-4" /> : <BellOff className="w-4 h-4" />}
+                            </Button>
+                          </div>
+                        </TooltipTrigger>
+                        <TooltipContent side="top" className="bg-gray-900 text-white">
+                          <p>Click to toggle daily reminders</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TableCell>
+                    <TableCell className="text-sm text-gray-600">
+                      {new Date(user.created_at).toLocaleDateString()}
+                    </TableCell>
+                    <TableCell>
+                      <Button asChild variant="outline" size="sm" disabled={updatingUserIds.has(user.id)}>
                         <Link href={`/admin/users/${user.id}/daily-tasks`}>
-                          View Daily Tasks
+                          View Tasks
                         </Link>
                       </Button>
                     </TableCell>
                   </TableRow>
                 ))}
-              </TableBody>
-            </Table>
-          )}
-        </div>
+              </TooltipProvider>
+            )}
+          </TableBody>
+        </Table>
       </div>
-
-      <ImportDialog
-        isOpen={isImportDialogOpen}
-        onClose={() => setIsImportDialogOpen(false)}
-        onImportComplete={() => fetchUsers(searchQuery)}
-      />
     </div>
   );
 } 

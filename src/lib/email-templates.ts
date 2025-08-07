@@ -75,7 +75,7 @@ export function getDailyTaskReminderEmail({ userName, pulseUrl }: { userName: st
     <p>Hi ${userName},</p>
     <p>This is a friendly reminder to log your daily tasks and keep your progress on track.</p>
     <p>Please take a moment to submit your daily pulse here:</p>
-    <p><a href="${pulseUrl}">Log Your Tasks</a></p>
+    <p><a href="${pulseUrl}" style="${buttonStyle}">Log Your Tasks</a></p>
     <p>Thanks for your hard work!</p>
     <p>Best regards,<br>The Pulse Team</p>
     `;

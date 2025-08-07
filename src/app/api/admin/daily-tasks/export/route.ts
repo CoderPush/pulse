@@ -1,5 +1,6 @@
 import { createClient } from '@/utils/supabase/server';
 import { NextResponse } from 'next/server';
+import { normalizeVietnameseString } from '@/lib/utils/string';
 
 export async function GET(request: Request) {
   const supabase = await createClient();
@@ -7,16 +8,13 @@ export async function GET(request: Request) {
   const user = searchParams.get('user');
   const month = searchParams.get('month');
   const week = searchParams.get('week');
-  const projects = searchParams.get('projects')?.split(',');
-  const page = parseInt(searchParams.get('page') || '1', 10);
-  const pageSize = 20;
-  const offset = (page - 1) * pageSize;
+  const project = searchParams.get('project'); // <-- Add this line
 
+  // Query daily_tasks without pagination for CSV export
   let query = supabase
     .from('daily_tasks')
-    .select('*, user:users(id, email, name)', { count: 'exact' })
-    .order('task_date', { ascending: false })
-    .range(offset, offset + pageSize - 1);
+    .select('*, user:users(id, email, name)')
+    .order('task_date', { ascending: false });
 
   if (user) {
     query = query.eq('user_id', user);
@@ -31,27 +29,44 @@ export async function GET(request: Request) {
     lastDay.setDate(firstDay.getDate() + 6);
     query = query.gte('task_date', firstDay.toISOString().slice(0, 10)).lte('task_date', lastDay.toISOString().slice(0, 10));
   }
-  if (projects && projects.length > 0) {
-    query = query.in('project', projects);
+  if (project) {
+    query = query.eq('project', project);
   }
 
-  const { data: tasks, error, count } = await query;
+  const { data: tasks, error } = await query;
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
-  // Get total count for pagination
-  const totalPages = count ? Math.ceil(count / pageSize) : 1;
 
-  return NextResponse.json({
-    tasks: (tasks || []).map(t => ({
-      ...t,
-      user_email: t.user?.email,
-      user_name: t.user?.name,
-    })),
-    totalPages,
-    page,
-    pageSize,
-    totalTasks: count || 0,
+  // Generate CSV content
+  const csvHeaders = ['Date', 'User Email', 'User Name', 'Project', 'Bucket', 'Hours', 'Description', 'Link'];
+  const csvRows = tasks?.map(task => [
+    task.task_date,
+    task.user?.email || '',
+    normalizeVietnameseString(task.user?.name || ''),
+    normalizeVietnameseString(task.project || ''),
+    normalizeVietnameseString(task.bucket || ''),
+    task.hours || 0,
+    `"${normalizeVietnameseString((task.description || '')).replace(/"/g, '""')}"`, // Escape quotes in description
+    task.link || ''
+  ]) || [];
+
+  const csvContent = [csvHeaders, ...csvRows]
+    .map(row => row.join(','))
+    .join('\n');
+
+  // Generate filename based on filter
+  let filename = 'daily-tasks';
+  if (user) filename += '-user';
+  if (month) filename += `-${month}`;
+  if (week) filename += `-${week}`;
+  filename += '.csv';
+
+  return new NextResponse(csvContent, {
+    headers: {
+      'Content-Type': 'text/csv',
+      'Content-Disposition': `attachment; filename="${filename}"`,
+    },
   });
 }
 
