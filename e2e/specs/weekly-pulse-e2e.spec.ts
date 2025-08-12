@@ -104,7 +104,7 @@ test('Weekly Pulse E2E: view submission in history after submit', async ({ page 
     await expect(page.getByRole('button', { name: /This week: Submitted/i })).toBeVisible();
     // Check that the details are correct
     await expect(page.getByRole('heading', { name: /Captain America/i })).toBeVisible();
-    await expect(page.getByText('40h')).toBeVisible();
+    await expect(page.getByText('40h').nth(1)).toBeVisible();
     await expect(page.getByText('manager@example.com')).toBeVisible();
     await expect(page.getByRole('heading', { name: /Hours Reporting Impact/i })).toBeVisible();
     await expect(page.getByText('Reporting hours helps me reflect on my weekly progress.')).toBeVisible();

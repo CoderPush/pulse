@@ -4,7 +4,7 @@ const BASE_URL = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
 const ENDPOINT = "/api/submissions/latest";
 
 test.describe(`GET ${ENDPOINT}`, () => {
-  const validEmail = "giang.ho@coderpush.com";
+  const validEmail = "test@coderpush.com";
   const invalidEmail = "user@gmail.com";
   const noSubmissionEmail = "nopulse@coderpush.com";
   const validOrigin = "http://localhost:3000";
