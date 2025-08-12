@@ -101,3 +101,175 @@ VALUES
   ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', '55555555-5555-5555-5555-555555555555', 5),
   ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', '66666666-6666-6666-6666-666666666666', 6),
   ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', '77777777-7777-7777-7777-777777777777', 7); 
+
+-- Insert test users for E2E testing
+INSERT INTO public.users (id, email, name, is_admin, created_at)
+VALUES
+  ('11111111-1111-1111-1111-111111111111', 'test@coderpush.com', 'Test Developer', false, NOW()),
+  ('22222222-2222-2222-2222-222222222222', 'nopulse@coderpush.com', 'No Pulse User', false, NOW()),
+  ('33333333-3333-3333-3333-333333333333', 'admin@coderpush.com', 'Admin User', true, NOW()),
+  ('44444444-4444-4444-4444-444444444444', 'manager@coderpush.com', 'Manager User', false, NOW()),
+  ('55555555-5555-5555-5555-555555555555', 'developer@coderpush.com', 'Developer User', false, NOW())
+ON CONFLICT (id) DO UPDATE SET
+  email = EXCLUDED.email,
+  name = EXCLUDED.name,
+  is_admin = EXCLUDED.is_admin;
+
+-- Insert test submissions for E2E testing
+-- Note: These will be created after the weeks are generated above
+DO $$
+DECLARE
+    current_year INT;
+    current_week INT;
+    test_user_id UUID := '11111111-1111-1111-1111-111111111111';
+    manager_user_id UUID := '44444444-4444-4444-4444-444444444444';
+BEGIN
+    -- Get current year and week
+    current_year := EXTRACT(YEAR FROM CURRENT_DATE);
+    current_week := EXTRACT(WEEK FROM CURRENT_DATE);
+    
+    -- Insert test submission for test@coderpush.com (current week)
+    INSERT INTO public.submissions (
+        user_id,
+        year,
+        week_number,
+        primary_project_name,
+        primary_project_hours,
+        additional_projects,
+        manager,
+        feedback,
+        changes_next_week,
+        other_feedback,
+        hours_reporting_impact,
+        form_completion_time,
+        status,
+        is_late,
+        submitted_at
+    ) VALUES (
+        test_user_id,
+        current_year,
+        current_week,
+        'Iron Man',
+        40,
+        '[{"name": "Captain America", "hours": 8}, {"name": "Thor", "hours": 4}]',
+        'manager@coderpush.com',
+        'Excellent progress on the Iron Man project this week. Successfully completed the arc reactor prototype and began testing phase.',
+        'Planning to finalize the flight stabilization system and conduct initial flight tests next week.',
+        'The team collaboration has been outstanding, and I''m learning a lot from the cross-functional approach.',
+        'Weekly reporting provides valuable insights into productivity patterns and helps maintain project momentum.',
+        180,
+        'submitted',
+        false,
+        NOW() - INTERVAL '2 days'
+    );
+    
+    -- Insert test submission for test@coderpush.com (previous week)
+    INSERT INTO public.submissions (
+        user_id,
+        year,
+        week_number,
+        primary_project_name,
+        primary_project_hours,
+        additional_projects,
+        manager,
+        feedback,
+        changes_next_week,
+        other_feedback,
+        hours_reporting_impact,
+        form_completion_time,
+        status,
+        is_late,
+        submitted_at
+    ) VALUES (
+        test_user_id,
+        current_year,
+        current_week - 1,
+        'Spider-Man',
+        35,
+        '[{"name": "Black Widow", "hours": 5}]',
+        'manager@coderpush.com',
+        'Focused on web-slinging mechanics optimization and successfully improved the wall-crawling system performance.',
+        'Will transition to the Iron Man project next week as planned in the roadmap.',
+        'The mentorship program continues to provide valuable guidance for professional development.',
+        'Hour tracking analytics reveal positive trends in project efficiency and time management.',
+        150,
+        'submitted',
+        false,
+        NOW() - INTERVAL '9 days'
+    );
+    
+    -- Insert test submission for test@coderpush.com (two weeks ago)
+    INSERT INTO public.submissions (
+        user_id,
+        year,
+        week_number,
+        primary_project_name,
+        primary_project_hours,
+        additional_projects,
+        manager,
+        feedback,
+        changes_next_week,
+        other_feedback,
+        hours_reporting_impact,
+        form_completion_time,
+        status,
+        is_late,
+        submitted_at
+    ) VALUES (
+        test_user_id,
+        current_year,
+        current_week - 2,
+        'Black Panther',
+        42,
+        '[]',
+        'manager@coderpush.com',
+        'Successfully completed the vibranium suit upgrades and significantly improved the energy absorption system efficiency.',
+        'Will transition to the Spider-Man project next week as scheduled.',
+        'The team collaboration tools and processes are working exceptionally well.',
+        'Weekly reporting maintains accountability and provides clear visibility into project progress.',
+        200,
+        'submitted',
+        false,
+        NOW() - INTERVAL '16 days'
+    );
+    
+    -- Insert test submission for developer@coderpush.com (current week)
+    INSERT INTO public.submissions (
+        user_id,
+        year,
+        week_number,
+        primary_project_name,
+        primary_project_hours,
+        additional_projects,
+        manager,
+        feedback,
+        changes_next_week,
+        other_feedback,
+        hours_reporting_impact,
+        form_completion_time,
+        status,
+        is_late,
+        submitted_at
+    ) VALUES (
+        '55555555-5555-5555-5555-555555555555',
+        current_year,
+        current_week,
+        'Doctor Strange',
+        38,
+        '[{"name": "Ant-Man", "hours": 6}]',
+        'manager@coderpush.com',
+        'Made significant progress on mystical arts implementation and successfully created stable dimensional portals.',
+        'Planning to explore quantum realm applications and begin integration testing.',
+        'The advanced training program is challenging but highly rewarding for skill development.',
+        'Time tracking helps maintain balance across different magical disciplines and project priorities.',
+        160,
+        'submitted',
+        false,
+        NOW() - INTERVAL '1 day'
+    );
+    
+EXCEPTION
+    WHEN OTHERS THEN
+        -- If there's an error (e.g., week doesn't exist), just continue
+        NULL;
+END $$; 
