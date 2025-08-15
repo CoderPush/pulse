@@ -1,7 +1,7 @@
 # Pulse 
 
 [![Next.js](https://img.shields.io/badge/Next.js-15.3.1-black)](https://nextjs.org/)
-[![React](https://img.shields.io/badge/React-19.1.0-blue)](https://reactjs.org/)
+[![React](https://img.shields.io/badge/React-19.1.0-blue)](https://react.dev/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.8.3-blue)](https://www.typescriptlang.org/)
 [![Supabase](https://img.shields.io/badge/Supabase-Local-orange)](https://supabase.com/)
 [![Tailwind CSS](https://img.shields.io/badge/Tailwind-4.1.4-38B2AC)](https://tailwindcss.com/)
@@ -50,7 +50,7 @@ pulse/
 │   ├── app/                          # Next.js 15 App Router
 │   │   ├── (authenticated)/          # Protected routes
 │   │   │   ├── daily-tasks/          # Daily task management
-│   │   │   ├── submissions/        # Weekly submissions
+│   │   │   ├── submissions/          # Weekly submissions
 │   │   │   └── ...                   # Other authenticated features
 │   │   ├── api/                      # API routes
 │   │   │   ├── copilotkit/           # AI chatbot endpoint
