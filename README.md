@@ -31,7 +31,7 @@ Pulse is a modern, AI-powered web application that revolutionizes team progress 
 - **React 19**: Latest React features with concurrent rendering
 - **TypeScript**: Full type safety and developer experience
 - **Tailwind CSS 4**: Modern utility-first CSS framework
-- **Radix UI**: Accessible component primitives
+- **shadcn/ui**: Accessible component primitives
 
 ### AI & Backend
 - **AWS Bedrock**: Claude and other advanced language models
