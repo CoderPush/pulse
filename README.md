@@ -1,7 +1,7 @@
-# Pulse - AI-Powered Team Progress Tracking Platform
+# Pulse 
 
 [![Next.js](https://img.shields.io/badge/Next.js-15.3.1-black)](https://nextjs.org/)
-[![React](https://img.shields.io/badge/React-19.1.0-blue)](https://reactjs.org/)
+[![React](https://img.shields.io/badge/React-19.1.0-blue)](https://react.dev/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.8.3-blue)](https://www.typescriptlang.org/)
 [![Supabase](https://img.shields.io/badge/Supabase-Local-orange)](https://supabase.com/)
 [![Tailwind CSS](https://img.shields.io/badge/Tailwind-4.1.4-38B2AC)](https://tailwindcss.com/)
@@ -50,7 +50,7 @@ pulse/
 │   ├── app/                          # Next.js 15 App Router
 │   │   ├── (authenticated)/          # Protected routes
 │   │   │   ├── daily-tasks/          # Daily task management
-│   │   │   ├── submissions/        # Weekly submissions
+│   │   │   ├── submissions/          # Weekly submissions
 │   │   │   └── ...                   # Other authenticated features
 │   │   ├── api/                      # API routes
 │   │   │   ├── copilotkit/           # AI chatbot endpoint
@@ -113,6 +113,11 @@ pnpm install
    pnpm dev
    ```
 
+7. **Access the application**
+
+Frontend: http://localhost:3000
+Admin Dashboard: http://localhost:3000/admin
+
 ## 🤖 AI Features Deep Dive
 
 ### CopilotKit Integration
@@ -162,33 +167,6 @@ The weekly form AI assistant provides:
 4. **Submission**: Tasks are saved to the database
 5. **Analytics**: Dashboard provides insights and reporting
 
-### Scheduled Tasks
-- Weekly submission window generation
-- Automated reminder system
-- Database migrations
-
-## Deployment
-### Prerequisites
-- Vercel account
-- Supabase project
-- Environment variables configured
-
-### Production Deployment
-1. Configure environment variables in Vercel
-2. Connect repository to Vercel
-3. Deploy:
-```bash
-pnpm build
-vercel --prod
-```
-
-### Staging Deployment
-1. Create separate Supabase project for staging
-2. Configure staging environment variables
-3. Deploy to staging:
-```bash
-vercel
-```
 
 ## Testing
 
