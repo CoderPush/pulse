@@ -1,49 +1,80 @@
-# Pulse
+# Pulse - AI-Powered Team Progress Tracking Platform
 
-Pulse is a modern web application that simplifies team progress tracking and feedback collection through structured weekly check-ins. The application enables teams to maintain consistent communication, track project hours, and gather valuable insights while minimizing administrative overhead.
+[![Next.js](https://img.shields.io/badge/Next.js-15.3.1-black)](https://nextjs.org/)
+[![React](https://img.shields.io/badge/React-19.1.0-blue)](https://reactjs.org/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.8.3-blue)](https://www.typescriptlang.org/)
+[![Supabase](https://img.shields.io/badge/Supabase-Local-orange)](https://supabase.com/)
+[![Tailwind CSS](https://img.shields.io/badge/Tailwind-4.1.4-38B2AC)](https://tailwindcss.com/)
 
-The application provides a streamlined multi-step form interface for team members to submit their weekly updates, including project allocations, working hours, manager feedback, and other relevant information. For administrators, it offers comprehensive dashboards to monitor submission status, send reminders, and manage user data. The system integrates with Google authentication for secure access and uses Supabase for robust data management.
+Pulse is a modern, AI-powered web application that revolutionizes team progress tracking and feedback collection through weekly check-ins and daily task management. Built with Next.js 15, React 19, and powered by AWS Bedrock, Pulse provides a seamless experience to maintain consistent communication, track project hours, and gather valuable insights.
 
-## Current Status
+## 🚀 Key Features
+### 📅 Daily Tasks Management
+- **AI-Powered Task Parsing**: Natural language input that automatically extracts task details
+- **Task Extraction**: Parses project names, hours, categories, and descriptions from free text
+- **Flexible Input Formats**: Support for manual entry, bulk import, and AI parsing
+- **Project & Bucket Categorization**: Organize tasks by project and work type
 
-### Implemented Features
-- Multi-step submission form
-- Google and Magic Link authentication
-- Basic form validation
-- Mobile-responsive design
-- Project and hours tracking
-- Manager feedback collection
+### 📊 Weekly Pulse System
+- **Multi-Step Submission Forms**: Streamlined weekly check-in process
+- **Project Hours Tracking**: Comprehensive time allocation across multiple projects
 
-### In Development
-- Admin dashboard and analytics
-- Automated reminder system
-- Historical data view
-- Data export functionality
+### 🎯 Advanced Analytics & Reporting
+- **Dashboard Visualizations**: Charts showing effort distribution across projects and categories
+- **Time-based Filtering**: Weekly and monthly views with detailed breakdowns
+- **Export Capabilities**: PDF and CSV export for reporting and analysis
 
-## Repository Structure
+## 🏗️ Architecture & Technology Stack
+
+### Frontend
+- **Next.js 15**: App Router with Turbopack for fast development
+- **React 19**: Latest React features with concurrent rendering
+- **TypeScript**: Full type safety and developer experience
+- **Tailwind CSS 4**: Modern utility-first CSS framework
+- **Radix UI**: Accessible component primitives
+
+### AI & Backend
+- **AWS Bedrock**: Claude and other advanced language models
+- **CopilotKit**: AI assistant framework for seamless integration
+- **Supabase**: Local PostgreSQL database with real-time capabilities
+
+### Testing & Quality
+- **Vitest**: Fast unit testing framework
+- **Playwright**: End-to-end testing with multiple browser support
+
+## 📁 Project Structure
+
 ```
-.
-├── src/                      # Source code directory
-│   ├── app/                 # Next.js app router pages and API routes
-│   ├── components/          # React components (unit tests co-located)
-│   ├── lib/                 # Utility functions for email and general helpers
-│   ├── test/                # Unit test setup files
-│   ├── types/              # TypeScript type definitions
-│   └── utils/              # Utility functions for dates, Supabase, and actions
-├── e2e/                     # End-to-end tests (Playwright)
-├── supabase/                # Database migrations and configuration
-│   └── migrations/         # SQL migration files
-├── docs/                    # Project documentation
-└── public/                 # Static assets
+pulse/
+├── src/
+│   ├── app/                          # Next.js 15 App Router
+│   │   ├── (authenticated)/          # Protected routes
+│   │   │   ├── daily-tasks/          # Daily task management
+│   │   │   ├── submissions/        # Weekly submissions
+│   │   │   └── ...                   # Other authenticated features
+│   │   ├── api/                      # API routes
+│   │   │   ├── copilotkit/           # AI chatbot endpoint
+│   │   │   ├── parse-daily-tasks/    # Task parsing API
+│   │   │   └── ai-weekly-insight/    # AI insights generation
+│   │   └── admin/                    # Administrative interfaces
+│   ├── components/                    # Reusable React components
+│   │   ├── CopilotProvider.tsx       # AI assistant provider
+│   │   ├── DailyPulseAIAssistant.tsx # Daily task AI interface
+│   │   └── WeeklyPulseForm.tsx       # Weekly form with AI integration
+│   ├── lib/                          # Utility libraries
+│   └── types/                        # TypeScript type definitions
+├── supabase/                         # Database migrations & config
+├── e2e/                             # End-to-end tests
+└── docs/                            # Project documentation
 ```
 
-## Usage Instructions
+## 🚀 Getting Started
+
 ### Prerequisites
-- Node.js 18.x or later
-- PostgreSQL 15.x (Supabase)
-- Supabase account and one project for each environment
-- Google OAuth credentials (via Supabase Auth Providers)
-- pnpm package manager
+- **Node.js**: 18.x or later
+- **PostgreSQL**: 15.x (via Supabase)
+- **pnpm**: Package manager
+- **Supabase CLI**: For local development
 
 ### Installation
 
@@ -58,109 +89,78 @@ cd pulse
 pnpm install
 ```
 
-3. Set up environment variables:
-```bash
-# set up database, email, and other services
-cp .env.example .env
-# set up google login via supabase
-cp supabase/.env.example supabase/.env
-```
+3. **Environment Setup**
+   ```bash
+   # Copy environment templates
+   cp .env.example .env
+   cp supabase/.env.example supabase/.env
+   
+   ```
 
-4. Start local Supabase:
-```bash
-supabase start
-```
+4. **Start Local Supabase**
+   ```bash
+   supabase start
+   ```
 
-5. Initialize the database:
+5. **Initialize Database**
+   ```bash
+   # ⚠️ WARNING: This resets your local database
+   supabase db reset
+   ```
 
-```bash
-supabase db reset
-```
+6. **Start Development Server**
+   ```bash
+   pnpm dev
+   ```
 
-6. Start the development server:
-```bash
-pnpm dev
-```
+## 🤖 AI Features Deep Dive
 
-### Quick Start
-1. Navigate to the application URL
-2. Sign in using your Google account or Magic Link
-3. Complete the weekly pulse form:
-   - Select your primary project
-   - Enter hours worked
-   - Provide manager information
-   - Add any additional projects
-   - Submit feedback and additional information
+### CopilotKit Integration
+Pulse uses CopilotKit to provide an intelligent AI assistant that helps users complete forms and manage tasks:
 
-### Form Data Structure
+- **Context Awareness**: The AI remembers user preferences and previous submissions
+- **Natural Language Processing**: Users can describe tasks in plain English
+- **Smart Form Filling**: AI automatically populates form fields based on conversation
+- **Multi-step Guidance**: Breaks down complex forms into manageable conversations
+
+### Daily Task AI Assistant
+The AI-powered daily task system allows users to:
+
 ```typescript
-// Example form data structure
-const formData = {
-  userId: string,
-  email: string,
-  weekNumber: number,
-  primaryProject: { 
-    name: string, 
-    hours: number 
-  },
-  additionalProjects: Array<{
-    project: string,
-    hours: number
-  }>,
-  manager: string,
-  feedback: string
-};
+// Example: Natural language task input
+"Fixed login bug @project-alpha #bugfix 1.5h
+Code review for new feature @project-beta #feature 2 hours"
 ```
 
-### Troubleshooting
-#### Common Issues
-1. Supabase Connection Issues
-   - Check if Supabase is running locally (`pnpm supabase status`)
-   - Ensure `.env` file contains valid `SUPABASE_URL` and `SUPABASE_ANON_KEY`.
-   - Try restarting Supabase (`pnpm supabase stop && pnpm supabase start`)
-   - Verify Supabase project status in the Supabase dashboard if using remote.
+**AI automatically extracts:**
+- **Date**: Task completion date
+- **Project**: Associated project name
+- **Category**: Work type (bugfix, feature, etc.)
+- **Hours**: Time spent
+- **Description**: Task details
 
-2. Authentication Failures
-   - Error: "Failed to sign in with Google"
-   - Solution: Verify Google OAuth credentials in Supabase dashboard
-   - Check allowed redirect URLs
-   - Ensure environment variables are properly set
-   - Clear browser cache and try again
+### Weekly Pulse AI Assistant
+The weekly form AI assistant provides:
 
-3. Development Environment
-   - Issue: Hot reload not working
-   - Solution: Check for file watching limits
-   - Restart development server
-   - Clear Next.js cache (`rm -rf .next`)
+- **Previous Submission Recall**: Shows last week's data for reference
+- **Smart Pre-filling**: Automatically populates form fields
+- **Conversational Guidance**: Walks users through form completion
+- **Context Preservation**: Maintains conversation state throughout the session
 
-## Data Flow
-Weekly Pulse manages data flow through a structured submission process, from user input to administrative review.
+## 📅 Daily Tasks System
 
-```ascii
-User Input → Form Validation → API Submission → Database Storage
-     ↑                                              ↓
-Google Auth ←→ Supabase Auth ←→ Admin Dashboard ←→ Reports
-```
+### Core Features
+- **AI-Powered Parsing**: Natural language input processing
+- **Calendar View**: Visual submission tracking with color-coded status
+- **Dashboard Analytics**: Hours distribution, project breakdowns, and trends
+- **Flexible Input Methods**: Multiple ways to add and edit tasks
 
-Key Component Interactions:
-1. User authentication through Google OAuth via Supabase
-2. Form data collection through multi-step interface
-3. Server-side validation and processing
-4. Database storage with Supabase
-5. Administrative review and management interface
-6. Automated reminder system for missing submissions
-7. Report generation and data export capabilities
-
-## Infrastructure
-
-![Infrastructure diagram](./docs/infra.svg)
-### Database Resources
-- PostgreSQL database with the following tables:
-  - `auth.users`: Authentication user data
-  - `users`: Application user profiles
-  - `weeks`: Weekly submission windows
-  - `submissions`: User submission data
-  - `reminder_logs`: Reminder tracking
+### Task Management Workflow
+1. **Input**: Users enter tasks via AI assistant or manual forms
+2. **Parsing**: AI extracts structured data from natural language
+3. **Review**: Tasks are grouped by date with editing capabilities
+4. **Submission**: Tasks are saved to the database
+5. **Analytics**: Dashboard provides insights and reporting
 
 ### Scheduled Tasks
 - Weekly submission window generation
