@@ -7,8 +7,10 @@ import { Pagination, PaginationContent, PaginationItem, PaginationLink, Paginati
 import { Command, CommandInput, CommandList, CommandItem } from '@/components/ui/command';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Badge } from '@/components/ui/badge';
-import { X } from 'lucide-react';
+import { X, Loader2 } from 'lucide-react';
 import UserOverview from './UserOverview';
+import { Switch } from '@/components/ui/switch';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 interface User {
   id: string;
@@ -16,6 +18,54 @@ interface User {
   name?: string | null;
   wants_daily_reminders?: boolean;
 }
+
+// BillableToggle component for inline editing
+interface BillableToggleProps {
+  taskId: string;
+  isBillable: boolean;
+  onToggle: (value: boolean) => void;
+}
+
+const BillableToggle: React.FC<BillableToggleProps> = ({ taskId, isBillable, onToggle }) => {
+  const [isUpdating, setIsUpdating] = useState(false);
+
+  const handleToggle = async (newValue: boolean) => {
+    setIsUpdating(true);
+    try {
+      const response = await fetch(`/api/admin/daily-tasks/${taskId}/billable`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ billable: newValue }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to update billable status');
+      }
+
+      onToggle(newValue);
+    } catch (error) {
+      console.error('Error updating billable status:', error);
+      // Revert the toggle on error
+      onToggle(isBillable);
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
+  return (
+    <div className="flex items-center space-x-2">
+      <Switch
+        checked={isBillable}
+        onCheckedChange={handleToggle}
+        disabled={isUpdating}
+        className="data-[state=checked]:bg-green-600"
+      />
+      {isUpdating && <Loader2 className="h-4 w-4 animate-spin text-gray-500" />}
+    </div>
+  );
+};
 
 type AdminDailyTask = {
   id: string;
@@ -28,6 +78,7 @@ type AdminDailyTask = {
   hours: number;
   description: string;
   link?: string;
+  billable: boolean;
 };
 
 export default function AdminDailyTasksPage() {
@@ -49,6 +100,8 @@ export default function AdminDailyTasksPage() {
   const [loading, setLoading] = useState(false);
   const [userPopoverOpen, setUserPopoverOpen] = useState(false);
   const [projectPopoverOpen, setProjectPopoverOpen] = useState(false);
+  const [overviewRefreshKey, setOverviewRefreshKey] = useState(0);
+  const [billableFilter, setBillableFilter] = useState<'all' | 'true' | 'false'>('all');
 
   // Fetch user list on mount
   useEffect(() => {
@@ -74,6 +127,7 @@ export default function AdminDailyTasksPage() {
     if (selectedProjects.length > 0) params.append('projects', selectedProjects.join(','));
     if (filterMode === 'month' && monthFilter) params.append('month', monthFilter);
     if (filterMode === 'week' && weekFilter) params.append('week', weekFilter);
+    if (billableFilter !== 'all') params.append('billable', billableFilter);
     params.append('page', String(page));
     params.append('limit', String(pageSize)); // Append pageSize
     fetch(`/api/admin/daily-tasks?${params}`)
@@ -91,11 +145,16 @@ export default function AdminDailyTasksPage() {
         setTotalTasks(0);
       })
       .finally(() => setLoading(false));
-  }, [selectedUser, selectedProjects, filterMode, monthFilter, weekFilter, page, pageSize]);
+  }, [selectedUser, selectedProjects, filterMode, monthFilter, weekFilter, billableFilter, page, pageSize]);
 
   // Pagination handler
   const handlePageChange = (newPage: number) => {
     if (newPage >= 1 && newPage <= totalPages) setPage(newPage);
+  };
+
+  // Function to refresh overview when billable status changes
+  const refreshOverview = () => {
+    setOverviewRefreshKey(prev => prev + 1);
   };
 
   return (
@@ -244,6 +303,30 @@ export default function AdminDailyTasksPage() {
         </div>
 
         <div>
+          <label className="block text-sm font-medium mb-1">Billable Status</label>
+          <div className="flex items-center gap-2">
+            <Select value={billableFilter} onValueChange={(value: 'all' | 'true' | 'false') => setBillableFilter(value)}>
+              <SelectTrigger className="w-36">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Tasks</SelectItem>
+                <SelectItem value="true">Billable</SelectItem>
+                <SelectItem value="false">Non-Billable</SelectItem>
+              </SelectContent>
+            </Select>
+            {billableFilter !== 'all' && (
+              <button
+                onClick={() => setBillableFilter('all')}
+                className="text-xs text-gray-500 hover:text-red-600 underline px-1"
+              >
+                Clear
+              </button>
+            )}
+          </div>
+        </div>
+
+        <div>
           <label className="block text-sm font-medium mb-1">Filter by:</label>
           <select
             value={filterMode}
@@ -278,10 +361,12 @@ export default function AdminDailyTasksPage() {
       </div>
       {selectedUser && (
         <UserOverview 
+          key={overviewRefreshKey}
           user={selectedUser}
           filterMode={filterMode}
           monthFilter={monthFilter}
           weekFilter={weekFilter}
+          billableFilter={billableFilter}
         />
       )}
       <div className="bg-white rounded-lg shadow overflow-x-auto">
@@ -296,13 +381,14 @@ export default function AdminDailyTasksPage() {
               <TableHead className="w-[80px]">Hours</TableHead>
               <TableHead className="w-[300px]">Description</TableHead>
               <TableHead>Link</TableHead>
+              <TableHead className="w-[100px]">Billable</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {loading ? (
-              <TableRow><TableCell colSpan={8} className="text-center">Loading...</TableCell></TableRow>
+              <TableRow><TableCell colSpan={9} className="text-center">Loading...</TableCell></TableRow>
             ) : tasks.length === 0 ? (
-              <TableRow><TableCell colSpan={8} className="text-center text-gray-400">No tasks found</TableCell></TableRow>
+              <TableRow><TableCell colSpan={9} className="text-center text-gray-400">No tasks found</TableCell></TableRow>
             ) : (
               tasks.map((task, index) => (
                 <TableRow key={task.id}>
@@ -321,6 +407,21 @@ export default function AdminDailyTasksPage() {
                     {task.link && (
                       <a href={task.link} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">{task.link}</a>
                     )}
+                  </TableCell>
+                  <TableCell>
+                    <BillableToggle 
+                      taskId={task.id} 
+                      isBillable={task.billable}
+                      onToggle={(newValue) => {
+                        setTasks(prevTasks => 
+                          prevTasks.map(t => 
+                            t.id === task.id ? { ...t, billable: newValue } : t
+                          )
+                        );
+                        // Refresh overview when billable status changes
+                        refreshOverview();
+                      }}
+                    />
                   </TableCell>
                 </TableRow>
               ))

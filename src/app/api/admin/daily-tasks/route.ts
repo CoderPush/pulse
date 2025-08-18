@@ -8,6 +8,7 @@ export async function GET(request: Request) {
   const month = searchParams.get('month');
   const week = searchParams.get('week');
   const projects = searchParams.get('projects')?.split(',');
+  const billable = searchParams.get('billable');
   const page = parseInt(searchParams.get('page') || '1', 10);
   const pageSize = 20;
   const offset = (page - 1) * pageSize;
@@ -33,6 +34,9 @@ export async function GET(request: Request) {
   }
   if (projects && projects.length > 0) {
     query = query.in('project', projects);
+  }
+  if (billable && billable !== 'all') {
+    query = query.eq('billable', billable === 'true');
   }
 
   const { data: tasks, error, count } = await query;

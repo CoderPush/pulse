@@ -7,7 +7,8 @@ export async function GET(request: Request) {
   const user = searchParams.get('user');
   const month = searchParams.get('month');
   const week = searchParams.get('week');
-  const project = searchParams.get('project'); // <-- Add this line
+  const project = searchParams.get('project');
+  const billable = searchParams.get('billable');
 
   // Query daily_tasks without pagination for summary
   let query = supabase
@@ -31,6 +32,9 @@ export async function GET(request: Request) {
   if (project) {
     query = query.eq('project', project);
   }
+  if (billable && billable !== 'all') {
+    query = query.eq('billable', billable === 'true');
+  }
 
   const { data: tasks, error } = await query;
   if (error) {
@@ -39,6 +43,7 @@ export async function GET(request: Request) {
 
   // Calculate summary from all tasks (not paginated)
   const totalHours = tasks?.reduce((sum, task) => sum + (task.hours || 0), 0) || 0;
+  const billableHours = tasks?.reduce((sum, task) => sum + (task.billable ? (task.hours || 0) : 0), 0) || 0;
   const totalTasks = tasks?.length || 0;
   
   const byProject: Record<string, number> = {};
@@ -56,6 +61,7 @@ export async function GET(request: Request) {
   return NextResponse.json({
     summary: {
       totalHours,
+      billableHours,
       totalTasks,
       byProject,
       byBucket

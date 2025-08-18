@@ -12,6 +12,8 @@ import {
   SelectContent,
   SelectItem
 } from '@/components/ui/select';
+import { Switch } from '@/components/ui/switch';
+import { Loader2 } from 'lucide-react';
 
 type AdminDailyTask = {
   id: string;
@@ -22,13 +24,66 @@ type AdminDailyTask = {
   hours: number;
   description: string;
   link?: string;
+  billable: boolean;
 };
 
 type TaskSummary = {
   totalHours: number;
+  billableHours: number;
   totalTasks: number;
   byProject: Record<string, number>;
   byBucket: Record<string, number>;
+};
+
+// BillableToggle component for inline editing
+interface BillableToggleProps {
+  taskId: string;
+  isBillable: boolean;
+  onToggle: (value: boolean) => void;
+  onUpdate: () => void;
+}
+
+const BillableToggle: React.FC<BillableToggleProps> = ({ taskId, isBillable, onToggle, onUpdate }) => {
+  const [isUpdating, setIsUpdating] = useState(false);
+
+  const handleToggle = async (newValue: boolean) => {
+    setIsUpdating(true);
+    try {
+      const response = await fetch(`/api/admin/daily-tasks/${taskId}/billable`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ billable: newValue }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to update billable status');
+      }
+
+      onToggle(newValue);
+      // Refresh summary data to update overview cards
+      onUpdate();
+    } catch (error) {
+      console.error('Error updating billable status:', error);
+      // Revert the toggle on error
+      onToggle(isBillable);
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
+  return (
+    <div className="flex items-center space-x-2">
+      <Switch
+        checked={isBillable}
+        onCheckedChange={handleToggle}
+        disabled={isUpdating}
+        className="data-[state=checked]:bg-green-600"
+      />
+      {isUpdating && <Loader2 className="h-4 w-4 animate-spin text-gray-500" />}
+    </div>
+  );
 };
 
 export default function AdminUserDailyTasksPage() {
@@ -42,6 +97,7 @@ export default function AdminUserDailyTasksPage() {
   });
   const [weekFilter, setWeekFilter] = useState('');
   const [projectFilter, setProjectFilter] = useState('all');
+  const [billableFilter, setBillableFilter] = useState<'all' | 'true' | 'false'>('all');
   const [projectOptions, setProjectOptions] = useState<string[]>([]);
   const [page, setPage] = useState(1);
   const [tasks, setTasks] = useState<AdminDailyTask[]>([]);
@@ -51,6 +107,7 @@ export default function AdminUserDailyTasksPage() {
   const [summary, setSummary] = useState<TaskSummary>({
     totalHours: 0,
     totalTasks: 0,
+    billableHours: 0,
     byProject: {},
     byBucket: {}
   });
@@ -82,6 +139,7 @@ export default function AdminUserDailyTasksPage() {
     if (filterMode === 'month' && monthFilter) params.append('month', monthFilter);
     if (filterMode === 'week' && weekFilter) params.append('week', weekFilter);
     if (projectFilter && projectFilter !== 'all') params.append('project', projectFilter);
+    if (billableFilter !== 'all') params.append('billable', billableFilter);
     params.append('page', String(page));
     params.append('pageSize', String(pageSize)); // Add pageSize to params
     fetch(`/api/admin/daily-tasks?${params}`)
@@ -97,20 +155,22 @@ export default function AdminUserDailyTasksPage() {
         setPageSize(20); // Reset to default on error
       })
       .finally(() => setLoading(false));
-  }, [userId, filterMode, monthFilter, weekFilter, projectFilter, page, pageSize]);
+  }, [userId, filterMode, monthFilter, weekFilter, projectFilter, billableFilter, page, pageSize]);
 
   // Fetch summary data separately (no pagination)
-  useEffect(() => {
+  const fetchSummary = () => {
     const params = new URLSearchParams();
     params.append('user', userId);
     if (filterMode === 'month' && monthFilter) params.append('month', monthFilter);
     if (filterMode === 'week' && weekFilter) params.append('week', weekFilter);
     if (projectFilter && projectFilter !== 'all') params.append('project', projectFilter);
+    if (billableFilter !== 'all') params.append('billable', billableFilter);
     fetch(`/api/admin/daily-tasks/summary?${params}`)
       .then(res => res.json())
       .then(data => {
         setSummary(data.summary || {
           totalHours: 0,
+          billableHours: 0,
           totalTasks: 0,
           byProject: {},
           byBucket: {}
@@ -119,12 +179,17 @@ export default function AdminUserDailyTasksPage() {
       .catch(() => {
         setSummary({
           totalHours: 0,
+          billableHours: 0,
           totalTasks: 0,
           byProject: {},
           byBucket: {}
         });
       });
-  }, [userId, filterMode, monthFilter, weekFilter, projectFilter]);
+  };
+
+  useEffect(() => {
+    fetchSummary();
+  }, [userId, filterMode, monthFilter, weekFilter, projectFilter, billableFilter]);
 
   const handlePageChange = (newPage: number) => {
     if (newPage >= 1 && newPage <= totalPages) setPage(newPage);
@@ -136,6 +201,7 @@ export default function AdminUserDailyTasksPage() {
     if (filterMode === 'month' && monthFilter) params.append('month', monthFilter);
     if (filterMode === 'week' && weekFilter) params.append('week', weekFilter);
     if (projectFilter && projectFilter !== 'all') params.append('project', projectFilter);
+    if (billableFilter !== 'all') params.append('billable', billableFilter);
     
     // Create download link
     const url = `/api/admin/daily-tasks/export?${params}`;
@@ -153,6 +219,7 @@ export default function AdminUserDailyTasksPage() {
     if (filterMode === 'month' && monthFilter) params.append('month', monthFilter);
     if (filterMode === 'week' && weekFilter) params.append('week', weekFilter);
     if (projectFilter && projectFilter !== 'all') params.append('project', projectFilter);
+    if (billableFilter !== 'all') params.append('billable', billableFilter);
     
     // Create download link
     const url = `/api/admin/daily-tasks/export-pdf?${params}`;
@@ -177,18 +244,22 @@ export default function AdminUserDailyTasksPage() {
       {/* Overview Section */}
       <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
         <h2 className="text-lg font-semibold mb-3 text-blue-900">Overview</h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           <div className="bg-white p-3 rounded border">
             <div className="text-sm text-gray-500">Total Hours</div>
             <div className="text-2xl font-bold text-blue-600">{summary.totalHours}</div>
           </div>
           <div className="bg-white p-3 rounded border">
+            <div className="text-sm text-gray-500">Billable Hours</div>
+            <div className="text-2xl font-bold text-green-600">{summary.billableHours}</div>
+          </div>
+          <div className="bg-white p-3 rounded border">
             <div className="text-sm text-gray-500">Total Tasks</div>
-            <div className="text-2xl font-bold text-green-600">{summary.totalTasks}</div>
+            <div className="text-2xl font-bold text-purple-600">{summary.totalTasks}</div>
           </div>
           <div className="bg-white p-3 rounded border">
             <div className="text-sm text-gray-500">Projects</div>
-            <div className="text-2xl font-bold text-purple-600">{Object.keys(summary.byProject).length}</div>
+            <div className="text-2xl font-bold text-orange-600">{Object.keys(summary.byProject).length}</div>
           </div>
         </div>
         
@@ -271,6 +342,34 @@ export default function AdminUserDailyTasksPage() {
             </SelectContent>
           </Select>
         </div>
+
+        {/* Billable filter dropdown */}
+        <div>
+          <label className="block text-sm font-medium mb-1">Billable Status</label>
+          <div className="flex items-center gap-2">
+            <Select value={billableFilter} onValueChange={(value: 'all' | 'true' | 'false') => {
+              setBillableFilter(value);
+              setPage(1);
+            }}>
+              <SelectTrigger className="w-36">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Tasks</SelectItem>
+                <SelectItem value="true">Billable</SelectItem>
+                <SelectItem value="false">Non-Billable</SelectItem>
+              </SelectContent>
+            </Select>
+            {billableFilter !== 'all' && (
+              <button
+                onClick={() => setBillableFilter('all')}
+                className="text-xs text-gray-500 hover:text-red-600 underline px-1"
+              >
+                Clear
+              </button>
+            )}
+          </div>
+        </div>
         <div>
           <label className="block text-sm font-medium mb-1">&nbsp;</label>
           <button
@@ -301,13 +400,14 @@ export default function AdminUserDailyTasksPage() {
               <TableHead className="w-1/12">Hours</TableHead>
               <TableHead className="w-3/12">Description</TableHead>
               <TableHead>Link</TableHead>
+              <TableHead className="w-[100px]">Billable</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {loading ? (
-              <TableRow><TableCell colSpan={7} className="text-center">Loading...</TableCell></TableRow>
+              <TableRow><TableCell colSpan={8} className="text-center">Loading...</TableCell></TableRow>
             ) : tasks.length === 0 ? (
-              <TableRow><TableCell colSpan={7} className="text-center text-gray-400">No tasks found</TableCell></TableRow>
+              <TableRow><TableCell colSpan={8} className="text-center text-gray-400">No tasks found</TableCell></TableRow>
             ) : (
               tasks.map((task, index) => {
                 // Calculate ordinal number based on current page
@@ -320,12 +420,26 @@ export default function AdminUserDailyTasksPage() {
                     <TableCell>{task.bucket}</TableCell>
                     <TableCell>{task.hours}</TableCell>
                     <TableCell>{task.description}</TableCell>
-                    <TableCell>
-                      {task.link && (
-                        <a href={task.link} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">{task.link}</a>
-                      )}
-                    </TableCell>
-                  </TableRow>
+                                      <TableCell>
+                    {task.link && (
+                      <a href={task.link} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">{task.link}</a>
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    <BillableToggle 
+                      taskId={task.id} 
+                      isBillable={task.billable}
+                      onToggle={(newValue) => {
+                        setTasks(prevTasks => 
+                          prevTasks.map(t => 
+                            t.id === task.id ? { ...t, billable: newValue } : t
+                          )
+                        );
+                      }}
+                      onUpdate={fetchSummary}
+                    />
+                  </TableCell>
+                </TableRow>
                 );
               })
             )}

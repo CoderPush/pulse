@@ -10,6 +10,7 @@ interface User {
 
 type TaskSummary = {
   totalHours: number;
+  billableHours: number;
   totalTasks: number;
   byProject: Record<string, number>;
   byBucket: Record<string, number>;
@@ -20,11 +21,13 @@ interface UserOverviewProps {
   filterMode: 'month' | 'week';
   monthFilter: string;
   weekFilter: string;
+  billableFilter?: 'all' | 'true' | 'false';
 }
 
-export default function UserOverview({ user, filterMode, monthFilter, weekFilter }: UserOverviewProps) {
+export default function UserOverview({ user, filterMode, monthFilter, weekFilter, billableFilter }: UserOverviewProps) {
   const [summary, setSummary] = useState<TaskSummary>({
     totalHours: 0,
+    billableHours: 0,
     totalTasks: 0,
     byProject: {},
     byBucket: {}
@@ -37,12 +40,14 @@ export default function UserOverview({ user, filterMode, monthFilter, weekFilter
     params.append('user', user.id);
     if (filterMode === 'month' && monthFilter) params.append('month', monthFilter);
     if (filterMode === 'week' && weekFilter) params.append('week', weekFilter);
+    if (billableFilter && billableFilter !== 'all') params.append('billable', billableFilter);
     
     fetch(`/api/admin/daily-tasks/summary?${params}`)
       .then(res => res.json())
       .then(data => {
         setSummary(data.summary || {
           totalHours: 0,
+          billableHours: 0,
           totalTasks: 0,
           byProject: {},
           byBucket: {}
@@ -51,20 +56,25 @@ export default function UserOverview({ user, filterMode, monthFilter, weekFilter
       .catch(() => {
         setSummary({
           totalHours: 0,
+          billableHours: 0,
           totalTasks: 0,
           byProject: {},
           byBucket: {}
         });
       })
       .finally(() => setLoading(false));
-  }, [user.id, filterMode, monthFilter, weekFilter]);
+  }, [user.id, filterMode, monthFilter, weekFilter, billableFilter]);
 
   if (loading) {
     return (
       <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
         <div className="animate-pulse">
           <div className="h-6 bg-blue-200 rounded mb-3"></div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="bg-white p-3 rounded border">
+              <div className="h-4 bg-gray-200 rounded mb-2"></div>
+              <div className="h-8 bg-gray-200 rounded"></div>
+            </div>
             <div className="bg-white p-3 rounded border">
               <div className="h-4 bg-gray-200 rounded mb-2"></div>
               <div className="h-8 bg-gray-200 rounded"></div>
@@ -89,18 +99,22 @@ export default function UserOverview({ user, filterMode, monthFilter, weekFilter
         Overview for {user.email}
         {user.name && <span className="text-sm font-normal text-blue-700"> ({user.name})</span>}
       </h2>
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="bg-white p-3 rounded border">
           <div className="text-sm text-gray-500">Total Hours</div>
           <div className="text-2xl font-bold text-blue-600">{summary.totalHours}</div>
         </div>
         <div className="bg-white p-3 rounded border">
+          <div className="text-sm text-gray-500">Billable Hours</div>
+          <div className="text-2xl font-bold text-green-600">{summary.billableHours}</div>
+        </div>
+        <div className="bg-white p-3 rounded border">
           <div className="text-sm text-gray-500">Total Tasks</div>
-          <div className="text-2xl font-bold text-green-600">{summary.totalTasks}</div>
+          <div className="text-2xl font-bold text-purple-600">{summary.totalTasks}</div>
         </div>
         <div className="bg-white p-3 rounded border">
           <div className="text-sm text-gray-500">Projects</div>
-          <div className="text-2xl font-bold text-purple-600">{Object.keys(summary.byProject).length}</div>
+          <div className="text-2xl font-bold text-orange-600">{Object.keys(summary.byProject).length}</div>
         </div>
       </div>
       
