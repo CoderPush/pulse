@@ -50,6 +50,7 @@ export async function POST(request: Request) {
     hours: number;
     description: string;
     link?: string;
+    billable?: boolean;
   };
 
   const tasksWithUserId = tasks.map((task: Task) => ({
