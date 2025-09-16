@@ -17,13 +17,16 @@ const model = new ChatBedrockConverse({
 });
 
 export async function POST(req: Request) {
-  const { text } = await req.json();
+  const { text, activeProjects = [] } = await req.json();
+  
   const prompt = [
     'Extract task information from the following text. For each task, return a structured object with the following fields:',
     '',
     'date: The date the task was done (format: YYYY-MM-DD, or null if not present).',
     'If a date is present but the year is missing, assume the current year.',
-    'project: The project name (can be inferred or matched from context, or null if not present).',
+    'project: The project name MUST be chosen from the following active projects list, or "Unknown" if unclear:',
+    `Active Projects: ${activeProjects.join(', ')}`,
+    'If the project mentioned in the text does not exactly match one of the active projects, try to find the closest match or use "Unknown".',
     'bucket: The type or category of work (e.g., Development, Research, Meeting, or null if not present).',
     'hours: Number of hours spent (as a number, or null if not present).',
     'description: A brief description of the task.',
@@ -72,7 +75,51 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Failed to parse AI output", raw: content }, { status: 500 });
   }
 
-  // Post-process: If the year is wrong, update to current year
+  // Helper function to map project to canonical name
+  // This function tries multiple matching strategies to find the best canonical project name
+  function mapProjectToCanonical(project: string | null | undefined): string {
+    if (!project) return "Unknown";
+    if (activeProjects.length === 0) return project;
+    
+    // Strategy 1: Exact match (case-sensitive)
+    if (activeProjects.includes(project)) {
+      return project;
+    }
+    
+    // Strategy 2: Case-insensitive exact match
+    const exactMatch = activeProjects.find((p: string) => p.toLowerCase() === project.toLowerCase());
+    if (exactMatch) {
+      return exactMatch;
+    }
+    
+    // Strategy 3: Partial match (one contains the other)
+    const partialMatch = activeProjects.find((p: string) => 
+      p.toLowerCase().includes(project.toLowerCase()) ||
+      project.toLowerCase().includes(p.toLowerCase())
+    );
+    if (partialMatch) {
+      return partialMatch;
+    }
+    
+    // Strategy 4: Fuzzy match (word-level matching for abbreviations)
+    // Example: "My Awesome Project" matches "awesome" or "project"
+    const fuzzyMatch = activeProjects.find((p: string) => {
+      const pWords = p.toLowerCase().split(/\s+/);
+      const projectWords = project.toLowerCase().split(/\s+/);
+      return pWords.some((pWord: string) => 
+        projectWords.some((projWord: string) => 
+          pWord.includes(projWord) || projWord.includes(pWord)
+        )
+      );
+    });
+    if (fuzzyMatch) {
+      return fuzzyMatch;
+    }
+    
+    return project;
+  }
+
+  // Post-process: Fix dates and map projects to canonical names
   const currentYear = new Date().getFullYear();
   tasks = tasks.map((task: {
     date?: string;
@@ -83,12 +130,17 @@ export async function POST(req: Request) {
     link?: string | null;
     [key: string]: unknown;
   }) => {
+    // Fix date year if needed
     if (typeof task.date === "string" && /^\d{4}-\d{2}-\d{2}$/.test(task.date)) {
       const [year, month, day] = task.date.split("-");
       if (year !== String(currentYear)) {
-        return { ...task, date: `${currentYear}-${month}-${day}` };
+        task.date = `${currentYear}-${month}-${day}`;
       }
     }
+    
+    // Map project to canonical name
+    task.project = mapProjectToCanonical(task.project);
+    
     return task;
   });
 
