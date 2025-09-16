@@ -44,7 +44,7 @@ Code review for new feature @project-beta #feature 2 hours
 - Weekly View / Monthly View - Done
 - Weekly Review: AI & reflection - OK 
 - Voice note - Nice to have
-- Export CSV
+- Export CSV - DONE
 - Clone Repeating tasks
 - Calendar view -> planner
 - Email reminder

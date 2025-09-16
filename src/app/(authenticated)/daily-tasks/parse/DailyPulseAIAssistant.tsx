@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useToast } from "@/components/ui/use-toast";
+import { getActiveProjects } from '@/app/actions';
 
 export default function DailyPulseAIAssistant({ onParse }: { onParse: (tasks: any[]) => void }) {
   const { toast } = useToast();
@@ -12,7 +13,16 @@ export default function DailyPulseAIAssistant({ onParse }: { onParse: (tasks: an
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const [selectedIndex, setSelectedIndex] = useState(0);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-  // No need to save projects from props anymore
+  
+  // Active projects from database
+  const [activeProjects, setActiveProjects] = useState<string[]>([]);
+
+  // Fetch active projects on mount
+  useEffect(() => {
+    getActiveProjects()
+      .then(projects => setActiveProjects(projects.map(p => p.name)))
+      .catch(err => console.error('Failed to fetch active projects:', err));
+  }, []);
 
   // Helper: get projects from localStorage
   function getProjectsFromStorage(): string[] {
@@ -23,17 +33,62 @@ export default function DailyPulseAIAssistant({ onParse }: { onParse: (tasks: an
     return [];
   }
 
+  // Helper: get all available projects for suggestions (active + localStorage)
+  function getAllProjectsForSuggestions(): string[] {
+    const storageProjects = getProjectsFromStorage();
+    return Array.from(new Set([...activeProjects, ...storageProjects]));
+  }
+
+  // Helper: extract and validate project name from line (first word only)
+  function extractProjectName(line: string): string {
+    const projectMatch = line.match(/\+(\S+)/);
+    if (!projectMatch) return "Unknown";
+    
+    const rawProject = projectMatch[1].trim();
+    if (!rawProject) return "Unknown";
+    
+    // If no active projects loaded yet, return as-is
+    if (activeProjects.length === 0) return rawProject;
+    
+    // Try exact match first
+    if (activeProjects.includes(rawProject)) {
+      return rawProject;
+    }
+    
+    // Try case-insensitive match
+    const exactMatch = activeProjects.find(p => p.toLowerCase() === rawProject.toLowerCase());
+    if (exactMatch) {
+      return exactMatch;
+    }
+    
+    // Try partial match (project name contains the typed text)
+    const partialMatch = activeProjects.find(p => 
+      p.toLowerCase().includes(rawProject.toLowerCase()) ||
+      rawProject.toLowerCase().includes(p.toLowerCase())
+    );
+    if (partialMatch) {
+      return partialMatch;
+    }
+    
+    return "Unknown";
+  }
+
   async function handleParse() {
     setParsing(true);
     setError("");
     try {
       const res = await fetch("/api/parse-daily-tasks", {
         method: "POST",
-        body: JSON.stringify({ text: input }),
+        body: JSON.stringify({ 
+          text: input,
+          activeProjects: activeProjects // Send active projects for mapping
+        }),
         headers: { "Content-Type": "application/json" }
       });
       if (!res.ok) throw new Error("Failed to parse tasks");
       const { tasks } = await res.json();
+
+      console.log('tasks', tasks);
       onParse(tasks);
       
       // Show success toast and clear input
@@ -68,9 +123,8 @@ export default function DailyPulseAIAssistant({ onParse }: { onParse: (tasks: an
 
       const lines = input.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
       const tasks = lines.map(line => {
-        // +project-name
-        const projectMatch = line.match(/\+(\S+)/);
-        const project = projectMatch ? projectMatch[1] : undefined;
+        // Extract and validate project name (handles spaces)
+        const project = extractProjectName(line);
         // @date or @today/@tmr/@ytd or @dd/MM, @dd-MM, @dd/MM/yyyy, @dd-MM-yyyy
         let date;
         const dateMatch = line.match(/@(\d{4}-\d{2}-\d{2}|today|tmr|ytd|\d{1,2}[\/\-]\d{1,2}(?:[\/\-]\d{2,4})?)/);
@@ -122,15 +176,25 @@ export default function DailyPulseAIAssistant({ onParse }: { onParse: (tasks: an
         const linkMatch = line.match(/(https?:\/\/\S+)/);
         const link = linkMatch ? linkMatch[0] : undefined;
         
-        // Remove all matched tokens for description
-        const desc = line
-          .replace(/\+(\S+)/, "")
-          .replace(/@(\d{4}-\d{2}-\d{2}|today|tmr|ytd|\d{1,2}[\/\-]\d{1,2}(?:[\/\-]\d{2,4})?)/, "")
-          .replace(/#(\w+)/g, "")
-          .replace(/(\d+(?:\.\d+)?)[ ]*h|h[ ]*(\d+(?:\.\d+)?)/i, "")
-          .replace(/(https?:\/\/\S+)/, "")
-          .replace(/\s+/g, " ")
-          .trim();
+        // Extract description by removing all matched tokens
+        let desc = line;
+        
+        // Remove project part (first word only)
+        const projectMatch = line.match(/\+(\S+)/);
+        if (projectMatch) {
+          desc = desc.replace(projectMatch[0], "");
+        }
+        // Remove date part
+        desc = desc.replace(/@(\d{4}-\d{2}-\d{2}|today|tmr|ytd|\d{1,2}[\/\-]\d{1,2}(?:[\/\-]\d{2,4})?)/, "");
+        // Remove tags
+        desc = desc.replace(/#(\w+)/g, "");
+        // Remove hours
+        desc = desc.replace(/(\d+(?:\.\d+)?)[ ]*h|h[ ]*(\d+(?:\.\d+)?)/i, "");
+        // Remove links
+        desc = desc.replace(/(https?:\/\/\S+)/, "");
+        // Clean up whitespace
+        desc = desc.replace(/\s+/g, " ").trim();
+        
         return {
           project,
           date: date || today.toISOString().slice(0, 10),
@@ -141,12 +205,13 @@ export default function DailyPulseAIAssistant({ onParse }: { onParse: (tasks: an
         };
       });
 
-      // Save unique projects to localStorage
+      // Save unique projects to localStorage (exclude "Unknown" projects)
       const newProjects = Array.from(
         new Set(
           tasks
             .map(t => t.project)
             .filter(Boolean)
+            .filter(p => p !== "Unknown") // Don't save "Unknown" projects
             .concat(getProjectsFromStorage())
         )
       );
@@ -156,7 +221,7 @@ export default function DailyPulseAIAssistant({ onParse }: { onParse: (tasks: an
       
       // Show success toast and clear input
       toast({
-        title: "Manual Addition Successful!",
+        title: "Tasks Added Successfully!",
         description: `Successfully added ${tasks.length} task${tasks.length !== 1 ? 's' : ''}`,
         variant: "default",
       });
@@ -181,18 +246,17 @@ export default function DailyPulseAIAssistant({ onParse }: { onParse: (tasks: an
             <li>
               <span className="font-mono bg-purple-50 px-1 rounded">Add manually syntax: +project-name @date #tag hours Description Link. Example (you can add multiple lines):</span>
             </li>
-            <ul className="ml-8">
-              <li className="list-none text-purple-900">
-                <span className="font-mono">+project-alpha @15/07 #bugfix 2.5h Fixed login bug https://github.com/org/repo/issues/123</span>
+            <ul className="ml-8 list-disc ">
+              <li className="text-purple-900">
+                <span className="font-mono">+project @15/07 #bugfix 2.5h Fixed login bug https://github.com/org/repo/issues/123</span>
+              </li>
+              <li>
+              <span className="font-mono bg-purple-50 px-1 rounded">@today</span>, <span className="font-mono bg-purple-50 px-1 rounded">@tmr</span>, <span className="font-mono bg-purple-50 px-1 rounded">@ytd</span> for date shortcuts
+              </li>
+              <li>
+                <span className="font-mono bg-purple-50 px-1 rounded">Cmd/Ctrl + Enter</span> to add manually
               </li>
             </ul>
-            <li>
-              <span className="font-mono bg-purple-50 px-1 rounded">@today</span>, <span className="font-mono bg-purple-50 px-1 rounded">@tmr</span>, <span className="font-mono bg-purple-50 px-1 rounded">@ytd</span> for date shortcuts
-            </li>
-            <li>
-              <span className="font-mono bg-purple-50 px-1 rounded">Cmd/Ctrl + Enter</span> to add manually
-            </li>
-            
           </ul>
         </div>
         <div className="relative">
@@ -207,10 +271,10 @@ export default function DailyPulseAIAssistant({ onParse }: { onParse: (tasks: an
               // Detect if user is typing + and show suggestions
               const cursor = e.target.selectionStart;
               const before = e.target.value.slice(0, cursor);
-              const plusMatch = /\+(\w*)$/.exec(before);
+              const plusMatch = /\+(\S*)$/.exec(before);
               if (plusMatch) {
-                const typed = plusMatch[1].toLowerCase();
-                const allProjects = getProjectsFromStorage();
+                const typed = plusMatch[1].toLowerCase().trim();
+                const allProjects = getAllProjectsForSuggestions(); // Use active + storage projects
                 const filtered = allProjects.filter(p => p.toLowerCase().includes(typed));
                 setSuggestions(filtered.slice(0, 8));
                 setShowSuggest(true);
@@ -219,7 +283,7 @@ export default function DailyPulseAIAssistant({ onParse }: { onParse: (tasks: an
                 setShowSuggest(false);
               }
             }}
-            placeholder={'+project-name @15/07 #bugfix 2.5h Description...'}
+            placeholder={'+project @15/07 #bugfix 2.5h Description...'}
             onKeyDown={e => {
               if ((e.metaKey || e.ctrlKey) && e.key === "Enter") {
                 e.preventDefault();
@@ -239,7 +303,7 @@ export default function DailyPulseAIAssistant({ onParse }: { onParse: (tasks: an
                   const cursor = textareaRef.current?.selectionStart ?? 0;
                   const before = input.slice(0, cursor);
                   const after = input.slice(cursor);
-                  const plusMatch = /\+(\w*)$/.exec(before);
+                  const plusMatch = /\+(\S*)$/.exec(before);
                   if (plusMatch) {
                     const start = plusMatch.index;
                     const newText =
@@ -276,7 +340,7 @@ export default function DailyPulseAIAssistant({ onParse }: { onParse: (tasks: an
                     const cursor = textareaRef.current?.selectionStart ?? 0;
                     const before = input.slice(0, cursor);
                     const after = input.slice(cursor);
-                    const plusMatch = /\+(\w*)$/.exec(before);
+                    const plusMatch = /\+(\S*)$/.exec(before);
                     if (plusMatch) {
                       const start = plusMatch.index;
                       const newText =
