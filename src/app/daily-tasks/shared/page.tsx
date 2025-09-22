@@ -66,7 +66,9 @@ export default async function SharedDailyTasksPage({ searchParams }: SharedPageP
     lastDay.setDate(firstDay.getDate() + 6);
     query = query.gte('task_date', firstDay.toISOString().slice(0, 10)).lte('task_date', lastDay.toISOString().slice(0, 10));
   } else if (filterType === 'month' && filterValue) {
-    query = query.gte('task_date', `${filterValue}-01`).lte('task_date', `${filterValue}-31`);
+    const [year, monthNum] = filterValue.split('-');
+    const lastDay = new Date(parseInt(year), parseInt(monthNum), 0).getDate();
+    query = query.gte('task_date', `${filterValue}-01`).lte('task_date', `${filterValue}-${String(lastDay).padStart(2, '0')}`);
   }
 
   const { data: tasks, error: tasksError } = await query;
