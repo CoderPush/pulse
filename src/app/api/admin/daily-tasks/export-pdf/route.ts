@@ -22,7 +22,9 @@ export async function GET(request: Request) {
     query = query.eq('user_id', user);
   }
   if (month) {
-    query = query.gte('task_date', `${month}-01`).lte('task_date', `${month}-31`);
+    const [year, monthNum] = month.split('-');
+    const lastDay = new Date(parseInt(year), parseInt(monthNum), 0).getDate();
+    query = query.gte('task_date', `${month}-01`).lte('task_date', `${month}-${String(lastDay).padStart(2, '0')}`);
   }
   if (week) {
     const [year, weekNum] = week.split('-W');
