@@ -3,7 +3,6 @@
 import { useState, useEffect, use } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
@@ -18,6 +17,8 @@ import { useToast } from "@/components/ui/use-toast";
 import { ArrowLeft, CheckCircle, XCircle, Edit2, Trash2, Check, X } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import ReportComments from "@/components/ReportComments";
+import { createClient } from "@/utils/supabase/client";
 
 interface Task {
     id: string;
@@ -51,12 +52,20 @@ export default function ReportDetailPage({ params }: { params: Promise<{ id: str
     const [report, setReport] = useState<MonthlyReportDetail | null>(null);
     const [tasks, setTasks] = useState<Task[]>([]);
     const [loading, setLoading] = useState(true);
-    const [comments, setComments] = useState("");
     const [processing, setProcessing] = useState(false);
     const [editingId, setEditingId] = useState<string | null>(null);
     const [editForm, setEditForm] = useState<Partial<Task>>({});
+    const [currentUserId, setCurrentUserId] = useState<string>("");
 
     useEffect(() => {
+        const fetchUser = async () => {
+            const supabase = createClient();
+            const { data: { user } } = await supabase.auth.getUser();
+            if (user) {
+                setCurrentUserId(user.id);
+            }
+        };
+        fetchUser();
         fetchReport();
         fetchTasks();
     }, [id]);
@@ -69,7 +78,6 @@ export default function ReportDetailPage({ params }: { params: Promise<{ id: str
                 const data = await res.json();
                 if (data.reports && data.reports.length > 0) {
                     setReport(data.reports[0]);
-                    setComments(data.reports[0].comments || "");
                 }
             }
         } catch (error) {
@@ -128,7 +136,7 @@ export default function ReportDetailPage({ params }: { params: Promise<{ id: str
             const res = await fetch(`/api/admin/monthly-reports/${id}/approve`, {
                 method: "PUT",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ status, comments }),
+                body: JSON.stringify({ status }),
             });
 
             if (!res.ok) throw new Error("Failed to update status");
@@ -461,15 +469,6 @@ export default function ReportDetailPage({ params }: { params: Promise<{ id: str
                 </CardHeader>
                 <CardContent>
                     <div className="space-y-4">
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Comments (Optional)</label>
-                            <Textarea
-                                placeholder="Add comments for the engineer..."
-                                value={comments}
-                                onChange={(e) => setComments(e.target.value)}
-                                rows={3}
-                            />
-                        </div>
                         <div className="flex gap-4">
                             <Button
                                 className="flex-1 bg-green-600 hover:bg-green-700"
@@ -490,6 +489,9 @@ export default function ReportDetailPage({ params }: { params: Promise<{ id: str
                     </div>
                 </CardContent>
             </Card>
+
+            {/* Comments Section */}
+            <ReportComments reportId={id} currentUserId={currentUserId} />
         </div>
     );
 }

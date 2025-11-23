@@ -18,7 +18,7 @@ export async function PUT(
     }
 
     const { id } = await params;
-    const { status, comments } = await request.json();
+    const { status } = await request.json();
 
     if (!["approved", "rejected", "submitted", "draft"].includes(status)) {
         return new NextResponse(JSON.stringify({ error: "Invalid status" }), {
@@ -58,7 +58,6 @@ export async function PUT(
         .from("monthly_reports")
         .update({
             status,
-            comments,
             total_hours: totalHours,
             billable_hours: billableHours,
             approved_by: user.id,
@@ -98,9 +97,10 @@ export async function PUT(
         const emailPromises = [];
 
         let htmlBody = `<p>${message}</p>`;
-        if (comments) {
-            htmlBody += `<p><strong>Comments:</strong> ${comments}</p>`;
-        }
+
+        // Add link to view report and comments
+        const link = `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/admin/time-approval/${id}`;
+        htmlBody += `<p><a href="${link}">View Report and Comments</a></p>`;
 
         if (employeeEmail) {
             emailPromises.push(sendEmail({
