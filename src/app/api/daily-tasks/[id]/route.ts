@@ -43,9 +43,9 @@ export async function PUT(
     .eq("month", `${taskMonth}-01`)
     .single();
 
-  if (report && report.status === "approved") {
+  if (report && (report.status === "approved" || report.status === "submitted")) {
     return new NextResponse(
-      JSON.stringify({ error: `Cannot update tasks for ${taskMonth}. This month's report has been approved.` }),
+      JSON.stringify({ error: `Cannot update tasks for ${taskMonth}. This month's report has been submitted or approved.` }),
       { status: 403 }
     );
   }
@@ -109,9 +109,9 @@ export async function DELETE(
     .eq("month", `${taskMonth}-01`)
     .single();
 
-  if (report && report.status === "approved") {
+  if (report && (report.status === "approved" || report.status === "submitted")) {
     return new NextResponse(
-      JSON.stringify({ error: `Cannot delete tasks for ${taskMonth}. This month's report has been approved.` }),
+      JSON.stringify({ error: `Cannot delete tasks for ${taskMonth}. This month's report has been submitted or approved.` }),
       { status: 403 }
     );
   }

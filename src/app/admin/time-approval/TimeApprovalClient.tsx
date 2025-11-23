@@ -168,8 +168,8 @@ export default function TimeApprovalClient({ initialReports, defaultMonth }: Tim
                                             </div>
                                         </TableCell>
                                         <TableCell>{report.month}</TableCell>
-                                        <TableCell>{report.total_hours}h</TableCell>
-                                        <TableCell>{report.billable_hours}h</TableCell>
+                                        <TableCell>{report.total_hours.toFixed(1)}h</TableCell>
+                                        <TableCell>{report.billable_hours.toFixed(1)}h</TableCell>
                                         <TableCell>
                                             <span
                                                 className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${report.status === "approved"

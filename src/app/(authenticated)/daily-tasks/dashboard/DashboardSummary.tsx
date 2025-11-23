@@ -61,8 +61,8 @@ export default function DashboardSummary({
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editForm, setEditForm] = useState<Partial<Task>>({});
 
-  // Determine if month is approved from prop or default to false
-  const isMonthApproved = monthStatus === 'approved';
+  // Determine if month is locked (approved or submitted)
+  const isMonthLocked = monthStatus === 'approved' || monthStatus === 'submitted';
 
   // Filter tasks
   const filtered = tasks.filter(t => {
@@ -170,11 +170,11 @@ export default function DashboardSummary({
 
       {/* Task Table */}
       <div>
-        {isMonthApproved && (
-          <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-lg flex items-center gap-2">
-            <Check className="h-5 w-5 text-green-600" />
-            <span className="text-sm text-green-800 font-medium">
-              This month's report has been approved. Tasks cannot be edited or deleted.
+        {isMonthLocked && (
+          <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg flex items-center gap-2">
+            <Check className="h-5 w-5 text-blue-600" />
+            <span className="text-sm text-blue-800 font-medium">
+              This month's report has been submitted or approved. Tasks cannot be edited or deleted.
             </span>
           </div>
         )}
@@ -283,8 +283,8 @@ export default function DashboardSummary({
                               variant="ghost"
                               className="h-8 w-8"
                               onClick={() => startEdit(task)}
-                              disabled={isMonthApproved}
-                              title={isMonthApproved ? "Cannot edit - month is approved" : "Edit task"}
+                              disabled={isMonthLocked}
+                              title={isMonthLocked ? "Cannot edit - month is submitted or approved" : "Edit task"}
                             >
                               <Edit2 className="h-4 w-4" />
                             </Button>
@@ -293,8 +293,8 @@ export default function DashboardSummary({
                               variant="ghost"
                               className="h-8 w-8 text-red-500 hover:text-red-700"
                               onClick={() => onTaskDelete(task.id)}
-                              disabled={isMonthApproved}
-                              title={isMonthApproved ? "Cannot delete - month is approved" : "Delete task"}
+                              disabled={isMonthLocked}
+                              title={isMonthLocked ? "Cannot delete - month is submitted or approved" : "Delete task"}
                             >
                               <Trash2 className="h-4 w-4" />
                             </Button>

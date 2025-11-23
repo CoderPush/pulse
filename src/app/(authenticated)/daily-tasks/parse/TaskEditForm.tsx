@@ -40,8 +40,8 @@ const TaskEditForm: React.FC<TaskEditFormProps> = ({
     setSubmitError(null);
 
     const taskPayload = {
-        ...taskToEdit,
-        hours: Number(taskToEdit.hours)
+      ...taskToEdit,
+      hours: Number(taskToEdit.hours)
     }
 
     try {
@@ -51,7 +51,10 @@ const TaskEditForm: React.FC<TaskEditFormProps> = ({
         body: JSON.stringify(taskPayload),
       });
 
-      if (!res.ok) throw new Error("Failed to save task");
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.error || "Failed to save task");
+      }
 
       const { task: updatedTask } = await res.json();
       setTasks(prevTasks =>

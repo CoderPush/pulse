@@ -1,5 +1,6 @@
 import { createClient } from "@/utils/supabase/server";
 import { NextResponse } from "next/server";
+import { sendEmail } from "@/lib/email";
 
 export async function PUT(
     request: Request,
@@ -19,7 +20,7 @@ export async function PUT(
     const { id } = await params;
     const { status, comments } = await request.json();
 
-    if (!["approved", "rejected", "submitted"].includes(status)) {
+    if (!["approved", "rejected", "submitted", "draft"].includes(status)) {
         return new NextResponse(JSON.stringify({ error: "Invalid status" }), {
             status: 400,
         });
@@ -77,6 +78,49 @@ export async function PUT(
         console.error("Error updating monthly report:", error);
         return new NextResponse(JSON.stringify({ error: error.message }), {
             status: 500,
+        });
+    }
+
+    if (["approved", "rejected", "draft"].includes(status) && data) {
+        const reportDate = new Date(data.month);
+        const monthYear = reportDate.toLocaleString('en-US', { month: 'long', year: 'numeric' });
+
+        let message = "";
+        if (status === "approved") {
+            message = `Your ${monthYear} time log has been approved.`;
+        } else if (status === "rejected") {
+            message = `Your ${monthYear} time log has been rejected.`;
+        } else if (status === "draft") {
+            message = `Your ${monthYear} time log has been reopened.`;
+        }
+
+        const employeeEmail = (data as any).user?.email;
+        const emailPromises = [];
+
+        let htmlBody = `<p>${message}</p>`;
+        if (comments) {
+            htmlBody += `<p><strong>Comments:</strong> ${comments}</p>`;
+        }
+
+        if (employeeEmail) {
+            emailPromises.push(sendEmail({
+                to: employeeEmail,
+                subject: message,
+                html: htmlBody
+            }));
+        }
+
+        if (status === "approved") {
+            emailPromises.push(sendEmail({
+                to: "hr@coderpush.com",
+                subject: message,
+                html: htmlBody
+            }));
+        }
+
+        // Send emails asynchronously without blocking the response
+        Promise.allSettled(emailPromises).then((results) => {
+            console.log(`Emails for status ${status} processed:`, results.map(r => r.status));
         });
     }
 

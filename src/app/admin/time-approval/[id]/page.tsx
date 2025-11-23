@@ -122,7 +122,7 @@ export default function ReportDetailPage({ params }: { params: Promise<{ id: str
         }
     };
 
-    const handleAction = async (status: "approved" | "submitted") => {
+    const handleAction = async (status: "approved" | "submitted" | "draft") => {
         setProcessing(true);
         try {
             const res = await fetch(`/api/admin/monthly-reports/${id}/approve`, {
@@ -225,6 +225,12 @@ export default function ReportDetailPage({ params }: { params: Promise<{ id: str
         }
     };
 
+    // Calculate total hours and billable hours from all tasks
+    const totalHoursFromTasks = tasks.reduce((sum, task) => sum + (task.hours || 0), 0);
+    const billableHoursFromTasks = tasks.reduce((sum, task) => {
+        return sum + (task.billable ? (task.hours || 0) : 0);
+    }, 0);
+
     // Calculate hours by project
     const hoursByProject: Record<string, { total: number; billable: number }> = {};
     tasks.forEach(task => {
@@ -291,11 +297,11 @@ export default function ReportDetailPage({ params }: { params: Promise<{ id: str
                         <div className="space-y-4">
                             <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
                                 <span className="text-gray-600">Total Hours</span>
-                                <span className="text-2xl font-bold">{report.total_hours}h</span>
+                                <span className="text-2xl font-bold">{totalHoursFromTasks.toFixed(1)}h</span>
                             </div>
                             <div className="flex justify-between items-center p-3 bg-blue-50 rounded-lg">
                                 <span className="text-blue-600">Billable Hours</span>
-                                <span className="text-2xl font-bold text-blue-700">{report.billable_hours}h</span>
+                                <span className="text-2xl font-bold text-blue-700">{billableHoursFromTasks.toFixed(1)}h</span>
                             </div>
                         </div>
                     </CardContent>
@@ -475,7 +481,7 @@ export default function ReportDetailPage({ params }: { params: Promise<{ id: str
                             <Button
                                 className="flex-1"
                                 variant="destructive"
-                                onClick={() => handleAction('submitted')}
+                                onClick={() => handleAction('draft')}
                                 disabled={processing}
                             >
                                 <XCircle className="w-4 h-4 mr-2" /> Reopen

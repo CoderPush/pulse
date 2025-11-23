@@ -64,9 +64,9 @@ export async function POST(request: Request) {
       .eq("month", `${month}-01`)
       .single();
 
-    if (report && report.status === "approved") {
+    if (report && (report.status === "approved" || report.status === "submitted")) {
       return new NextResponse(
-        JSON.stringify({ error: `Cannot add tasks for ${month}. This month's report has been approved.` }),
+        JSON.stringify({ error: `Cannot add tasks for ${month}. This month's report has been submitted or approved.` }),
         { status: 403 }
       );
     }
