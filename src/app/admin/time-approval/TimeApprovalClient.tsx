@@ -92,13 +92,22 @@ export default function TimeApprovalClient({ initialReports, defaultMonth }: Tim
                     <label htmlFor="month-filter" className="font-medium text-gray-700">
                         Month:
                     </label>
-                    <Input
-                        id="month-filter"
-                        type="month"
-                        value={monthFilter.slice(0, 7)}
-                        onChange={(e) => setMonthFilter(`${e.target.value}-01`)}
-                        className="w-48"
-                    />
+                    <div className="flex gap-2">
+                        <Input
+                            id="month-filter"
+                            type="month"
+                            value={monthFilter ? monthFilter.slice(0, 7) : ""}
+                            onChange={(e) => setMonthFilter(e.target.value ? `${e.target.value}-01` : "")}
+                            className="w-48"
+                        />
+                        <Button
+                            variant="outline"
+                            onClick={() => setMonthFilter("")}
+                            className={!monthFilter ? "bg-slate-100 border-slate-400" : ""}
+                        >
+                            All Months
+                        </Button>
+                    </div>
                 </div>
                 <div className="flex items-center gap-2">
                     <label htmlFor="status-filter" className="font-medium text-gray-700">

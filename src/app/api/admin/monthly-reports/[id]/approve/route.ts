@@ -94,7 +94,7 @@ export async function PUT(
             message = `Your ${monthYear} time log has been reopened.`;
         }
 
-        const employeeEmail = (data as any).user?.email;
+        const employeeEmail = (data as { user?: { email: string } })?.user?.email;
         const emailPromises = [];
 
         let htmlBody = `<p>${message}</p>`;

@@ -34,9 +34,17 @@ export default async function TimeApprovalPage({
     const params = await searchParams;
     const monthParam = params.month as string | undefined;
 
-    // Default to current month
-    const now = new Date();
-    const defaultMonth = monthParam || `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-01`;
+    let defaultMonth = "";
+
+    if (monthParam === 'all') {
+        defaultMonth = "";
+    } else if (monthParam) {
+        defaultMonth = monthParam;
+    } else {
+        // Default to current month
+        const now = new Date();
+        defaultMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-01`;
+    }
 
     let query = supabase
         .from("monthly_reports")
