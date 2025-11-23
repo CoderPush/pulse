@@ -17,8 +17,11 @@
       "schedule": "0 0 * * 0"
     },
     {
-      "path": "/api/cron/daily-task-reminders",
       "schedule": "0 9 * * 1,4"
+    },
+    {
+      "path": "/api/cron/monthly-log-reminders",
+      "schedule": "0 9 1 * *"
     }
   ]
-} 
+}
