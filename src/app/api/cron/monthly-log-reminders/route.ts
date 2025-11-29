@@ -23,7 +23,7 @@ export async function GET(request: Request) {
     // If today is day > 20, we are reminding for THIS month.
     // If today is day <= 20, we are reminding for LAST month.
 
-    let targetDate = new Date(now);
+    const targetDate = new Date(now);
     if (now.getDate() <= 20) {
         // Go back to last month
         targetDate.setMonth(now.getMonth() - 1);

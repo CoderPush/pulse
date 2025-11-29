@@ -50,18 +50,23 @@ export default async function SubmissionsPage({
 
   // Deduplicate weeks (logic from pulses route)
   // We only need basic week info for the dropdown
-  const uniqueWeeks = (weeksData || []).reduce((acc: any[], week: any) => {
-    const existingWeek = acc.find((w: any) => w.week_number === week.week_number);
+  interface WeekData {
+    week_number: number;
+    year: number;
+  }
+
+  const uniqueWeeks = (weeksData || []).reduce((acc: WeekData[], week: WeekData) => {
+    const existingWeek = acc.find((w) => w.week_number === week.week_number);
     if (!existingWeek || existingWeek.year < week.year) {
       if (existingWeek) {
-        acc = acc.filter((w: any) => w.week_number !== week.week_number);
+        acc = acc.filter((w) => w.week_number !== week.week_number);
       }
       acc.push(week);
     }
     return acc;
   }, []);
 
-  const weekOptions: WeekOption[] = uniqueWeeks.map((w: any) => ({
+  const weekOptions: WeekOption[] = uniqueWeeks.map((w: WeekData) => ({
     value: `${w.year}-${w.week_number}`,
     label: `Week ${w.week_number} - ${w.year}`,
     week_number: w.week_number,
@@ -136,7 +141,27 @@ export default async function SubmissionsPage({
     // Continue with empty submissions
   } else if (submissions) {
     // Transform data
-    transformedSubmissions = submissions.map((submission: any) => ({
+    interface SubmissionData {
+      id: string;
+      user_id: string;
+      users?: { email?: string };
+      week_number: number;
+      is_late: boolean;
+      submitted_at: string;
+      created_at: string;
+      manager: string | null;
+      primary_project_name: string;
+      primary_project_hours: number;
+      additional_projects: unknown;
+      feedback: string | null;
+      changes_next_week: string | null;
+      milestones: string | null;
+      other_feedback: string | null;
+      hours_reporting_impact: string | null;
+      form_completion_time: number | null;
+    }
+
+    transformedSubmissions = submissions.map((submission: SubmissionData) => ({
       id: submission.id,
       user_id: submission.user_id,
       email: submission.users?.email || 'Unknown',
@@ -144,18 +169,18 @@ export default async function SubmissionsPage({
       status: submission.is_late ? 'Late' : 'On Time',
       submission_at: submission.submitted_at,
       created_at: submission.created_at,
-      manager: submission.manager,
+      manager: submission.manager || '',
       primary_project: {
         name: submission.primary_project_name,
         hours: submission.primary_project_hours
       },
-      additional_projects: submission.additional_projects || [],
-      feedback: submission.feedback,
-      changes_next_week: submission.changes_next_week,
-      milestones: submission.milestones,
-      other_feedback: submission.other_feedback,
-      hours_reporting_impact: submission.hours_reporting_impact,
-      form_completion_time: submission.form_completion_time
+      additional_projects: Array.isArray(submission.additional_projects) ? submission.additional_projects : [],
+      feedback: submission.feedback || undefined,
+      changes_next_week: submission.changes_next_week || undefined,
+      milestones: submission.milestones || undefined,
+      other_feedback: submission.other_feedback || undefined,
+      hours_reporting_impact: submission.hours_reporting_impact || undefined,
+      form_completion_time: submission.form_completion_time || undefined
     }));
   }
 

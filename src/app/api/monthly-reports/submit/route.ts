@@ -1,6 +1,7 @@
 import { createClient } from "@/utils/supabase/server";
 import { NextResponse } from "next/server";
 import { sendEmail } from "@/lib/email";
+import { getHREmail } from "@/utils/companyDomain";
 
 export async function POST(request: Request) {
   const supabase = await createClient();
@@ -33,13 +34,14 @@ export async function POST(request: Request) {
   const startDate = new Date(month);
   const endDate = new Date(startDate.getFullYear(), startDate.getMonth() + 1, 0);
 
-  // Fetch daily tasks for the month to calculate hours
+  // Fetch daily tasks for the month to calculate hours and generate CSV
   const { data: tasks, error: tasksError } = await supabase
     .from("daily_tasks")
-    .select("hours, billable")
+    .select("task_date, project, hours, billable, description")
     .eq("user_id", user.id)
     .gte("task_date", startDate.toISOString().slice(0, 10))
-    .lte("task_date", endDate.toISOString().slice(0, 10));
+    .lte("task_date", endDate.toISOString().slice(0, 10))
+    .order("task_date", { ascending: true });
 
   if (tasksError) {
     console.error("Error fetching tasks:", tasksError);
@@ -78,7 +80,7 @@ export async function POST(request: Request) {
   }
 
   // Send email notifications asynchronously (non-blocking)
-  sendNotificationEmails(supabase, userData, startDate, totalHours, billableHours).catch(err => {
+  sendNotificationEmails(supabase, userData, user.id, startDate, totalHours, billableHours, tasks || []).catch(err => {
     console.error("Error sending notification emails:", err);
     // Errors are logged but don't affect the response
   });
@@ -86,22 +88,66 @@ export async function POST(request: Request) {
   return NextResponse.json({ report: data });
 }
 
+// Helper function to format date as DD-MM-YYYY
+function formatDate(dateString: string): string {
+  const date = new Date(dateString);
+  const day = String(date.getDate()).padStart(2, '0');
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const year = date.getFullYear();
+  return `${day}-${month}-${year}`;
+}
+
+// Helper function to escape CSV field (handles commas, quotes, newlines)
+function escapeCSVField(field: string): string {
+  if (!field) return '';
+  // If field contains comma, quote, or newline, wrap in quotes and escape quotes
+  if (field.includes(',') || field.includes('"') || field.includes('\n')) {
+    return `"${field.replace(/"/g, '""')}"`;
+  }
+  return field;
+}
+
+// Helper function to generate CSV from daily tasks
+function generateTasksCSV(tasks: Array<{ task_date: string; project: string | null; hours: number | null; billable: boolean | null; description: string | null }>): string {
+  const headers = ['Date', 'Project', 'Hours', 'Billable', 'Description'];
+  const rows = tasks.map(task => {
+    const date = formatDate(task.task_date);
+    const project = escapeCSVField(task.project || '');
+    const hours = task.hours ? task.hours.toFixed(2) : '0.00';
+    const billable = task.billable ? 'Yes' : 'No';
+    const description = escapeCSVField(task.description || '');
+    return [date, project, hours, billable, description];
+  });
+
+  const csvContent = [headers, ...rows]
+    .map(row => row.join(','))
+    .join('\n');
+
+  return csvContent;
+}
+
 // Async function to send notification emails (non-blocking)
 async function sendNotificationEmails(
-  supabase: any,
+  supabase: Awaited<ReturnType<typeof createClient>>,
   userData: { name: string; email: string } | null,
+  userId: string,
   startDate: Date,
   totalHours: number,
-  billableHours: number
+  billableHours: number,
+  tasks: Array<{ task_date: string; project: string | null; hours: number | null; billable: boolean | null; description: string | null }>
 ) {
-  const { data: admins } = await supabase
+  // Get the manager email from the user's profile
+  const { data: userProfile } = await supabase
     .from("users")
-    .select("email, name")
-    .eq("is_admin", true)
-    .eq("is_active", true);
+    .select("manager_email")
+    .eq("id", userId)
+    .single();
 
-  if (!admins || admins.length === 0) {
-    console.log("No active admins found to send notifications");
+  const managerEmail = userProfile?.manager_email?.trim();
+  const userEmail = userData?.email;
+
+  if (!userEmail) {
+    console.log("No user email found, skipping email notification");
     return;
   }
 
@@ -121,6 +167,7 @@ async function sendNotificationEmails(
       </div>
       
       <p>Please review and approve the time log in the admin panel.</p>
+      ${tasks.length > 0 ? '<p>A detailed task log CSV file is attached to this email.</p>' : ''}
       
       <a href="${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'}/admin/time-approval" 
          style="display: inline-block; background-color: #2563eb; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; margin-top: 10px;">
@@ -129,16 +176,37 @@ async function sendNotificationEmails(
     </div>
   `;
 
-  // Send emails to all admins in parallel
-  const emailPromises = admins.map((admin: { email: string; name: string }) =>
+  // Generate CSV attachment if tasks exist
+  const monthStr = String(startDate.getMonth() + 1).padStart(2, '0');
+  const yearStr = String(startDate.getFullYear());
+  const userNameSlug = (userData?.name || 'user').toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+  const attachments = tasks.length > 0 ? [{
+    filename: `${yearStr}-${monthStr}-${userNameSlug}-tasks.csv`,
+    content: Buffer.from(generateTasksCSV(tasks), 'utf-8'),
+    contentType: 'text/csv',
+  }] : undefined;
+
+  // Build list of email recipients
+  const recipients: string[] = [userEmail];
+  if (managerEmail) {
+    recipients.push(managerEmail);
+  }
+  recipients.push(getHREmail());
+
+  // Send emails sequentially with delay to respect rate limits (2 requests/second)
+  // Add 600ms delay between emails to stay under the limit
+  for (let i = 0; i < recipients.length; i++) {
+    if (i > 0) {
+      await new Promise(resolve => setTimeout(resolve, 600));
+    }
+    const email = recipients[i];
     sendEmail({
-      to: admin.email,
+      to: email,
       subject,
       html,
+      attachments,
     })
-      .then(() => console.log(`Email sent to admin: ${admin.email}`))
-      .catch(err => console.error(`Failed to send email to ${admin.email}:`, err))
-  );
-
-  await Promise.allSettled(emailPromises);
+      .then(() => console.log(`Email sent to ${email}`))
+      .catch(err => console.error(`Failed to send email to ${email}:`, err));
+  }
 }

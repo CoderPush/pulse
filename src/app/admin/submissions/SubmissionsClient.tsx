@@ -16,7 +16,7 @@ import { Button } from '@/components/ui/button';
 import SubmissionDetailsModal from '@/components/admin/SubmissionDetailsModal';
 import { WeeklyPulseSubmission } from '@/types/weekly-pulse';
 import { WeekFilter } from '@/components/WeekFilter';
-import { useSearchParams, useRouter, usePathname } from 'next/navigation';
+import { useSearchParams } from 'next/navigation';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import ImportSubmissionsDialog from '@/components/admin/ImportSubmissionsDialog';
 
@@ -46,14 +46,11 @@ export default function SubmissionsClient({
     const [searchQuery, setSearchQuery] = useState('');
     const [selectedSubmission, setSelectedSubmission] = useState<WeeklyPulseSubmission | null>(null);
     const [isModalOpen, setIsModalOpen] = useState(false);
-    const [weeks, setWeeks] = useState<WeekOption[]>(initialWeeks);
     const [selectedWeek, setSelectedWeek] = useState<number | null>(defaultWeek);
     const [selectedYear, setSelectedYear] = useState<number | null>(defaultYear);
     const [isImportDialogOpen, setIsImportDialogOpen] = useState(false);
 
     const searchParams = useSearchParams();
-    const router = useRouter();
-    const pathname = usePathname();
 
     // Extract week and year params for useEffect dependencies
     const weekParam = searchParams.get('week');
@@ -61,7 +58,7 @@ export default function SubmissionsClient({
 
     // Update selected week if query param changes
     useEffect(() => {
-        if (!weeks.length) return;
+        if (!initialWeeks.length) return;
         if (weekParam && yearParam) {
             const w = Number(weekParam);
             const y = Number(yearParam);
@@ -70,7 +67,7 @@ export default function SubmissionsClient({
                 setSelectedYear(y);
             }
         }
-    }, [weekParam, yearParam, weeks, selectedWeek, selectedYear]);
+    }, [weekParam, yearParam, initialWeeks, selectedWeek, selectedYear]);
 
     // Fetch submissions for selected week and search query
     useEffect(() => {
@@ -146,7 +143,7 @@ export default function SubmissionsClient({
     };
 
     // Prepare WeekFilter options
-    const weekOptions = weeks;
+    const weekOptions = initialWeeks;
 
     return (
         <div className="space-y-6">

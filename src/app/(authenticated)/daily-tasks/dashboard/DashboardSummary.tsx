@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { Bar } from 'react-chartjs-2';
 import {
   Chart as ChartJS,
@@ -174,7 +174,7 @@ export default function DashboardSummary({
           <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg flex items-center gap-2">
             <Check className="h-5 w-5 text-blue-600" />
             <span className="text-sm text-blue-800 font-medium">
-              This month's report has been submitted or approved. Tasks cannot be edited or deleted.
+              This month&apos;s report has been submitted or approved. Tasks cannot be edited or deleted.
             </span>
           </div>
         )}

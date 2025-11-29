@@ -1,6 +1,7 @@
 import { createClient } from "@/utils/supabase/server";
 import { NextResponse } from "next/server";
 import { sendEmail } from "@/lib/email";
+import { getHREmail } from "@/utils/companyDomain";
 
 export async function PUT(
     request: Request,
@@ -94,7 +95,33 @@ export async function PUT(
         }
 
         const employeeEmail = (data as { user?: { email: string } })?.user?.email;
-        const emailPromises = [];
+        
+        // Get the manager email from the user's profile
+        const { data: userProfile } = await supabase
+            .from("users")
+            .select("manager_email")
+            .eq("id", report.user_id)
+            .single();
+
+        const managerEmail = userProfile?.manager_email?.trim();
+
+        // Build list of email recipients
+        const recipients: string[] = [];
+        if (employeeEmail) {
+            recipients.push(employeeEmail);
+        }
+        if (managerEmail) {
+            recipients.push(managerEmail);
+        }
+        // Send to HR for both approved and rejected statuses
+        if (status === "approved" || status === "rejected") {
+            recipients.push(getHREmail());
+        }
+
+        if (recipients.length === 0) {
+            console.log("No recipients found for email notification");
+            return NextResponse.json({ report: data });
+        }
 
         let htmlBody = `<p>${message}</p>`;
 
@@ -102,26 +129,28 @@ export async function PUT(
         const link = `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/admin/time-approval/${id}`;
         htmlBody += `<p><a href="${link}">View Report and Comments</a></p>`;
 
-        if (employeeEmail) {
-            emailPromises.push(sendEmail({
-                to: employeeEmail,
-                subject: message,
-                html: htmlBody
-            }));
-        }
-
-        if (status === "approved") {
-            emailPromises.push(sendEmail({
-                to: "hr@coderpush.com",
-                subject: message,
-                html: htmlBody
-            }));
-        }
-
-        // Send emails asynchronously without blocking the response
-        Promise.allSettled(emailPromises).then((results) => {
-            console.log(`Emails for status ${status} processed:`, results.map(r => r.status));
-        });
+        // Send emails sequentially with delay to respect rate limits (2 requests/second)
+        // Add 600ms delay between emails to stay under the limit
+        // Use async IIFE to avoid blocking the response
+        (async () => {
+            for (let i = 0; i < recipients.length; i++) {
+                if (i > 0) {
+                    await new Promise(resolve => setTimeout(resolve, 600));
+                }
+                const recipient = recipients[i];
+                try {
+                    await sendEmail({
+                        to: recipient,
+                        subject: message,
+                        html: htmlBody
+                    });
+                    console.log(`Email sent to ${recipient}`);
+                } catch (err) {
+                    console.error(`Failed to send email to ${recipient}:`, err);
+                }
+            }
+            console.log(`Emails for status ${status} processed`);
+        })();
     }
 
     return NextResponse.json({ report: data });

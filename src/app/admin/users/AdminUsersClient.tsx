@@ -16,12 +16,13 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select";
-import { Loader2, ChevronUp, ChevronDown, Shield, ShieldOff, Bell, BellOff, UserCheck, UserX, Edit2, Check, X } from 'lucide-react';
+import { ChevronUp, ChevronDown, Shield, ShieldOff, Bell, BellOff, UserCheck, UserX, Edit2, Check, X } from 'lucide-react';
 
 export interface User {
     id: string;
     email: string;
     name?: string | null;
+    manager_email?: string | null;
     is_admin: boolean;
     wants_daily_reminders?: boolean;
     is_active?: boolean;
@@ -34,7 +35,6 @@ interface AdminUsersClientProps {
 
 export default function AdminUsersClient({ initialUsers }: AdminUsersClientProps) {
     const [users, setUsers] = useState<User[]>(initialUsers);
-    const [loading, setLoading] = useState(false); // No longer loading initially
     const [searchQuery, setSearchQuery] = useState('');
     const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive'>('active');
     const [reminderFilter, setReminderFilter] = useState<'all' | 'yes' | 'no'>('all');
@@ -44,6 +44,8 @@ export default function AdminUsersClient({ initialUsers }: AdminUsersClientProps
     const [updatingUserIds, setUpdatingUserIds] = useState<Set<string>>(new Set());
     const [editingNameUserId, setEditingNameUserId] = useState<string | null>(null);
     const [editingNameValue, setEditingNameValue] = useState<string>('');
+    const [editingManagerEmailUserId, setEditingManagerEmailUserId] = useState<string | null>(null);
+    const [editingManagerEmailValue, setEditingManagerEmailValue] = useState<string>('');
     const { toast } = useToast();
 
     // Removed useEffect fetch
@@ -185,6 +187,24 @@ export default function AdminUsersClient({ initialUsers }: AdminUsersClientProps
         setEditingNameValue('');
     };
 
+    const startEditingManagerEmail = (userId: string, currentManagerEmail: string) => {
+        setEditingManagerEmailUserId(userId);
+        setEditingManagerEmailValue(currentManagerEmail || '');
+    };
+
+    const cancelEditingManagerEmail = () => {
+        setEditingManagerEmailUserId(null);
+        setEditingManagerEmailValue('');
+    };
+
+    const saveManagerEmail = async (userId: string) => {
+        // Manager email can be empty, so we allow clearing it
+        const value = editingManagerEmailValue.trim();
+        await updateUser(userId, { manager_email: value || null });
+        setEditingManagerEmailUserId(null);
+        setEditingManagerEmailValue('');
+    };
+
     return (
         <div className="container mx-auto py-10">
             <h1 className="text-3xl font-bold mb-6">User Management</h1>
@@ -267,6 +287,7 @@ export default function AdminUsersClient({ initialUsers }: AdminUsersClientProps
                                 </div>
                             </TableHead>
                             <TableHead>Name</TableHead>
+                            <TableHead>Manager Email</TableHead>
                             <TableHead>Active</TableHead>
                             <TableHead>Admin</TableHead>
                             <TableHead>Daily Reminder</TableHead>
@@ -289,11 +310,9 @@ export default function AdminUsersClient({ initialUsers }: AdminUsersClientProps
                         </TableRow>
                     </TableHeader>
                     <TableBody>
-                        {loading ? (
-                            <TableRow><TableCell colSpan={8} className="text-center py-8"><Loader2 className="h-8 w-8 animate-spin mx-auto" /></TableCell></TableRow>
-                        ) : filteredUsers.length === 0 ? (
+                        {filteredUsers.length === 0 ? (
                             <TableRow>
-                                <TableCell colSpan={8} className="text-center text-gray-500 py-8">
+                                <TableCell colSpan={9} className="text-center text-gray-500 py-8">
                                     No users match the current filters.
                                 </TableCell>
                             </TableRow>
@@ -342,6 +361,54 @@ export default function AdminUsersClient({ initialUsers }: AdminUsersClientProps
                                                         size="sm"
                                                         variant="outline"
                                                         onClick={() => startEditingName(user.id, user.name || '')}
+                                                        disabled={updatingUserIds.has(user.id)}
+                                                    >
+                                                        <Edit2 className="w-3 h-3" />
+                                                    </Button>
+                                                </div>
+                                            )}
+                                        </TableCell>
+                                        <TableCell>
+                                            {editingManagerEmailUserId === user.id ? (
+                                                <div className="flex items-center gap-2">
+                                                    <Input
+                                                        type="email"
+                                                        value={editingManagerEmailValue}
+                                                        onChange={(e) => setEditingManagerEmailValue(e.target.value)}
+                                                        onKeyDown={(e) => {
+                                                            if (e.key === 'Enter') {
+                                                                saveManagerEmail(user.id);
+                                                            } else if (e.key === 'Escape') {
+                                                                cancelEditingManagerEmail();
+                                                            }
+                                                        }}
+                                                        placeholder="manager@example.com"
+                                                        className="w-48"
+                                                        autoFocus
+                                                    />
+                                                    <Button
+                                                        size="sm"
+                                                        variant="outline"
+                                                        onClick={() => saveManagerEmail(user.id)}
+                                                        disabled={updatingUserIds.has(user.id)}
+                                                    >
+                                                        <Check className="w-3 h-3" />
+                                                    </Button>
+                                                    <Button
+                                                        size="sm"
+                                                        variant="outline"
+                                                        onClick={cancelEditingManagerEmail}
+                                                    >
+                                                        <X className="w-3 h-3" />
+                                                    </Button>
+                                                </div>
+                                            ) : (
+                                                <div className="flex items-center gap-2">
+                                                    <span className="min-w-0 flex-1 text-sm">{user.manager_email || '-'}</span>
+                                                    <Button
+                                                        size="sm"
+                                                        variant="outline"
+                                                        onClick={() => startEditingManagerEmail(user.id, user.manager_email || '')}
                                                         disabled={updatingUserIds.has(user.id)}
                                                     >
                                                         <Edit2 className="w-3 h-3" />

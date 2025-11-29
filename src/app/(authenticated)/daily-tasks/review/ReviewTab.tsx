@@ -1,5 +1,5 @@
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { RefreshCw } from 'lucide-react';
 
 type Task = {
@@ -25,7 +25,7 @@ const ReviewTab: React.FC<ReviewTabProps> = ({ tasks }) => {
   const [error, setError] = useState<string | null>(null);
 
   // Get current week key for localStorage
-  function getCurrentWeekKey() {
+  const getCurrentWeekKey = useCallback(() => {
     if (!tasks || tasks.length === 0) return "";
     // Use the first task's date to determine week (all tasks are filtered by week)
     const date = tasks[0].date;
@@ -36,7 +36,7 @@ const ReviewTab: React.FC<ReviewTabProps> = ({ tasks }) => {
     const dayOfYear = ((d.getTime() - new Date(year, 0, 1).getTime()) / 86400000) + 1;
     const week = Math.ceil((dayOfYear + jan4.getDay() - 1) / 7);
     return `${year}-W${week.toString().padStart(2, '0')}`;
-  }
+  }, [tasks]);
 
   useEffect(() => {
     if (!tasks || tasks.length === 0) {

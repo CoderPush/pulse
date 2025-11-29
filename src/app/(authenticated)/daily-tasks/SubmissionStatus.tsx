@@ -39,7 +39,7 @@ export default function SubmissionStatus({
 
             // Notify parent to refresh status
             onStatusChange?.();
-        } catch (error) {
+        } catch {
             toast({
                 title: "Submission Failed",
                 description: "There was an error submitting your report.",

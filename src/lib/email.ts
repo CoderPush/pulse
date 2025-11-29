@@ -7,10 +7,17 @@ interface EmailResponse {
   error?: Error | unknown;
 }
 
+interface EmailAttachment {
+  filename: string;
+  content: string | Buffer; // Base64 string for Resend, Buffer for nodemailer
+  contentType?: string;
+}
+
 interface EmailOptions {
   to: string;
   subject: string;
   html: string;
+  attachments?: EmailAttachment[];
 }
 
 const resend = new Resend(process.env.RESEND_API_KEY);
@@ -29,14 +36,34 @@ const localTransporter = nodemailer.createTransport({
   }
 });
 
+interface ResendEmailPayload {
+  from: string;
+  to: string;
+  subject: string;
+  html: string;
+  attachments?: Array<{ filename: string; content: string }>;
+}
+
 async function sendEmailWithResend(options: EmailOptions): Promise<EmailResponse> {
   try {
-    const { data, error } = await resend.emails.send({
+    const emailPayload: ResendEmailPayload = {
       from: process.env.EMAIL_FROM || 'Weekly Pulse <onboarding@resend.dev>',
       to: options.to,
       subject: options.subject,
       html: options.html,
-    });
+    };
+
+    // Add attachments if provided
+    if (options.attachments && options.attachments.length > 0) {
+      emailPayload.attachments = options.attachments.map(att => ({
+        filename: att.filename,
+        content: typeof att.content === 'string' 
+          ? att.content 
+          : att.content.toString('base64'),
+      }));
+    }
+
+    const { data, error } = await resend.emails.send(emailPayload);
 
     if (error) {
       console.error('Error sending email with Resend:', error);
@@ -58,14 +85,36 @@ async function sendEmailWithInbucket(options: EmailOptions): Promise<EmailRespon
       subject: options.subject,
       // Log a preview of the HTML content
       htmlPreview: options.html.substring(0, 100) + '...',
+      hasAttachments: options.attachments && options.attachments.length > 0,
     });
 
-    const info = await localTransporter.sendMail({
+    interface NodemailerMailOptions {
+      from: string;
+      to: string;
+      subject: string;
+      html: string;
+      attachments?: Array<{ filename: string; content: Buffer; contentType: string }>;
+    }
+
+    const mailOptions: NodemailerMailOptions = {
       from: process.env.EMAIL_FROM || 'Weekly Pulse <onboarding@resend.dev>',
       to: options.to,
       subject: options.subject,
       html: options.html,
-    });
+    };
+
+    // Add attachments if provided
+    if (options.attachments && options.attachments.length > 0) {
+      mailOptions.attachments = options.attachments.map(att => ({
+        filename: att.filename,
+        content: typeof att.content === 'string' 
+          ? Buffer.from(att.content, 'base64')
+          : att.content,
+        contentType: att.contentType || 'text/csv',
+      }));
+    }
+
+    const info = await localTransporter.sendMail(mailOptions);
 
     console.log('Email sent to Inbucket successfully:', info.messageId);
     return { success: true, messageId: info.messageId };

@@ -189,6 +189,7 @@ export default function AdminUserDailyTasksPage() {
 
   useEffect(() => {
     fetchSummary();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userId, filterMode, monthFilter, weekFilter, projectFilter, billableFilter]);
 
   const handlePageChange = (newPage: number) => {

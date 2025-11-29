@@ -19,7 +19,7 @@ export async function PATCH(
     }
 
     // Only allow updating specific fields
-    const allowedFields = ['is_active', 'wants_daily_reminders', 'name', 'is_admin'];
+    const allowedFields = ['is_active', 'wants_daily_reminders', 'name', 'is_admin', 'manager_email'];
     const updates: Record<string, unknown> = {};
 
     for (const [key, value] of Object.entries(body)) {

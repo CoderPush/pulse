@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, use } from "react";
+import { useState, useEffect, use, useCallback } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -57,20 +57,7 @@ export default function ReportDetailPage({ params }: { params: Promise<{ id: str
     const [editForm, setEditForm] = useState<Partial<Task>>({});
     const [currentUserId, setCurrentUserId] = useState<string>("");
 
-    useEffect(() => {
-        const fetchUser = async () => {
-            const supabase = createClient();
-            const { data: { user } } = await supabase.auth.getUser();
-            if (user) {
-                setCurrentUserId(user.id);
-            }
-        };
-        fetchUser();
-        fetchReport();
-        fetchTasks();
-    }, [id]);
-
-    const fetchReport = async () => {
+    const fetchReport = useCallback(async () => {
         setLoading(true);
         try {
             const res = await fetch(`/api/admin/monthly-reports?id=${id}`);
@@ -80,14 +67,14 @@ export default function ReportDetailPage({ params }: { params: Promise<{ id: str
                     setReport(data.reports[0]);
                 }
             }
-        } catch (error) {
-            console.error("Failed to fetch report", error);
+        } catch (err) {
+            console.error("Failed to fetch report", err);
         } finally {
             setLoading(false);
         }
-    };
+    }, [id]);
 
-    const fetchTasks = async () => {
+    const fetchTasksForReport = useCallback(async () => {
         if (!report) return;
         try {
             const res = await fetch(`/api/daily-tasks`);
@@ -101,34 +88,28 @@ export default function ReportDetailPage({ params }: { params: Promise<{ id: str
                 });
                 setTasks(filtered);
             }
-        } catch (error) {
-            console.error("Failed to fetch tasks", error);
+        } catch (err) {
+            console.error("Failed to fetch tasks", err);
         }
-    };
+    }, [report]);
+
+    useEffect(() => {
+        const fetchUser = async () => {
+            const supabase = createClient();
+            const { data: { user } } = await supabase.auth.getUser();
+            if (user) {
+                setCurrentUserId(user.id);
+            }
+        };
+        fetchUser();
+        fetchReport();
+    }, [id, fetchReport]);
 
     useEffect(() => {
         if (report) {
             fetchTasksForReport();
         }
-    }, [report]);
-
-    const fetchTasksForReport = async () => {
-        if (!report) return;
-        try {
-            const res = await fetch(`/api/daily-tasks`);
-            if (res.ok) {
-                const data = await res.json();
-                const filtered = data.tasks.filter((task: Task) => {
-                    const taskMonth = task.task_date.substring(0, 7);
-                    const reportMonth = report.month.substring(0, 7);
-                    return taskMonth === reportMonth;
-                });
-                setTasks(filtered);
-            }
-        } catch (error) {
-            console.error("Failed to fetch tasks", error);
-        }
-    };
+    }, [report, fetchTasksForReport]);
 
     const handleAction = async (status: "approved" | "submitted" | "draft") => {
         setProcessing(true);
@@ -150,7 +131,7 @@ export default function ReportDetailPage({ params }: { params: Promise<{ id: str
                     : 'The report has been reopened for review.',
             });
             router.push("/admin/time-approval");
-        } catch (error) {
+        } catch {
             toast({
                 title: "Action Failed",
                 description: "There was an error updating the report.",

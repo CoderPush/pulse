@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/utils/supabase/server';
 import { sendEmail } from '@/lib/email';
+import { getHREmail } from '@/utils/companyDomain';
 
 export async function GET(req: NextRequest) {
     const supabase = await createClient();
@@ -91,8 +92,8 @@ export async function POST(req: NextRequest) {
             subject = 'New Comment on Your Monthly Report';
             messageIntro = 'An admin has commented on your monthly report.';
         } else {
-            // Notify HR/Admin (hardcoded for now as per other files)
-            notifyEmail = 'hr@coderpush.com';
+            // Notify HR/Admin
+            notifyEmail = getHREmail();
             subject = 'New Comment on Monthly Report';
             messageIntro = `Employee has commented on their monthly report.`;
         }

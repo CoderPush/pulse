@@ -38,21 +38,18 @@ interface PulsesClientProps {
 
 export default function PulsesClient({ initialWeeks }: PulsesClientProps) {
     const router = useRouter();
-    const [rawWeeks, setRawWeeks] = useState<PulseWeek[]>(initialWeeks);
-    const [weeks, setWeeks] = useState<PulseWeek[]>([]);
+    const [weeks, setWeeks] = useState<PulseWeek[]>(initialWeeks);
     const [sortBy, setSortBy] = useState('latest');
-    const [loading, setLoading] = useState(false); // No longer loading initially
-    const [error, setError] = useState<string | null>(null);
 
     // Removed useEffect fetch
 
     // Sort locally
     useEffect(() => {
-        if (rawWeeks.length === 0) {
+        if (initialWeeks.length === 0) {
             setWeeks([]);
             return;
         }
-        const sortedWeeks = [...rawWeeks];
+        const sortedWeeks = [...initialWeeks];
         switch (sortBy) {
             case 'latest':
                 sortedWeeks.sort(
@@ -75,7 +72,7 @@ export default function PulsesClient({ initialWeeks }: PulsesClientProps) {
                 break;
         }
         setWeeks(sortedWeeks);
-    }, [sortBy, rawWeeks]);
+    }, [sortBy, initialWeeks]);
 
     const isCurrentWeek = (week: PulseWeek) => {
         const now = new Date();
@@ -116,16 +113,7 @@ export default function PulsesClient({ initialWeeks }: PulsesClientProps) {
 
             {/* Content */}
             <div className="container mx-auto py-6">
-                {loading ? (
-                    <div className="text-center py-12">
-                        <p className="text-gray-500">Loading pulse weeks...</p>
-                    </div>
-                ) : error ? (
-                    <div className="text-center py-12">
-                        <p className="text-red-500">{error}</p>
-                    </div>
-                ) : (
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                         {weeks.map((week) => (
                             <Link key={`${week.year}-${week.week_number}`} href={`/admin/pulses/${week.week_number}`}>
                                 <Card className="hover:shadow-lg transition-shadow cursor-pointer">
@@ -165,7 +153,6 @@ export default function PulsesClient({ initialWeeks }: PulsesClientProps) {
                             </Link>
                         ))}
                     </div>
-                )}
             </div>
         </div>
     );
