@@ -5,6 +5,16 @@ import ReviewSubmitTab from "./review-submit/ReviewSubmitTab";
 import ReviewTab from "./review/ReviewTab";
 import type { Question } from '@/types/followup';
 import DailyPulseTabs from "./DailyPulseTabs";
+import { useToast } from "@/components/ui/use-toast";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
 
 // Define the Task type to match our database schema
 export interface Task {
@@ -59,6 +69,9 @@ export default function AiDemoPage() {
   // Dashboard filters - default to month with current month
   const [filterType, setFilterType] = useState<'week' | 'month'>("month");
   const [filterValue, setFilterValue] = useState<string>(getCurrentMonth());
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [taskToDelete, setTaskToDelete] = useState<string | null>(null);
+  const { toast } = useToast();
 
   // Track if tasks have been fetched to prevent duplicate calls
   const hasFetchedRef = useRef(false);
@@ -147,26 +160,50 @@ export default function AiDemoPage() {
         throw new Error(errorData.error || "Failed to update task");
       }
       setTasks(prev => prev.map(t => t.id === updatedTask.id ? updatedTask : t));
+      toast({
+        title: "Task updated",
+        description: "The task has been updated successfully.",
+      });
     } catch (e) {
       console.error("Error updating task:", e);
-      alert(e instanceof Error ? e.message : "Failed to update task");
+      toast({
+        title: "Update failed",
+        description: e instanceof Error ? e.message : "Failed to update task",
+        variant: "destructive",
+      });
     }
   };
 
-  const handleTaskDelete = async (taskId: string) => {
-    if (!confirm("Are you sure you want to delete this task?")) return;
+  const handleDeleteClick = (taskId: string) => {
+    setTaskToDelete(taskId);
+    setDeleteConfirmOpen(true);
+  };
+
+  const handleTaskDelete = async () => {
+    if (!taskToDelete) return;
+    
     try {
-      const res = await fetch(`/api/daily-tasks/${taskId}`, {
+      const res = await fetch(`/api/daily-tasks/${taskToDelete}`, {
         method: "DELETE",
       });
       if (!res.ok) {
         const errorData = await res.json();
         throw new Error(errorData.error || "Failed to delete task");
       }
-      setTasks(prev => prev.filter(t => t.id !== taskId));
+      setTasks(prev => prev.filter(t => t.id !== taskToDelete));
+      setDeleteConfirmOpen(false);
+      setTaskToDelete(null);
+      toast({
+        title: "Task deleted",
+        description: "The task has been deleted successfully.",
+      });
     } catch (e) {
       console.error("Error deleting task:", e);
-      alert(e instanceof Error ? e.message : "Failed to delete task");
+      toast({
+        title: "Delete failed",
+        description: e instanceof Error ? e.message : "Failed to delete task",
+        variant: "destructive",
+      });
     }
   };
 
@@ -195,9 +232,28 @@ export default function AiDemoPage() {
           filterValue={filterValue}
           setFilterValue={setFilterValue}
           onTaskUpdate={handleTaskUpdate}
-          onTaskDelete={handleTaskDelete}
+          onTaskDelete={handleDeleteClick}
         />
       )}
+
+      <Dialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete Task</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete this task? This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDeleteConfirmOpen(false)}>
+              Cancel
+            </Button>
+            <Button variant="destructive" onClick={handleTaskDelete}>
+              Delete
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {tab === "review" && (
         <ReviewTab tasks={

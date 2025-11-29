@@ -2,6 +2,14 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/use-toast";
 import { Loader2, CheckCircle, AlertCircle } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 interface SubmissionStatusProps {
     currentMonth: string; // YYYY-MM format
@@ -18,10 +26,14 @@ export default function SubmissionStatus({
 }: SubmissionStatusProps) {
     const { toast } = useToast();
     const [submitting, setSubmitting] = useState(false);
+    const [confirmOpen, setConfirmOpen] = useState(false);
+
+    const handleSubmitClick = () => {
+        setConfirmOpen(true);
+    };
 
     const handleSubmit = async () => {
-        if (!confirm("Are you sure you want to submit your time log for this month? You won't be able to edit it afterwards.")) return;
-
+        setConfirmOpen(false);
         setSubmitting(true);
         try {
             const res = await fetch("/api/monthly-reports/submit", {
@@ -53,33 +65,54 @@ export default function SubmissionStatus({
     if (loading) return <div className="text-sm text-gray-500">Checking status...</div>;
 
     return (
-        <div className="flex items-center gap-4 bg-white p-4 rounded-lg border shadow-sm mb-6">
-            <div className="flex-1">
-                <h3 className="font-semibold text-gray-900">Monthly Submission ({currentMonth})</h3>
-                <p className="text-sm text-gray-500">
-                    {status === "draft"
-                        ? "Your report is currently in draft. Submit it when you are done for the month."
-                        : status === "submitted"
-                            ? "Your report has been submitted and is pending approval."
-                            : status === "approved"
-                                ? "Your report has been approved."
-                                : "Your report was rejected. Please check comments and resubmit."}
-                </p>
+        <>
+            <div className="flex items-center gap-4 bg-white p-4 rounded-lg border shadow-sm mb-6">
+                <div className="flex-1">
+                    <h3 className="font-semibold text-gray-900">Monthly Submission ({currentMonth})</h3>
+                    <p className="text-sm text-gray-500">
+                        {status === "draft"
+                            ? "Your report is currently in draft. Submit it when you are done for the month."
+                            : status === "submitted"
+                                ? "Your report has been submitted and is pending approval."
+                                : status === "approved"
+                                    ? "Your report has been approved."
+                                    : "Your report was rejected. Please check comments and resubmit."}
+                    </p>
+                </div>
+                <div className="flex items-center gap-2">
+                    {status === "draft" || status === "rejected" ? (
+                        <Button onClick={handleSubmitClick} disabled={submitting}>
+                            {submitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                            Submit for Review
+                        </Button>
+                    ) : (
+                        <div className={`flex items-center gap-2 px-4 py-2 rounded-md font-medium ${status === 'approved' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
+                            }`}>
+                            {status === 'approved' ? <CheckCircle className="w-4 h-4" /> : <AlertCircle className="w-4 h-4" />}
+                            {(status || 'draft').charAt(0).toUpperCase() + (status || 'draft').slice(1)}
+                        </div>
+                    )}
+                </div>
             </div>
-            <div className="flex items-center gap-2">
-                {status === "draft" || status === "rejected" ? (
-                    <Button onClick={handleSubmit} disabled={submitting}>
-                        {submitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                        Submit for Review
-                    </Button>
-                ) : (
-                    <div className={`flex items-center gap-2 px-4 py-2 rounded-md font-medium ${status === 'approved' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
-                        }`}>
-                        {status === 'approved' ? <CheckCircle className="w-4 h-4" /> : <AlertCircle className="w-4 h-4" />}
-                        {(status || 'draft').charAt(0).toUpperCase() + (status || 'draft').slice(1)}
-                    </div>
-                )}
-            </div>
-        </div>
+            <Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Submit Monthly Report</DialogTitle>
+                        <DialogDescription>
+                            Are you sure you want to submit your time log for this month? You won&apos;t be able to edit it afterwards.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setConfirmOpen(false)}>
+                            Cancel
+                        </Button>
+                        <Button onClick={handleSubmit} disabled={submitting}>
+                            {submitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                            Submit
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+        </>
     );
 }

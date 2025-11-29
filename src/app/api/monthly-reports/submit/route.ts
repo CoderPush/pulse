@@ -117,13 +117,13 @@ function generateTasksCSV(
 ): string {
   // Build metadata section
   const metadataSection = [
-    '=== REPORT INFORMATION ===',
+    'REPORT INFORMATION',
     `Employee Name,${escapeCSVField(userName)}`,
     `Report Month,${escapeCSVField(monthName)}`,
     `Total Hours,${totalHours.toFixed(2)}`,
     `Billable Hours,${billableHours.toFixed(2)}`,
     '', // Empty row to separate sections
-    '=== TASK DETAILS ===',
+    'TASK DETAILS',
   ];
 
   // Build task details section
