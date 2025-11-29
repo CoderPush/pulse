@@ -88,6 +88,6 @@ export function getMonthlyLogReminderEmail({ userName, monthName, deadlineDate, 
     <p>Please review and submit your report here:</p>
     <p><a href="${reportUrl}" style="${buttonStyle}">Review & Submit Report</a></p>
     <p>Thanks for your hard work!</p>
-    <p>Best regards,<br>The Pulse Team</p>
+    <p>Best regards,</p>
     `;
 }
