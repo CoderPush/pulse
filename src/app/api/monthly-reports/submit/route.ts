@@ -37,7 +37,7 @@ export async function POST(request: Request) {
   // Fetch daily tasks for the month to calculate hours and generate CSV
   const { data: tasks, error: tasksError } = await supabase
     .from("daily_tasks")
-    .select("task_date, project, hours, billable, description")
+    .select("task_date, project, hours, billable, description, link")
     .eq("user_id", user.id)
     .gte("task_date", startDate.toISOString().slice(0, 10))
     .lte("task_date", endDate.toISOString().slice(0, 10))
@@ -107,20 +107,39 @@ function escapeCSVField(field: string): string {
   return field;
 }
 
-// Helper function to generate CSV from daily tasks
-function generateTasksCSV(tasks: Array<{ task_date: string; project: string | null; hours: number | null; billable: boolean | null; description: string | null }>): string {
-  const headers = ['Date', 'Project', 'Hours', 'Billable', 'Description'];
+// Helper function to generate CSV from daily tasks with Option 2 format
+function generateTasksCSV(
+  tasks: Array<{ task_date: string; project: string | null; hours: number | null; billable: boolean | null; description: string | null; link: string | null }>,
+  userName: string,
+  monthName: string,
+  totalHours: number,
+  billableHours: number
+): string {
+  // Build metadata section
+  const metadataSection = [
+    '=== REPORT INFORMATION ===',
+    `Employee Name,${escapeCSVField(userName)}`,
+    `Report Month,${escapeCSVField(monthName)}`,
+    `Total Hours,${totalHours.toFixed(2)}`,
+    `Billable Hours,${billableHours.toFixed(2)}`,
+    '', // Empty row to separate sections
+    '=== TASK DETAILS ===',
+  ];
+
+  // Build task details section
+  const headers = ['Date', 'Project', 'Hours', 'Billable', 'Description', 'Link'];
   const rows = tasks.map(task => {
     const date = formatDate(task.task_date);
     const project = escapeCSVField(task.project || '');
     const hours = task.hours ? task.hours.toFixed(2) : '0.00';
     const billable = task.billable ? 'Yes' : 'No';
     const description = escapeCSVField(task.description || '');
-    return [date, project, hours, billable, description];
+    const link = escapeCSVField(task.link || '');
+    return [date, project, hours, billable, description, link];
   });
 
-  const csvContent = [headers, ...rows]
-    .map(row => row.join(','))
+  const csvContent = [...metadataSection, headers, ...rows]
+    .map(row => Array.isArray(row) ? row.join(',') : row)
     .join('\n');
 
   return csvContent;
@@ -134,7 +153,7 @@ async function sendNotificationEmails(
   startDate: Date,
   totalHours: number,
   billableHours: number,
-  tasks: Array<{ task_date: string; project: string | null; hours: number | null; billable: boolean | null; description: string | null }>
+  tasks: Array<{ task_date: string; project: string | null; hours: number | null; billable: boolean | null; description: string | null; link: string | null }>
 ) {
   // Get the manager email from the user's profile
   const { data: userProfile } = await supabase
@@ -169,7 +188,7 @@ async function sendNotificationEmails(
       <p>Please review and approve the time log in the admin panel.</p>
       ${tasks.length > 0 ? '<p>A detailed task log CSV file is attached to this email.</p>' : ''}
       
-      <a href="${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'}/admin/time-approval" 
+      <a href="${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/admin/time-approval" 
          style="display: inline-block; background-color: #2563eb; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; margin-top: 10px;">
         Review Time Log
       </a>
@@ -182,7 +201,7 @@ async function sendNotificationEmails(
   const userNameSlug = (userData?.name || 'user').toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
   const attachments = tasks.length > 0 ? [{
     filename: `${yearStr}-${monthStr}-${userNameSlug}-tasks.csv`,
-    content: Buffer.from(generateTasksCSV(tasks), 'utf-8'),
+    content: Buffer.from(generateTasksCSV(tasks, engineerName, monthName, totalHours, billableHours), 'utf-8'),
     contentType: 'text/csv',
   }] : undefined;
 
@@ -193,20 +212,13 @@ async function sendNotificationEmails(
   }
   recipients.push(getHREmail());
 
-  // Send emails sequentially with delay to respect rate limits (2 requests/second)
-  // Add 600ms delay between emails to stay under the limit
-  for (let i = 0; i < recipients.length; i++) {
-    if (i > 0) {
-      await new Promise(resolve => setTimeout(resolve, 600));
-    }
-    const email = recipients[i];
-    sendEmail({
-      to: email,
-      subject,
-      html,
-      attachments,
-    })
-      .then(() => console.log(`Email sent to ${email}`))
-      .catch(err => console.error(`Failed to send email to ${email}:`, err));
-  }
+  // Send single email with all recipients
+  sendEmail({
+    to: recipients,
+    subject,
+    html,
+    attachments,
+  })
+    .then(() => console.log(`Email sent to recipients: ${recipients.join(', ')}`))
+    .catch(err => console.error(`Failed to send email to recipients:`, err));
 }

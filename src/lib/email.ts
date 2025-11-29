@@ -14,7 +14,7 @@ interface EmailAttachment {
 }
 
 interface EmailOptions {
-  to: string;
+  to: string | string[];
   subject: string;
   html: string;
   attachments?: EmailAttachment[];
@@ -46,9 +46,12 @@ interface ResendEmailPayload {
 
 async function sendEmailWithResend(options: EmailOptions): Promise<EmailResponse> {
   try {
+    // Convert array to comma-separated string if needed
+    const toAddress = Array.isArray(options.to) ? options.to.join(',') : options.to;
+    
     const emailPayload: ResendEmailPayload = {
       from: process.env.EMAIL_FROM || 'Weekly Pulse <onboarding@resend.dev>',
-      to: options.to,
+      to: toAddress,
       subject: options.subject,
       html: options.html,
     };
@@ -80,8 +83,11 @@ async function sendEmailWithResend(options: EmailOptions): Promise<EmailResponse
 
 async function sendEmailWithInbucket(options: EmailOptions): Promise<EmailResponse> {
   try {
+    // Convert array to comma-separated string if needed
+    const toAddress = Array.isArray(options.to) ? options.to.join(',') : options.to;
+    
     console.log('Sending email to Inbucket:', {
-      to: options.to,
+      to: toAddress,
       subject: options.subject,
       // Log a preview of the HTML content
       htmlPreview: options.html.substring(0, 100) + '...',
@@ -98,7 +104,7 @@ async function sendEmailWithInbucket(options: EmailOptions): Promise<EmailRespon
 
     const mailOptions: NodemailerMailOptions = {
       from: process.env.EMAIL_FROM || 'Weekly Pulse <onboarding@resend.dev>',
-      to: options.to,
+      to: toAddress,
       subject: options.subject,
       html: options.html,
     };
