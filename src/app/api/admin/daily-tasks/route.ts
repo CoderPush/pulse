@@ -3,8 +3,25 @@ import { NextResponse } from 'next/server';
 
 export async function GET(request: Request) {
   const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+
+  if (!user) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
+  // Check if user is admin
+  const { data: userData } = await supabase
+    .from('users')
+    .select('is_admin')
+    .eq('id', user.id)
+    .single();
+
+  if (!userData?.is_admin) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  }
+
   const { searchParams } = new URL(request.url);
-  const user = searchParams.get('user');
+  const userId = searchParams.get('user');
   const month = searchParams.get('month');
   const week = searchParams.get('week');
   const projects = searchParams.get('projects')?.split(',');
@@ -19,8 +36,8 @@ export async function GET(request: Request) {
     .order('task_date', { ascending: false })
     .range(offset, offset + pageSize - 1);
 
-  if (user) {
-    query = query.eq('user_id', user);
+  if (userId) {
+    query = query.eq('user_id', userId);
   }
   if (month) {
     const [year, monthNum] = month.split('-');

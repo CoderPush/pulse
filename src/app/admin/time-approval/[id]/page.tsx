@@ -77,16 +77,12 @@ export default function ReportDetailPage({ params }: { params: Promise<{ id: str
     const fetchTasksForReport = useCallback(async () => {
         if (!report) return;
         try {
-            const res = await fetch(`/api/daily-tasks`);
+            // Use admin endpoint with user_id and month parameters
+            const reportMonth = report.month.substring(0, 7);
+            const res = await fetch(`/api/admin/daily-tasks?user=${report.user_id}&month=${reportMonth}`);
             if (res.ok) {
                 const data = await res.json();
-                // Filter tasks by user and month
-                const filtered = data.tasks.filter((task: Task) => {
-                    const taskMonth = task.task_date.substring(0, 7);
-                    const reportMonth = report.month.substring(0, 7);
-                    return taskMonth === reportMonth;
-                });
-                setTasks(filtered);
+                setTasks(data.tasks || []);
             }
         } catch (err) {
             console.error("Failed to fetch tasks", err);
