@@ -38,7 +38,7 @@ const localTransporter = nodemailer.createTransport({
 
 interface ResendEmailPayload {
   from: string;
-  to: string;
+  to: string | string[];
   subject: string;
   html: string;
   attachments?: Array<{ filename: string; content: string }>;
@@ -46,12 +46,9 @@ interface ResendEmailPayload {
 
 async function sendEmailWithResend(options: EmailOptions): Promise<EmailResponse> {
   try {
-    // Convert array to comma-separated string if needed
-    const toAddress = Array.isArray(options.to) ? options.to.join(',') : options.to;
-    
     const emailPayload: ResendEmailPayload = {
       from: process.env.EMAIL_FROM || 'Weekly Pulse <onboarding@resend.dev>',
-      to: toAddress,
+      to: options.to,
       subject: options.subject,
       html: options.html,
     };
