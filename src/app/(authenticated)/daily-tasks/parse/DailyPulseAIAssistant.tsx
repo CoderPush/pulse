@@ -13,15 +13,25 @@ export default function DailyPulseAIAssistant({ onParse }: { onParse: (tasks: an
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const [selectedIndex, setSelectedIndex] = useState(0);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-  
+
   // Active projects from database
   const [activeProjects, setActiveProjects] = useState<string[]>([]);
 
+  // Track if projects have been fetched to prevent duplicate calls
+  const hasFetchedProjectsRef = useRef(false);
+
   // Fetch active projects on mount
   useEffect(() => {
+    // Prevent duplicate fetches (especially in React Strict Mode)
+    if (hasFetchedProjectsRef.current) return;
+
+    hasFetchedProjectsRef.current = true;
     getActiveProjects()
       .then(projects => setActiveProjects(projects.map(p => p.name)))
-      .catch(err => console.error('Failed to fetch active projects:', err));
+      .catch(err => {
+        console.error('Failed to fetch active projects:', err);
+        hasFetchedProjectsRef.current = false; // Reset on error to allow retry
+      });
   }, []);
 
   // Helper: get projects from localStorage
@@ -29,7 +39,7 @@ export default function DailyPulseAIAssistant({ onParse }: { onParse: (tasks: an
     try {
       const data = localStorage.getItem("pulse_projects");
       if (data) return JSON.parse(data);
-    } catch {}
+    } catch { }
     return [];
   }
 
@@ -43,33 +53,33 @@ export default function DailyPulseAIAssistant({ onParse }: { onParse: (tasks: an
   function extractProjectName(line: string): string {
     const projectMatch = line.match(/\+(\S+)/);
     if (!projectMatch) return "Unknown";
-    
+
     const rawProject = projectMatch[1].trim();
     if (!rawProject) return "Unknown";
-    
+
     // If no active projects loaded yet, return as-is
     if (activeProjects.length === 0) return rawProject;
-    
+
     // Try exact match first
     if (activeProjects.includes(rawProject)) {
       return rawProject;
     }
-    
+
     // Try case-insensitive match
     const exactMatch = activeProjects.find(p => p.toLowerCase() === rawProject.toLowerCase());
     if (exactMatch) {
       return exactMatch;
     }
-    
+
     // Try partial match (project name contains the typed text)
-    const partialMatch = activeProjects.find(p => 
+    const partialMatch = activeProjects.find(p =>
       p.toLowerCase().includes(rawProject.toLowerCase()) ||
       rawProject.toLowerCase().includes(p.toLowerCase())
     );
     if (partialMatch) {
       return partialMatch;
     }
-    
+
     return "Unknown";
   }
 
@@ -79,7 +89,7 @@ export default function DailyPulseAIAssistant({ onParse }: { onParse: (tasks: an
     try {
       const res = await fetch("/api/parse-daily-tasks", {
         method: "POST",
-        body: JSON.stringify({ 
+        body: JSON.stringify({
           text: input,
           activeProjects: activeProjects // Send active projects for mapping
         }),
@@ -90,7 +100,7 @@ export default function DailyPulseAIAssistant({ onParse }: { onParse: (tasks: an
 
       console.log('tasks', tasks);
       onParse(tasks);
-      
+
       // Show success toast and clear input
       toast({
         title: "AI Parsing Successful!",
@@ -175,10 +185,10 @@ export default function DailyPulseAIAssistant({ onParse }: { onParse: (tasks: an
         // link: https://...
         const linkMatch = line.match(/(https?:\/\/\S+)/);
         const link = linkMatch ? linkMatch[0] : undefined;
-        
+
         // Extract description by removing all matched tokens
         let desc = line;
-        
+
         // Remove project part (first word only)
         const projectMatch = line.match(/\+(\S+)/);
         if (projectMatch) {
@@ -194,7 +204,7 @@ export default function DailyPulseAIAssistant({ onParse }: { onParse: (tasks: an
         desc = desc.replace(/(https?:\/\/\S+)/, "");
         // Clean up whitespace
         desc = desc.replace(/\s+/g, " ").trim();
-        
+
         return {
           project,
           date: date || today.toISOString().slice(0, 10),
@@ -218,7 +228,7 @@ export default function DailyPulseAIAssistant({ onParse }: { onParse: (tasks: an
       localStorage.setItem("pulse_projects", JSON.stringify(newProjects));
 
       onParse(tasks);
-      
+
       // Show success toast and clear input
       toast({
         title: "Tasks Added Successfully!",
@@ -251,7 +261,7 @@ export default function DailyPulseAIAssistant({ onParse }: { onParse: (tasks: an
                 <span className="font-mono">+project @15/07 #bugfix 2.5h Fixed login bug https://github.com/org/repo/issues/123</span>
               </li>
               <li>
-              <span className="font-mono bg-purple-50 px-1 rounded">@today</span>, <span className="font-mono bg-purple-50 px-1 rounded">@tmr</span>, <span className="font-mono bg-purple-50 px-1 rounded">@ytd</span> for date shortcuts
+                <span className="font-mono bg-purple-50 px-1 rounded">@today</span>, <span className="font-mono bg-purple-50 px-1 rounded">@tmr</span>, <span className="font-mono bg-purple-50 px-1 rounded">@ytd</span> for date shortcuts
               </li>
               <li>
                 <span className="font-mono bg-purple-50 px-1 rounded">Cmd/Ctrl + Enter</span> to add manually

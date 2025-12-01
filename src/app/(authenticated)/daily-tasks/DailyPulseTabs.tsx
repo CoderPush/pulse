@@ -7,8 +7,8 @@ interface DailyPulseTabsProps {
 
 const tabList = [
   { key: "parse", label: "Parse Log" },
-  { key: "dashboard", label: "Dashboard" },
-  { key: "review", label: "Review" },
+  { key: "review-submit", label: "Review & Submit" },
+  // { key: "review", label: "Review" },
 ];
 
 const DailyPulseTabs: React.FC<DailyPulseTabsProps> = ({ tab, setTab }) => (

@@ -19,6 +19,37 @@ export async function PUT(
   const { id } = await params;
   const taskData = await request.json();
 
+  // First, get the task to check its date
+  const { data: existingTask } = await supabase
+    .from("daily_tasks")
+    .select("task_date")
+    .eq("id", id)
+    .eq("user_id", user.id)
+    .single();
+
+  if (!existingTask) {
+    return new NextResponse(JSON.stringify({ error: "Task not found" }), {
+      status: 404,
+    });
+  }
+
+  // Check the month of the task (use new date if being updated, otherwise existing)
+  const taskMonth = (taskData.task_date || existingTask.task_date).substring(0, 7);
+
+  const { data: report } = await supabase
+    .from("monthly_reports")
+    .select("status")
+    .eq("user_id", user.id)
+    .eq("month", `${taskMonth}-01`)
+    .single();
+
+  if (report && (report.status === "approved" || report.status === "submitted")) {
+    return new NextResponse(
+      JSON.stringify({ error: `Cannot update tasks for ${taskMonth}. This month's report has been submitted or approved.` }),
+      { status: 403 }
+    );
+  }
+
   const { data, error } = await supabase
     .from("daily_tasks")
     .update(taskData)
@@ -53,6 +84,37 @@ export async function DELETE(
   }
 
   const { id } = await params;
+
+  // First, get the task to check its date
+  const { data: existingTask } = await supabase
+    .from("daily_tasks")
+    .select("task_date")
+    .eq("id", id)
+    .eq("user_id", user.id)
+    .single();
+
+  if (!existingTask) {
+    return new NextResponse(JSON.stringify({ error: "Task not found" }), {
+      status: 404,
+    });
+  }
+
+  // Check if the month has an approved report
+  const taskMonth = existingTask.task_date.substring(0, 7);
+
+  const { data: report } = await supabase
+    .from("monthly_reports")
+    .select("status")
+    .eq("user_id", user.id)
+    .eq("month", `${taskMonth}-01`)
+    .single();
+
+  if (report && (report.status === "approved" || report.status === "submitted")) {
+    return new NextResponse(
+      JSON.stringify({ error: `Cannot delete tasks for ${taskMonth}. This month's report has been submitted or approved.` }),
+      { status: 403 }
+    );
+  }
 
   const { error } = await supabase
     .from("daily_tasks")

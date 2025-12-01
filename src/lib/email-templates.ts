@@ -8,7 +8,7 @@ interface TemplateData {
 
 export function getReminderSubject(type: ReminderType, data: TemplateData): string {
   const weekText = `Week ${data.weekNumber}, ${data.year}`;
-  
+
   switch (type) {
     case 'on-time':
       return `Pulse Check Reminder - ${weekText}`;
@@ -68,10 +68,10 @@ export const lateTemplate3 = ({ name, week, year, link }: TemplateProps): string
   <p>Please submit your response as soon as possible:</p>
   <p><a href="${link}" style="${buttonStyle}">Submit Now</a></p>
   <p>Best regards,<br>Pulse Team</p>
-`; 
+`;
 
 export function getDailyTaskReminderEmail({ userName, pulseUrl }: { userName: string, pulseUrl: string }): string {
-    return `
+  return `
     <p>Hi ${userName},</p>
     <p>This is a friendly reminder to log your daily tasks and keep your progress on track.</p>
     <p>Please take a moment to submit your daily pulse here:</p>
@@ -79,4 +79,15 @@ export function getDailyTaskReminderEmail({ userName, pulseUrl }: { userName: st
     <p>Thanks for your hard work!</p>
     <p>Best regards,<br>The Pulse Team</p>
     `;
-} 
+}
+
+export function getMonthlyLogReminderEmail({ userName, monthName, deadlineDate, reportUrl }: { userName: string, monthName: string, deadlineDate: string, reportUrl: string }): string {
+  return `
+    <p>Hi ${userName},</p>
+    <p>Reminder: Please submit your ${monthName} time log by ${deadlineDate}.</p>
+    <p>Please review and submit your report here:</p>
+    <p><a href="${reportUrl}" style="${buttonStyle}">Review & Submit Report</a></p>
+    <p>Thanks for your hard work!</p>
+    <p>Best regards,</p>
+    `;
+}

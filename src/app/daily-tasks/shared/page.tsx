@@ -79,23 +79,32 @@ export default async function SharedDailyTasksPage({ searchParams }: SharedPageP
   }
 
   // Convert tasks to the format expected by DashboardSummary
-  const forms = tasks.map(task => ({
-    form: {
-      id: task.id,
-      date: task.task_date,
-      project: task.project,
-      bucket: task.bucket,
-      hours: String(task.hours),
-      description: task.description,
-      link: task.link || '',
-    },
-    questions: [], // Empty questions array since we don't need them for display
+  const formattedTasks = tasks.map(task => ({
+    id: task.id,
+    user_id: task.user_id,
+    task_date: task.task_date,
+    project: task.project || '',
+    bucket: task.bucket || '',
+    hours: Number(task.hours) || 0,
+    description: task.description || '',
+    created_at: task.created_at,
+    link: task.link || undefined,
+    billable: task.billable || undefined,
   }));
 
   const userName = tasks[0]?.user?.name || tasks[0]?.user?.email || 'Unknown User';
   const filterDisplay = filterType === 'week' 
     ? `Week ${filterValue.split('-W')[1]} of ${filterValue.split('-W')[0]}`
     : `${filterValue.split('-')[1]}/${filterValue.split('-')[0]}`;
+
+  // No-op callbacks for read-only shared view
+  const handleTaskUpdate = () => {
+    // No-op: shared view is read-only
+  };
+
+  const handleTaskDelete = () => {
+    // No-op: shared view is read-only
+  };
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -113,10 +122,11 @@ export default async function SharedDailyTasksPage({ searchParams }: SharedPageP
         </div>
 
         <DashboardSummary 
-          forms={forms}
+          tasks={formattedTasks}
           filterType={filterType}
           filterValue={filterValue}
-          showActions={false}
+          onTaskUpdate={handleTaskUpdate}
+          onTaskDelete={handleTaskDelete}
         />
       </div>
     </div>

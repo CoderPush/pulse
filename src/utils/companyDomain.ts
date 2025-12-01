@@ -8,3 +8,7 @@ export function isValidCompanyEmail(email: string): boolean {
   const COMPANY_EMAIL_DOMAIN = getCompanyDomain();
   return emailRegex.test(trimmed) && trimmed.endsWith(COMPANY_EMAIL_DOMAIN);
 }
+
+export function getHREmail() {
+  return process.env.HR_EMAIL || 'hr@coderpush.com';
+}

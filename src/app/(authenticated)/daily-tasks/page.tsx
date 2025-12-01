@@ -1,11 +1,20 @@
 "use client";
-import { useState, useEffect } from "react";
-import { DashboardSummary, DashboardFilters } from "./dashboard";
-import { DailyPulseAIAssistant, TaskSummaryList, TaskEditForm } from "./parse";
+import { useState, useEffect, useRef } from "react";
 import ParseTab from "./parse/ParseTab";
+import ReviewSubmitTab from "./review-submit/ReviewSubmitTab";
 import ReviewTab from "./review/ReviewTab";
 import type { Question } from '@/types/followup';
 import DailyPulseTabs from "./DailyPulseTabs";
+import { useToast } from "@/components/ui/use-toast";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
 
 // Define the Task type to match our database schema
 export interface Task {
@@ -18,6 +27,7 @@ export interface Task {
   description: string;
   created_at: string;
   link?: string;
+  billable?: boolean;
 }
 
 export default function AiDemoPage() {
@@ -59,9 +69,18 @@ export default function AiDemoPage() {
   // Dashboard filters - default to month with current month
   const [filterType, setFilterType] = useState<'week' | 'month'>("month");
   const [filterValue, setFilterValue] = useState<string>(getCurrentMonth());
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [taskToDelete, setTaskToDelete] = useState<string | null>(null);
+  const { toast } = useToast();
+
+  // Track if tasks have been fetched to prevent duplicate calls
+  const hasFetchedRef = useRef(false);
 
   // On mount, load from the database instead of localStorage
   useEffect(() => {
+    // Prevent duplicate fetches (especially in React Strict Mode)
+    if (hasFetchedRef.current) return;
+
     const fetchTasks = async () => {
       setLoading(true);
       try {
@@ -69,6 +88,7 @@ export default function AiDemoPage() {
         if (!res.ok) throw new Error("Failed to fetch tasks");
         const { tasks: fetchedTasks } = await res.json();
         setTasks(fetchedTasks || []);
+        hasFetchedRef.current = true;
       } catch (e) {
         console.error(e);
       } finally {
@@ -81,16 +101,16 @@ export default function AiDemoPage() {
   // This function is kept for now to map tasks to the old 'forms' structure
   // for child components. We will refactor them next.
   const forms = tasks.map(task => ({
-      form: {
-        id: task.id,
-        date: task.task_date,
-        project: task.project,
-        bucket: task.bucket,
-        hours: String(task.hours),
-        description: task.description,
-        link: task.link || '',
-      },
-      questions: demoQuestions,
+    form: {
+      id: task.id,
+      date: task.task_date,
+      project: task.project,
+      bucket: task.bucket,
+      hours: String(task.hours),
+      description: task.description,
+      link: task.link || '',
+    },
+    questions: demoQuestions,
   }));
 
 
@@ -128,8 +148,67 @@ export default function AiDemoPage() {
   }
 
 
+  const handleTaskUpdate = async (updatedTask: Task) => {
+    try {
+      const res = await fetch(`/api/daily-tasks/${updatedTask.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(updatedTask),
+      });
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.error || "Failed to update task");
+      }
+      setTasks(prev => prev.map(t => t.id === updatedTask.id ? updatedTask : t));
+      toast({
+        title: "Task updated",
+        description: "The task has been updated successfully.",
+      });
+    } catch (e) {
+      console.error("Error updating task:", e);
+      toast({
+        title: "Update failed",
+        description: e instanceof Error ? e.message : "Failed to update task",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleDeleteClick = (taskId: string) => {
+    setTaskToDelete(taskId);
+    setDeleteConfirmOpen(true);
+  };
+
+  const handleTaskDelete = async () => {
+    if (!taskToDelete) return;
+    
+    try {
+      const res = await fetch(`/api/daily-tasks/${taskToDelete}`, {
+        method: "DELETE",
+      });
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.error || "Failed to delete task");
+      }
+      setTasks(prev => prev.filter(t => t.id !== taskToDelete));
+      setDeleteConfirmOpen(false);
+      setTaskToDelete(null);
+      toast({
+        title: "Task deleted",
+        description: "The task has been deleted successfully.",
+      });
+    } catch (e) {
+      console.error("Error deleting task:", e);
+      toast({
+        title: "Delete failed",
+        description: e instanceof Error ? e.message : "Failed to delete task",
+        variant: "destructive",
+      });
+    }
+  };
+
   return (
-    <div className="max-w-5xl mx-auto pb-8">
+    <div className="max-w-7xl mx-auto pb-8">
       <h1 className="text-2xl font-bold mb-2">AI Daily Pulse Assistant</h1>
       <DailyPulseTabs tab={tab} setTab={setTab} />
 
@@ -145,17 +224,36 @@ export default function AiDemoPage() {
         />
       )}
 
-      {tab === "dashboard" && (
-        <div className="bg-white rounded-2xl border border-gray-200 shadow p-6">
-          <DashboardFilters
-            filterType={filterType}
-            setFilterType={setFilterType}
-            filterValue={filterValue}
-            setFilterValue={setFilterValue}
-          />
-          <DashboardSummary forms={forms} filterType={filterType} filterValue={filterValue} />
-        </div>
+      {tab === "review-submit" && (
+        <ReviewSubmitTab
+          tasks={tasks}
+          filterType={filterType}
+          setFilterType={setFilterType}
+          filterValue={filterValue}
+          setFilterValue={setFilterValue}
+          onTaskUpdate={handleTaskUpdate}
+          onTaskDelete={handleDeleteClick}
+        />
       )}
+
+      <Dialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete Task</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete this task? This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDeleteConfirmOpen(false)}>
+              Cancel
+            </Button>
+            <Button variant="destructive" onClick={handleTaskDelete}>
+              Delete
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {tab === "review" && (
         <ReviewTab tasks={

@@ -13,6 +13,7 @@ import {
   ListTodo,
   FolderKanban,
   FileQuestion,
+  Clock,
 } from 'lucide-react';
 
 const sidebarItems = [
@@ -55,6 +56,11 @@ const sidebarItems = [
     title: 'Daily Tasks',
     href: '/admin/daily-tasks',
     icon: ListTodo,
+  },
+  {
+    title: 'Time Approval',
+    href: '/admin/time-approval',
+    icon: Clock,
   }
 ];
 

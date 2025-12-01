@@ -53,6 +53,25 @@ export async function POST(request: Request) {
     billable?: boolean;
   };
 
+  // Check if any of the tasks belong to an approved month
+  const uniqueMonths = [...new Set(tasks.map((task: Task) => task.task_date.substring(0, 7)))];
+
+  for (const month of uniqueMonths) {
+    const { data: report } = await supabase
+      .from("monthly_reports")
+      .select("status")
+      .eq("user_id", user.id)
+      .eq("month", `${month}-01`)
+      .single();
+
+    if (report && (report.status === "approved" || report.status === "submitted")) {
+      return new NextResponse(
+        JSON.stringify({ error: `Cannot add tasks for ${month}. This month's report has been submitted or approved.` }),
+        { status: 403 }
+      );
+    }
+  }
+
   const tasksWithUserId = tasks.map((task: Task) => ({
     ...task,
     user_id: user.id,
