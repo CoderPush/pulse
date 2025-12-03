@@ -167,12 +167,6 @@ export async function PUT(
                     <p style="margin: 5px 0;"><strong>Approved At:</strong> ${approvedAtFormatted}</p>
                 </div>
                 
-                <p>
-                    <a href="${link}" 
-                       style="display: inline-block; background-color: #2563eb; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; margin-top: 10px;">
-                        View Report and Comments
-                    </a>
-                </p>
             </div>
         `;
 
