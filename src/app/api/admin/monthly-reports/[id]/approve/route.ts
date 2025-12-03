@@ -151,8 +151,6 @@ export async function PUT(
             statusMessage = `Your ${monthYear} time log has been reopened.`;
         }
 
-        const link = `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/admin/time-approval/${id}`;
-        
         const htmlBody = `
             <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
                 <h2 style="color: #2563eb;">Monthly Report ${status === "approved" ? "Approved" : status === "rejected" ? "Rejected" : "Reopened"}</h2>
