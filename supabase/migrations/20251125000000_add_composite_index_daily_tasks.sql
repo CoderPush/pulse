@@ -7,3 +7,4 @@ CREATE INDEX IF NOT EXISTS daily_tasks_user_id_task_date_idx ON public.daily_tas
 COMMENT ON INDEX daily_tasks_user_id_task_date_idx IS 'Composite index on user_id and task_date for efficient filtering by user and date range queries.';
 
 
+
