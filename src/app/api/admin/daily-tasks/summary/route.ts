@@ -50,10 +50,14 @@ export async function GET(request: Request) {
   
   const byProject: Record<string, number> = {};
   const byBucket: Record<string, number> = {};
+  const billableByProject: Record<string, number> = {};
   
   tasks?.forEach((task) => {
     if (task.project) {
       byProject[task.project] = (byProject[task.project] || 0) + (task.hours || 0);
+      if (task.billable) {
+        billableByProject[task.project] = (billableByProject[task.project] || 0) + (task.hours || 0);
+      }
     }
     if (task.bucket) {
       byBucket[task.bucket] = (byBucket[task.bucket] || 0) + (task.hours || 0);
@@ -66,7 +70,8 @@ export async function GET(request: Request) {
       billableHours,
       totalTasks,
       byProject,
-      byBucket
+      byBucket,
+      billableByProject
     }
   });
 }

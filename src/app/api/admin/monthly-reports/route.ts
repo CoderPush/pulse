@@ -53,35 +53,88 @@ export async function GET(request: Request) {
         });
     }
 
-    // Calculate hours from actual tasks for each report
-    const reportsWithCalculatedHours = await Promise.all(
-        (data || []).map(async (report) => {
-            // Fetch tasks for this user and month
-            const startDate = report.month;
-            const endDate = new Date(report.month);
-            endDate.setMonth(endDate.getMonth() + 1);
-            const endDateStr = endDate.toISOString().split('T')[0];
+    if (!data || data.length === 0) {
+        return NextResponse.json({ reports: [] });
+    }
 
-            const { data: tasks } = await supabase
-                .from("daily_tasks")
-                .select("hours, billable")
-                .eq("user_id", report.user_id)
-                .gte("task_date", startDate)
-                .lt("task_date", endDateStr);
+    // Optimize: Fetch all tasks for all reports in a single query instead of N+1 queries
+    // Collect all unique user_ids and date ranges
+    const userIds = [...new Set(data.map((report) => report.user_id))];
+    const dateRanges = data.map((report) => {
+        const startDate = report.month;
+        const endDate = new Date(report.month);
+        endDate.setMonth(endDate.getMonth() + 1);
+        const endDateStr = endDate.toISOString().split('T')[0];
+        return { startDate, endDateStr, user_id: report.user_id, month: report.month };
+    });
 
-            // Calculate total and billable hours from tasks
-            const totalHours = (tasks || []).reduce((sum, task) => sum + (task.hours || 0), 0);
-            const billableHours = (tasks || []).reduce((sum, task) => {
-                return sum + (task.billable ? (task.hours || 0) : 0);
-            }, 0);
+    // Find the overall date range to optimize the query
+    const allStartDates = dateRanges.map((r) => r.startDate);
+    const allEndDates = dateRanges.map((r) => r.endDateStr);
+    const minDate = allStartDates.sort()[0];
+    const maxDate = allEndDates.sort().reverse()[0];
 
-            return {
-                ...report,
-                total_hours: totalHours,
-                billable_hours: billableHours,
-            };
-        })
-    );
+    // Fetch all tasks for all users in the date range in a single query
+    const { data: allTasks, error: tasksError } = await supabase
+        .from("daily_tasks")
+        .select("user_id, task_date, hours, billable")
+        .in("user_id", userIds)
+        .gte("task_date", minDate)
+        .lt("task_date", maxDate);
+
+    if (tasksError) {
+        console.error("Error fetching tasks:", tasksError);
+        // Fallback to using stored values if task fetch fails
+        return NextResponse.json({ reports: data });
+    }
+
+    // Group tasks by user_id and month for efficient lookup
+    // Create a map of date ranges keyed by user_id for O(1) lookup
+    const dateRangesByUser = new Map<string, Array<{ startDate: string; endDateStr: string; month: string }>>();
+    dateRanges.forEach((range) => {
+        if (!dateRangesByUser.has(range.user_id)) {
+            dateRangesByUser.set(range.user_id, []);
+        }
+        dateRangesByUser.get(range.user_id)!.push(range);
+    });
+
+    const tasksByUserAndMonth = new Map<string, Array<{ hours: number; billable: boolean }>>();
+    
+    (allTasks || []).forEach((task) => {
+        // Find which report(s) this task belongs to for this user
+        const userRanges = dateRangesByUser.get(task.user_id);
+        if (!userRanges) return;
+
+        userRanges.forEach((range) => {
+            if (task.task_date >= range.startDate && task.task_date < range.endDateStr) {
+                const key = `${task.user_id}_${range.month}`;
+                if (!tasksByUserAndMonth.has(key)) {
+                    tasksByUserAndMonth.set(key, []);
+                }
+                tasksByUserAndMonth.get(key)!.push({
+                    hours: task.hours || 0,
+                    billable: task.billable ?? true,
+                });
+            }
+        });
+    });
+
+    // Calculate hours for each report using the pre-grouped tasks
+    const reportsWithCalculatedHours = data.map((report) => {
+        const key = `${report.user_id}_${report.month}`;
+        const tasks = tasksByUserAndMonth.get(key) || [];
+
+        const totalHours = tasks.reduce((sum, task) => sum + task.hours, 0);
+        const billableHours = tasks.reduce((sum, task) => {
+            return sum + (task.billable ? task.hours : 0);
+        }, 0);
+
+        return {
+            ...report,
+            total_hours: totalHours,
+            billable_hours: billableHours,
+        };
+    });
 
     return NextResponse.json({ reports: reportsWithCalculatedHours });
 }

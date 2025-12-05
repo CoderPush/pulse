@@ -9,7 +9,7 @@ import {
   Tooltip,
   Legend
 } from 'chart.js';
-import { Trash2, Edit2, Check, X } from "lucide-react";
+import { Trash2, Edit2, Check, X, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -130,6 +130,60 @@ export default function DashboardSummary({
     }
   };
 
+  // Helper function to escape CSV field (handles commas, quotes, newlines)
+  const escapeCSVField = (field: string | null | undefined): string => {
+    if (!field) return '';
+    const str = String(field);
+    // If field contains comma, quote, or newline, wrap in quotes and escape quotes
+    if (str.includes(',') || str.includes('"') || str.includes('\n')) {
+      return `"${str.replace(/"/g, '""')}"`;
+    }
+    return str;
+  };
+
+  const handleExportCSV = () => {
+    if (filtered.length === 0) {
+      return;
+    }
+
+    // CSV headers
+    const csvHeaders = ['Date', 'Project', 'Bucket', 'Hours', 'Billable', 'Description', 'Link'];
+    
+    // Convert tasks to CSV rows
+    const csvRows = filtered.map(task => [
+      task.task_date || '',
+      escapeCSVField(task.project),
+      escapeCSVField(task.bucket),
+      task.hours || 0,
+      task.billable ? 'Yes' : 'No',
+      escapeCSVField(task.description),
+      escapeCSVField(task.link),
+    ]);
+
+    // Combine headers and rows
+    const csvContent = [csvHeaders, ...csvRows]
+      .map(row => row.join(','))
+      .join('\n');
+
+    // Generate filename based on filter
+    let filename = 'tasks';
+    if (filterValue) {
+      filename += `-${filterValue}`;
+    }
+    filename += '.csv';
+
+    // Create blob and trigger download
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    window.URL.revokeObjectURL(url);
+  };
+
   return (
     <div className="space-y-6">
       {/* Compact Summary */}
@@ -180,6 +234,16 @@ export default function DashboardSummary({
         )}
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-lg font-semibold">Log Entries</h3>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleExportCSV}
+            disabled={filtered.length === 0}
+            className="flex items-center gap-2"
+          >
+            <Download className="h-4 w-4" />
+            Export CSV
+          </Button>
         </div>
         <div className="border rounded-md">
           <Table>

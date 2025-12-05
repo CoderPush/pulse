@@ -13,6 +13,7 @@ import {
     TableHeader,
     TableRow,
 } from "@/components/ui/table";
+import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationPrevious, PaginationNext } from "@/components/ui/pagination";
 import { useToast } from "@/components/ui/use-toast";
 import { ArrowLeft, CheckCircle, XCircle, Edit2, Trash2, Check, X } from "lucide-react";
 import Link from "next/link";
@@ -45,6 +46,15 @@ interface MonthlyReportDetail {
     comments: string;
 }
 
+interface TaskSummary {
+    totalHours: number;
+    billableHours: number;
+    totalTasks: number;
+    byProject: Record<string, number>;
+    byBucket: Record<string, number>;
+    billableByProject: Record<string, number>;
+}
+
 export default function ReportDetailPage({ params }: { params: Promise<{ id: string }> }) {
     const { id } = use(params);
     const router = useRouter();
@@ -56,6 +66,21 @@ export default function ReportDetailPage({ params }: { params: Promise<{ id: str
     const [editingId, setEditingId] = useState<string | null>(null);
     const [editForm, setEditForm] = useState<Partial<Task>>({});
     const [currentUserId, setCurrentUserId] = useState<string>("");
+    
+    // Pagination state
+    const [page, setPage] = useState(1);
+    const [totalPages, setTotalPages] = useState(1);
+    const [pageSize, setPageSize] = useState(20);
+    
+    // Summary state for accurate totals from ALL tasks
+    const [summary, setSummary] = useState<TaskSummary>({
+        totalHours: 0,
+        billableHours: 0,
+        totalTasks: 0,
+        byProject: {},
+        byBucket: {},
+        billableByProject: {}
+    });
 
     const fetchReport = useCallback(async () => {
         setLoading(true);
@@ -74,18 +99,42 @@ export default function ReportDetailPage({ params }: { params: Promise<{ id: str
         }
     }, [id]);
 
-    const fetchTasksForReport = useCallback(async () => {
+    const fetchTasksForReport = useCallback(async (pageNum: number = 1) => {
         if (!report) return;
         try {
             // Use admin endpoint with user_id and month parameters
             const reportMonth = report.month.substring(0, 7);
-            const res = await fetch(`/api/admin/daily-tasks?user=${report.user_id}&month=${reportMonth}`);
+            const res = await fetch(`/api/admin/daily-tasks?user=${report.user_id}&month=${reportMonth}&page=${pageNum}`);
             if (res.ok) {
                 const data = await res.json();
                 setTasks(data.tasks || []);
+                setTotalPages(data.totalPages || 1);
+                setPageSize(data.pageSize || 20);
             }
         } catch (err) {
             console.error("Failed to fetch tasks", err);
+        }
+    }, [report]);
+
+    // Fetch summary data separately (no pagination) to get accurate totals for ALL tasks
+    const fetchSummary = useCallback(async () => {
+        if (!report) return;
+        try {
+            const reportMonth = report.month.substring(0, 7);
+            const res = await fetch(`/api/admin/daily-tasks/summary?user=${report.user_id}&month=${reportMonth}`);
+            if (res.ok) {
+                const data = await res.json();
+                setSummary(data.summary || {
+                    totalHours: 0,
+                    billableHours: 0,
+                    totalTasks: 0,
+                    byProject: {},
+                    byBucket: {},
+                    billableByProject: {}
+                });
+            }
+        } catch (err) {
+            console.error("Failed to fetch summary", err);
         }
     }, [report]);
 
@@ -103,9 +152,22 @@ export default function ReportDetailPage({ params }: { params: Promise<{ id: str
 
     useEffect(() => {
         if (report) {
-            fetchTasksForReport();
+            fetchTasksForReport(page);
         }
-    }, [report, fetchTasksForReport]);
+    }, [report, fetchTasksForReport, page]);
+
+    // Fetch summary whenever report changes (independent of page)
+    useEffect(() => {
+        if (report) {
+            fetchSummary();
+        }
+    }, [report, fetchSummary]);
+
+    const handlePageChange = (newPage: number) => {
+        if (newPage >= 1 && newPage <= totalPages) {
+            setPage(newPage);
+        }
+    };
 
     const handleAction = async (status: "approved" | "submitted" | "draft") => {
         setProcessing(true);
@@ -167,6 +229,7 @@ export default function ReportDetailPage({ params }: { params: Promise<{ id: str
 
             // Recalculate totals
             await fetchReport();
+            await fetchSummary();
 
             toast({
                 title: "Task Updated",
@@ -196,6 +259,7 @@ export default function ReportDetailPage({ params }: { params: Promise<{ id: str
 
             // Recalculate totals
             await fetchReport();
+            await fetchSummary();
 
             toast({
                 title: "Task Deleted",
@@ -210,23 +274,9 @@ export default function ReportDetailPage({ params }: { params: Promise<{ id: str
         }
     };
 
-    // Calculate total hours and billable hours from all tasks
-    const totalHoursFromTasks = tasks.reduce((sum, task) => sum + (task.hours || 0), 0);
-    const billableHoursFromTasks = tasks.reduce((sum, task) => {
-        return sum + (task.billable ? (task.hours || 0) : 0);
-    }, 0);
-
-    // Calculate hours by project
-    const hoursByProject: Record<string, { total: number; billable: number }> = {};
-    tasks.forEach(task => {
-        if (!hoursByProject[task.project]) {
-            hoursByProject[task.project] = { total: 0, billable: 0 };
-        }
-        hoursByProject[task.project].total += task.hours || 0;
-        if (task.billable) {
-            hoursByProject[task.project].billable += task.hours || 0;
-        }
-    });
+    // Use summary data for accurate totals from ALL tasks (not just current page)
+    const totalHoursFromTasks = summary.totalHours;
+    const billableHoursFromTasks = summary.billableHours;
 
     if (loading) return <div className="p-8 text-center">Loading...</div>;
     if (!report) return <div className="p-8 text-center">Report not found</div>;
@@ -308,11 +358,11 @@ export default function ReportDetailPage({ params }: { params: Promise<{ id: str
                             </TableRow>
                         </TableHeader>
                         <TableBody>
-                            {Object.entries(hoursByProject).map(([project, hours]) => (
+                            {Object.entries(summary.byProject).map(([project, totalHours]) => (
                                 <TableRow key={project}>
                                     <TableCell className="font-medium">{project}</TableCell>
-                                    <TableCell className="text-right">{hours.total.toFixed(1)}h</TableCell>
-                                    <TableCell className="text-right">{hours.billable.toFixed(1)}h</TableCell>
+                                    <TableCell className="text-right">{totalHours.toFixed(1)}h</TableCell>
+                                    <TableCell className="text-right">{(summary.billableByProject[project] || 0).toFixed(1)}h</TableCell>
                                 </TableRow>
                             ))}
                         </TableBody>
@@ -437,6 +487,57 @@ export default function ReportDetailPage({ params }: { params: Promise<{ id: str
                             )}
                         </TableBody>
                     </Table>
+                    
+                    {/* Task count display */}
+                    <div className="flex justify-between items-center mt-4">
+                        <div className="text-sm text-gray-600">
+                            Showing {tasks.length > 0 ? (page - 1) * pageSize + 1 : 0} - {Math.min(page * pageSize, summary.totalTasks)} of {summary.totalTasks} tasks
+                        </div>
+                    </div>
+                    
+                    {/* Pagination */}
+                    {totalPages > 1 && (
+                        <div className="flex justify-center mt-6">
+                            <Pagination>
+                                <PaginationContent>
+                                    <PaginationItem>
+                                        <PaginationPrevious
+                                            href="#"
+                                            onClick={e => {
+                                                e.preventDefault();
+                                                if (page > 1) handlePageChange(page - 1);
+                                            }}
+                                            className={page === 1 ? "pointer-events-none opacity-50" : ""}
+                                        />
+                                    </PaginationItem>
+                                    {Array.from({ length: totalPages }, (_, i) => (
+                                        <PaginationItem key={i + 1}>
+                                            <PaginationLink
+                                                href="#"
+                                                isActive={page === i + 1}
+                                                onClick={e => {
+                                                    e.preventDefault();
+                                                    handlePageChange(i + 1);
+                                                }}
+                                            >
+                                                {i + 1}
+                                            </PaginationLink>
+                                        </PaginationItem>
+                                    ))}
+                                    <PaginationItem>
+                                        <PaginationNext
+                                            href="#"
+                                            onClick={e => {
+                                                e.preventDefault();
+                                                if (page < totalPages) handlePageChange(page + 1);
+                                            }}
+                                            className={page === totalPages ? "pointer-events-none opacity-50" : ""}
+                                        />
+                                    </PaginationItem>
+                                </PaginationContent>
+                            </Pagination>
+                        </div>
+                    )}
                 </CardContent>
             </Card>
 

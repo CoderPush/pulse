@@ -85,25 +85,33 @@ export async function PUT(
         const reportDate = new Date(data.month);
         const monthYear = reportDate.toLocaleString('en-US', { month: 'long', year: 'numeric' });
 
-        let message = "";
-        if (status === "approved") {
-            message = `Your ${monthYear} time log has been approved.`;
-        } else if (status === "rejected") {
-            message = `Your ${monthYear} time log has been rejected.`;
-        } else if (status === "draft") {
-            message = `Your ${monthYear} time log has been reopened.`;
-        }
-
-        const employeeEmail = (data as { user?: { email: string } })?.user?.email;
-        
-        // Get the manager email from the user's profile
-        const { data: userProfile } = await supabase
+        // Query employee information directly from users table
+        const { data: employeeData } = await supabase
             .from("users")
-            .select("manager_email")
+            .select("email, name, manager_email")
             .eq("id", report.user_id)
             .single();
 
-        const managerEmail = userProfile?.manager_email?.trim();
+        const employeeEmail = employeeData?.email;
+        const employeeName = employeeData?.name || employeeEmail || "Unknown Employee";
+        const managerEmail = employeeData?.manager_email?.trim();
+
+        // Query approver information
+        const { data: approverData } = await supabase
+            .from("users")
+            .select("email, name")
+            .eq("id", user.id)
+            .single();
+
+        const approverName = approverData?.name || approverData?.email || "Admin";
+        const approvedAt = new Date(data.approved_at || new Date().toISOString());
+        const approvedAtFormatted = approvedAt.toLocaleString('en-US', { 
+            month: 'long', 
+            day: 'numeric', 
+            year: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+        });
 
         // Build list of email recipients
         const recipients: string[] = [];
@@ -123,33 +131,55 @@ export async function PUT(
             return NextResponse.json({ report: data });
         }
 
-        let htmlBody = `<p>${message}</p>`;
+        // Build subject line
+        let subject = "";
+        if (status === "approved") {
+            subject = `Monthly Report Approved: ${employeeName} - ${monthYear}`;
+        } else if (status === "rejected") {
+            subject = `Monthly Report Rejected: ${employeeName} - ${monthYear}`;
+        } else if (status === "draft") {
+            subject = `Monthly Report Reopened: ${employeeName} - ${monthYear}`;
+        }
 
-        // Add link to view report and comments
-        const link = `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/admin/time-approval/${id}`;
-        htmlBody += `<p><a href="${link}">View Report and Comments</a></p>`;
+        // Build detailed email body
+        let statusMessage = "";
+        if (status === "approved") {
+            statusMessage = `Your ${monthYear} time log has been approved.`;
+        } else if (status === "rejected") {
+            statusMessage = `Your ${monthYear} time log has been rejected.`;
+        } else if (status === "draft") {
+            statusMessage = `Your ${monthYear} time log has been reopened.`;
+        }
 
-        // Send emails sequentially with delay to respect rate limits (2 requests/second)
-        // Add 600ms delay between emails to stay under the limit
-        // Use async IIFE to avoid blocking the response
+        const htmlBody = `
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+                <h2 style="color: #2563eb;">Monthly Report ${status === "approved" ? "Approved" : status === "rejected" ? "Rejected" : "Reopened"}</h2>
+                <p style="font-size: 1.1em;">${statusMessage}</p>
+                
+                <div style="background-color: #f3f4f6; padding: 15px; border-radius: 8px; margin: 20px 0;">
+                    <p style="margin: 5px 0;"><strong>Employee:</strong> ${employeeName}</p>
+                    <p style="margin: 5px 0;"><strong>Report Period:</strong> ${monthYear}</p>
+                    <p style="margin: 5px 0;"><strong>Total Hours:</strong> ${totalHours.toFixed(1)}h</p>
+                    <p style="margin: 5px 0;"><strong>Billable Hours:</strong> ${billableHours.toFixed(1)}h</p>
+                    <p style="margin: 5px 0;"><strong>Approved By:</strong> ${approverName}</p>
+                    <p style="margin: 5px 0;"><strong>Approved At:</strong> ${approvedAtFormatted}</p>
+                </div>
+                
+            </div>
+        `;
+
+        // Send single email with all recipients
         (async () => {
-            for (let i = 0; i < recipients.length; i++) {
-                if (i > 0) {
-                    await new Promise(resolve => setTimeout(resolve, 600));
-                }
-                const recipient = recipients[i];
-                try {
-                    await sendEmail({
-                        to: recipient,
-                        subject: message,
-                        html: htmlBody
-                    });
-                    console.log(`Email sent to ${recipient}`);
-                } catch (err) {
-                    console.error(`Failed to send email to ${recipient}:`, err);
-                }
+            try {
+                await sendEmail({
+                    to: recipients,
+                    subject: subject,
+                    html: htmlBody
+                });
+                console.log(`Email sent to recipients: ${recipients.join(', ')}`);
+            } catch (err) {
+                console.error(`Failed to send email:`, err);
             }
-            console.log(`Emails for status ${status} processed`);
         })();
     }
 
