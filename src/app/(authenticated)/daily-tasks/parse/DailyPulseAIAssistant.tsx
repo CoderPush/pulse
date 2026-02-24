@@ -79,6 +79,25 @@ export default function DailyPulseAIAssistant({ onParse }: { onParse: (tasks: an
     setRecentEntries(getRecentEntriesFromStorage());
   }, []);
 
+  // Global keyboard shortcut: press N to focus input (when not already in an input/textarea)
+  useEffect(() => {
+    const handleGlobalKeyDown = (e: KeyboardEvent) => {
+      if (
+        e.key === 'n' &&
+        !e.metaKey && !e.ctrlKey && !e.altKey &&
+        !(e.target instanceof HTMLInputElement) &&
+        !(e.target instanceof HTMLTextAreaElement) &&
+        !(e.target instanceof HTMLSelectElement) &&
+        !(e.target as HTMLElement)?.isContentEditable
+      ) {
+        e.preventDefault();
+        quickInputRef.current?.focus();
+      }
+    };
+    document.addEventListener('keydown', handleGlobalKeyDown);
+    return () => document.removeEventListener('keydown', handleGlobalKeyDown);
+  }, []);
+
   // Helper: get projects from localStorage
   function getProjectsFromStorage(): string[] {
     try {
@@ -180,6 +199,9 @@ export default function DailyPulseAIAssistant({ onParse }: { onParse: (tasks: an
 
       setQuickInput("");
       setShowQuickSuggest(false);
+
+      // Re-focus input for next entry
+      setTimeout(() => quickInputRef.current?.focus(), 0);
     } catch (e) {
       setError("Failed to log task. Please try again.");
     } finally {
@@ -496,7 +518,7 @@ export default function DailyPulseAIAssistant({ onParse }: { onParse: (tasks: an
           <input
             ref={quickInputRef}
             type="text"
-            className="w-full border-2 border-green-300 rounded-lg pl-4 pr-24 py-3 text-base focus:outline-none focus:ring-2 focus:ring-green-400 focus:border-green-400 transition bg-white"
+            className="w-full border-2 border-green-300 rounded-lg pl-4 pr-36 py-3 text-base focus:outline-none focus:ring-2 focus:ring-green-400 focus:border-green-400 transition bg-white"
             value={quickInput}
             onChange={e => {
               setQuickInput(e.target.value);
@@ -531,9 +553,16 @@ export default function DailyPulseAIAssistant({ onParse }: { onParse: (tasks: an
             placeholder="2h Client Portal fixed login bug today #feature https://github.com/..."
             disabled={quickSubmitting}
           />
-          <span className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1 text-xs text-gray-400 pointer-events-none">
-            <kbd className="px-1.5 py-0.5 bg-gray-100 border border-gray-200 rounded text-[10px] font-medium">↵</kbd>
-            <span>to log</span>
+          <span className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-2 text-xs text-gray-400 pointer-events-none">
+            <span className="inline-flex items-center gap-1">
+              <kbd className="px-1.5 py-0.5 bg-gray-100 border border-gray-200 rounded text-[10px] font-medium">N</kbd>
+              <span>focus</span>
+            </span>
+            <span className="text-gray-300">·</span>
+            <span className="inline-flex items-center gap-1">
+              <kbd className="px-1.5 py-0.5 bg-gray-100 border border-gray-200 rounded text-[10px] font-medium">↵</kbd>
+              <span>log</span>
+            </span>
           </span>
         </div>
 
