@@ -1,14 +1,55 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { useToast } from "@/components/ui/use-toast";
 import { getActiveProjects } from '@/app/actions';
+import { parseNaturalLine, getProjectSuggestions, ParsedTask } from './parseNaturalLine';
+import { ChevronDown, ChevronRight, Clock, Zap, Link as LinkIcon, Hash, Calendar, DollarSign } from 'lucide-react';
+
+interface RecentEntry {
+  project: string;
+  hours: number;
+  description: string;
+}
+
+const RECENT_ENTRIES_KEY = 'pulse_recent_daily_tasks';
+const MAX_RECENT_ENTRIES = 3;
+
+function getRecentEntriesFromStorage(): RecentEntry[] {
+  try {
+    const data = localStorage.getItem(RECENT_ENTRIES_KEY);
+    if (data) return JSON.parse(data);
+  } catch { }
+  return [];
+}
+
+function saveRecentEntriesToStorage(entries: RecentEntry[]): void {
+  try {
+    localStorage.setItem(RECENT_ENTRIES_KEY, JSON.stringify(entries.slice(0, MAX_RECENT_ENTRIES)));
+  } catch { }
+}
 
 export default function DailyPulseAIAssistant({ onParse }: { onParse: (tasks: any[]) => void }) {
   const { toast } = useToast();
+  
+  // Quick input state (new single-line natural language)
+  const [quickInput, setQuickInput] = useState("");
+  const [quickSubmitting, setQuickSubmitting] = useState(false);
+  const quickInputRef = useRef<HTMLInputElement>(null);
+  
+  // Quick input autocomplete
+  const [quickSuggestions, setQuickSuggestions] = useState<string[]>([]);
+  const [showQuickSuggest, setShowQuickSuggest] = useState(false);
+  const [quickSelectedIndex, setQuickSelectedIndex] = useState(0);
+  
+  // Recent entries
+  const [recentEntries, setRecentEntries] = useState<RecentEntry[]>([]);
+  
+  // Legacy input state (multi-line)
   const [input, setInput] = useState("");
   const [parsing, setParsing] = useState(false);
   const [error, setError] = useState("");
+  const [showAdvanced, setShowAdvanced] = useState(false);
 
-  // For project auto-suggest
+  // For legacy project auto-suggest
   const [showSuggest, setShowSuggest] = useState(false);
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const [selectedIndex, setSelectedIndex] = useState(0);
@@ -22,7 +63,6 @@ export default function DailyPulseAIAssistant({ onParse }: { onParse: (tasks: an
 
   // Fetch active projects on mount
   useEffect(() => {
-    // Prevent duplicate fetches (especially in React Strict Mode)
     if (hasFetchedProjectsRef.current) return;
 
     hasFetchedProjectsRef.current = true;
@@ -30,8 +70,32 @@ export default function DailyPulseAIAssistant({ onParse }: { onParse: (tasks: an
       .then(projects => setActiveProjects(projects.map(p => p.name)))
       .catch(err => {
         console.error('Failed to fetch active projects:', err);
-        hasFetchedProjectsRef.current = false; // Reset on error to allow retry
+        hasFetchedProjectsRef.current = false;
       });
+  }, []);
+
+  // Load recent entries from localStorage on mount
+  useEffect(() => {
+    setRecentEntries(getRecentEntriesFromStorage());
+  }, []);
+
+  // Global keyboard shortcut: press N to focus input (when not already in an input/textarea)
+  useEffect(() => {
+    const handleGlobalKeyDown = (e: KeyboardEvent) => {
+      if (
+        e.key === 'n' &&
+        !e.metaKey && !e.ctrlKey && !e.altKey &&
+        !(e.target instanceof HTMLInputElement) &&
+        !(e.target instanceof HTMLTextAreaElement) &&
+        !(e.target instanceof HTMLSelectElement) &&
+        !(e.target as HTMLElement)?.isContentEditable
+      ) {
+        e.preventDefault();
+        quickInputRef.current?.focus();
+      }
+    };
+    document.addEventListener('keydown', handleGlobalKeyDown);
+    return () => document.removeEventListener('keydown', handleGlobalKeyDown);
   }, []);
 
   // Helper: get projects from localStorage
@@ -44,12 +108,224 @@ export default function DailyPulseAIAssistant({ onParse }: { onParse: (tasks: an
   }
 
   // Helper: get all available projects for suggestions (active + localStorage)
-  function getAllProjectsForSuggestions(): string[] {
+  const allProjects = useMemo(() => {
     const storageProjects = getProjectsFromStorage();
     return Array.from(new Set([...activeProjects, ...storageProjects]));
-  }
+  }, [activeProjects]);
 
-  // Helper: extract and validate project name from line (first word only)
+  // Live parse preview for quick input
+  const parsedPreview: ParsedTask = useMemo(() => {
+    return parseNaturalLine(quickInput, allProjects);
+  }, [quickInput, allProjects]);
+
+  // Update autocomplete suggestions as user types in quick input
+  const updateQuickSuggestions = useCallback((value: string) => {
+    const suggestions = getProjectSuggestions(value, allProjects, 5);
+    setQuickSuggestions(suggestions);
+    setShowQuickSuggest(suggestions.length > 0 && value.trim().length > 0);
+    setQuickSelectedIndex(0);
+  }, [allProjects]);
+
+  // Add entry to recent list
+  const addToRecentEntries = useCallback((entry: RecentEntry) => {
+    if (!entry.project || entry.project === 'Unknown') return;
+    
+    setRecentEntries(prev => {
+      // Remove duplicate if exists
+      const filtered = prev.filter(e => 
+        !(e.project === entry.project && e.description === entry.description && e.hours === entry.hours)
+      );
+      const updated = [entry, ...filtered].slice(0, MAX_RECENT_ENTRIES);
+      saveRecentEntriesToStorage(updated);
+      return updated;
+    });
+  }, []);
+
+  // Handle quick input submission (Enter key)
+  const handleQuickSubmit = useCallback(async () => {
+    const parsed = parseNaturalLine(quickInput, allProjects);
+    
+    // Validate mandatory fields
+    const errors: string[] = [];
+    
+    if (parsed.hours <= 0) {
+      errors.push("hours (e.g., 2h)");
+    }
+    
+    if (!parsed.date) {
+      errors.push("date");
+    }
+    
+    if (errors.length > 0) {
+      toast({
+        title: "Missing required fields",
+        description: `Please add: ${errors.join(", ")}`,
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Set project to "Other" if no match found
+    const project = parsed.project === 'Unknown' ? 'Other' : parsed.project;
+
+    setQuickSubmitting(true);
+    setError("");
+
+    try {
+      const task = {
+        date: parsed.date,
+        project: project,
+        bucket: parsed.tags,
+        hours: parsed.hours,
+        description: parsed.description,
+        link: parsed.link,
+        billable: parsed.billable,
+      };
+
+      await onParse([task]);
+
+      // Add to recent entries
+      addToRecentEntries({
+        project: project,
+        hours: parsed.hours,
+        description: parsed.description,
+      });
+
+      toast({
+        title: "Task logged!",
+        description: `${parsed.hours}h ${project !== 'Other' ? `- ${project}` : ''} ${parsed.description}`.trim(),
+        variant: "default",
+      });
+
+      setQuickInput("");
+      setShowQuickSuggest(false);
+
+      // Re-focus input for next entry
+      setTimeout(() => quickInputRef.current?.focus(), 0);
+    } catch (e) {
+      setError("Failed to log task. Please try again.");
+    } finally {
+      setQuickSubmitting(false);
+    }
+  }, [quickInput, allProjects, onParse, addToRecentEntries, toast]);
+
+  // Handle clicking a recent entry chip
+  const handleRecentEntryClick = useCallback(async (entry: RecentEntry) => {
+    setQuickSubmitting(true);
+    setError("");
+
+    try {
+      const today = new Date().toISOString().slice(0, 10);
+      const task = {
+        date: today,
+        project: entry.project,
+        bucket: [],
+        hours: entry.hours,
+        description: entry.description,
+      };
+
+      await onParse([task]);
+
+      // Move to top of recent entries
+      addToRecentEntries(entry);
+
+      toast({
+        title: "Task logged!",
+        description: `${entry.hours}h - ${entry.project}: ${entry.description}`.slice(0, 60),
+        variant: "default",
+      });
+    } catch (e) {
+      setError("Failed to log task. Please try again.");
+    } finally {
+      setQuickSubmitting(false);
+    }
+  }, [onParse, addToRecentEntries, toast]);
+
+  // Insert project name into quick input - preserves original text and prepends project
+  const insertProjectIntoQuickInput = useCallback((projectName: string) => {
+    // Start with original input and extract special parts
+    let remaining = quickInput;
+    const parts: string[] = [];
+    
+    // Extract and store hours
+    const hoursMatch = remaining.match(/(\d+(?:\.\d+)?)\s*h\b|\bh\s*(\d+(?:\.\d+)?)/i);
+    if (hoursMatch) {
+      parts.push(hoursMatch[0].trim());
+      remaining = remaining.replace(hoursMatch[0], ' ');
+    }
+    
+    // Extract and store link
+    const linkMatch = remaining.match(/(https?:\/\/\S+)/);
+    let link = '';
+    if (linkMatch) {
+      link = linkMatch[1];
+      remaining = remaining.replace(linkMatch[0], ' ');
+    }
+    
+    // Extract and store billable markers (both billable and non-billable)
+    const nonBillableMatch = remaining.match(/!\$(?=\s|$)|!billable\b|\bnonbillable\b/i);
+    const billableMatch = remaining.match(/\$billable\b|\$(?=\s|$)|\bbillable\b/i);
+    let billableMarker = ''; // empty means default (billable)
+    if (nonBillableMatch) {
+      billableMarker = '!$';
+      remaining = remaining.replace(nonBillableMatch[0], ' ');
+    } else if (billableMatch) {
+      // Explicit billable marker (optional since default is billable)
+      remaining = remaining.replace(billableMatch[0], ' ');
+    }
+    
+    // Extract and store date keyword
+    const dateMatch = remaining.match(/\b@?(today|ytd|tmr)\b|@(\d{4}-\d{2}-\d{2}|\d{1,2}[\/\-]\d{1,2}(?:[\/\-]\d{2,4})?)/i);
+    let dateStr = '';
+    if (dateMatch) {
+      dateStr = dateMatch[0];
+      remaining = remaining.replace(dateMatch[0], ' ');
+    }
+    
+    // Extract and store tags
+    const tagMatches = [...remaining.matchAll(/#(\w+)/g)];
+    const tags = tagMatches.map(m => `#${m[1]}`);
+    remaining = remaining.replace(/#\w+/g, ' ');
+    
+    // Clean up remaining text (this is the description + any project words)
+    remaining = remaining.replace(/\s+/g, ' ').trim();
+    
+    // Add the selected project
+    parts.push(projectName);
+    
+    // Add remaining text as description
+    if (remaining) {
+      parts.push(remaining);
+    }
+    
+    // Add tags
+    parts.push(...tags);
+    
+    // Add non-billable marker if present
+    if (billableMarker) {
+      parts.push(billableMarker);
+    }
+    
+    // Add date
+    if (dateStr) {
+      parts.push(dateStr);
+    }
+    
+    // Add link
+    if (link) {
+      parts.push(link);
+    }
+    
+    const newInput = parts.join(' ');
+    setQuickInput(newInput);
+    setShowQuickSuggest(false);
+    
+    setTimeout(() => {
+      quickInputRef.current?.focus();
+    }, 0);
+  }, [quickInput]);
+
+  // Helper: extract and validate project name from line (first word only) - for legacy
   function extractProjectName(line: string): string {
     const projectMatch = line.match(/\+(\S+)/);
     if (!projectMatch) return "Unknown";
@@ -57,21 +333,17 @@ export default function DailyPulseAIAssistant({ onParse }: { onParse: (tasks: an
     const rawProject = projectMatch[1].trim();
     if (!rawProject) return "Unknown";
 
-    // If no active projects loaded yet, return as-is
     if (activeProjects.length === 0) return rawProject;
 
-    // Try exact match first
     if (activeProjects.includes(rawProject)) {
       return rawProject;
     }
 
-    // Try case-insensitive match
     const exactMatch = activeProjects.find(p => p.toLowerCase() === rawProject.toLowerCase());
     if (exactMatch) {
       return exactMatch;
     }
 
-    // Try partial match (project name contains the typed text)
     const partialMatch = activeProjects.find(p =>
       p.toLowerCase().includes(rawProject.toLowerCase()) ||
       rawProject.toLowerCase().includes(p.toLowerCase())
@@ -91,17 +363,15 @@ export default function DailyPulseAIAssistant({ onParse }: { onParse: (tasks: an
         method: "POST",
         body: JSON.stringify({
           text: input,
-          activeProjects: activeProjects // Send active projects for mapping
+          activeProjects: activeProjects
         }),
         headers: { "Content-Type": "application/json" }
       });
       if (!res.ok) throw new Error("Failed to parse tasks");
       const { tasks } = await res.json();
 
-      console.log('tasks', tasks);
       onParse(tasks);
 
-      // Show success toast and clear input
       toast({
         title: "AI Parsing Successful!",
         description: `Successfully parsed ${tasks.length} task${tasks.length !== 1 ? 's' : ''}`,
@@ -115,11 +385,9 @@ export default function DailyPulseAIAssistant({ onParse }: { onParse: (tasks: an
     }
   }
 
-  // Manual parse for client-side add
   function handleManualAdd() {
     setError("");
     try {
-      // Predefined date shortcuts
       const today = new Date();
       const tmr = new Date(today);
       tmr.setDate(today.getDate() + 1);
@@ -133,20 +401,16 @@ export default function DailyPulseAIAssistant({ onParse }: { onParse: (tasks: an
 
       const lines = input.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
       const tasks = lines.map(line => {
-        // Extract and validate project name (handles spaces)
         const project = extractProjectName(line);
-        // @date or @today/@tmr/@ytd or @dd/MM, @dd-MM, @dd/MM/yyyy, @dd-MM-yyyy
         let date;
         const dateMatch = line.match(/@(\d{4}-\d{2}-\d{2}|today|tmr|ytd|\d{1,2}[\/\-]\d{1,2}(?:[\/\-]\d{2,4})?)/);
         if (dateMatch) {
           const val = dateMatch[1];
           if (dateShortcuts[val]) {
-            date = dateShortcuts[val]; // from custom shortcut map
+            date = dateShortcuts[val];
           } else if (/^\d{4}-\d{2}-\d{2}$/.test(val)) {
-            date = val; // already ISO format
+            date = val;
           } else {
-            // Handle dd/MM, dd-MM, dd/MM/yyyy, dd-MM-yyyy, dd/MM/yy, dd-MM-yy
-            const today = new Date(); // Ensure 'today' is defined
             const separator = val.includes("-") ? "-" : "/";
             const parts = val.split(separator).map(p => parseInt(p, 10));
 
@@ -154,13 +418,12 @@ export default function DailyPulseAIAssistant({ onParse }: { onParse: (tasks: an
               const [d, m, rawYear] = parts;
               let y = rawYear;
               if (parts.length === 2) {
-                y = today.getFullYear(); // use current year if not provided
+                y = today.getFullYear();
               } else if (y < 100) {
-                y += 2000; // convert 2-digit year to 20xx
+                y += 2000;
               }
 
               const parsed = new Date(y, m - 1, d);
-              // Confirm parsed date is valid
               if (
                 parsed.getFullYear() === y &&
                 parsed.getMonth() === m - 1 &&
@@ -173,36 +436,25 @@ export default function DailyPulseAIAssistant({ onParse }: { onParse: (tasks: an
           }
         }
 
-        // #tags (can be multiple)
         const tagMatches = [...line.matchAll(/#(\w+)/g)].map(m => m[1]);
-        // time: 2.5h or h2.5
         const timeMatch = line.match(/(\d+(?:\.\d+)?)[ ]*h|h[ ]*(\d+(?:\.\d+)?)/i);
         let hours = undefined;
         if (timeMatch) {
           hours = timeMatch[1] || timeMatch[2];
           hours = parseFloat(hours);
         }
-        // link: https://...
         const linkMatch = line.match(/(https?:\/\/\S+)/);
         const link = linkMatch ? linkMatch[0] : undefined;
 
-        // Extract description by removing all matched tokens
         let desc = line;
-
-        // Remove project part (first word only)
         const projectMatch = line.match(/\+(\S+)/);
         if (projectMatch) {
           desc = desc.replace(projectMatch[0], "");
         }
-        // Remove date part
         desc = desc.replace(/@(\d{4}-\d{2}-\d{2}|today|tmr|ytd|\d{1,2}[\/\-]\d{1,2}(?:[\/\-]\d{2,4})?)/, "");
-        // Remove tags
         desc = desc.replace(/#(\w+)/g, "");
-        // Remove hours
         desc = desc.replace(/(\d+(?:\.\d+)?)[ ]*h|h[ ]*(\d+(?:\.\d+)?)/i, "");
-        // Remove links
         desc = desc.replace(/(https?:\/\/\S+)/, "");
-        // Clean up whitespace
         desc = desc.replace(/\s+/g, " ").trim();
 
         return {
@@ -215,13 +467,12 @@ export default function DailyPulseAIAssistant({ onParse }: { onParse: (tasks: an
         };
       });
 
-      // Save unique projects to localStorage (exclude "Unknown" projects)
       const newProjects = Array.from(
         new Set(
           tasks
             .map(t => t.project)
             .filter(Boolean)
-            .filter(p => p !== "Unknown") // Don't save "Unknown" projects
+            .filter(p => p !== "Unknown")
             .concat(getProjectsFromStorage())
         )
       );
@@ -229,7 +480,6 @@ export default function DailyPulseAIAssistant({ onParse }: { onParse: (tasks: an
 
       onParse(tasks);
 
-      // Show success toast and clear input
       toast({
         title: "Tasks Added Successfully!",
         description: `Successfully added ${tasks.length} task${tasks.length !== 1 ? 's' : ''}`,
@@ -241,189 +491,280 @@ export default function DailyPulseAIAssistant({ onParse }: { onParse: (tasks: an
     }
   }
 
+  // Validation: hours is mandatory
+  const hasValidQuickInput = parsedPreview.hours > 0;
+
   return (
-    <div className="mb-8 p-6 rounded-2xl bg-gradient-to-br from-purple-100 to-purple-50 border border-purple-200 shadow flex flex-row gap-6">
-      <div className="flex-1 basis-2/3 flex flex-col gap-2 items-stretch min-w-0">
-        <div className="font-extrabold text-2xl text-purple-800 mb-1 flex items-center gap-2">
-          <span role="img" aria-label="sparkles">✨</span> AI Assistant
-        </div>
-        <div className="text-purple-700 text-sm mb-2">
-          <div className="font-semibold mb-1">Guidelines</div>
-          <ul className="list-disc list-inside space-y-1">
-            <li>
-              <span className="font-mono bg-purple-50 px-1 rounded">AI Parse: Paste or type natural multi-line text — the AI will automatically extract tasks</span>
-            </li>
-            <li>
-              <span className="font-mono bg-purple-50 px-1 rounded">Add manually syntax: +project-name @date #tag hours Description Link. Example (you can add multiple lines):</span>
-            </li>
-            <ul className="ml-8 list-disc ">
-              <li className="text-purple-900">
-                <span className="font-mono">+project @15/07 #bugfix 2.5h Fixed login bug https://github.com/org/repo/issues/123</span>
-              </li>
-              <li>
-                <span className="font-mono bg-purple-50 px-1 rounded">@today</span>, <span className="font-mono bg-purple-50 px-1 rounded">@tmr</span>, <span className="font-mono bg-purple-50 px-1 rounded">@ytd</span> for date shortcuts
-              </li>
-              <li>
-                <span className="font-mono bg-purple-50 px-1 rounded">Cmd/Ctrl + Enter</span> to add manually
-              </li>
-            </ul>
-          </ul>
-        </div>
+    <div className="mb-4 space-y-3">
+      {/* Quick Log Section - Primary */}
+      <div className="p-6 rounded-2xl bg-gradient-to-br from-green-50 to-emerald-50 border border-green-200 shadow flex flex-row gap-6">
+        <div className="flex-1 basis-2/3 flex flex-col gap-2 items-stretch min-w-0">
+          <div className="flex items-center justify-between mb-1">
+            <div className="flex items-center gap-2">
+              <Zap className="w-5 h-5 text-green-600" />
+              <h2 className="font-bold text-lg text-green-800">Quick Log</h2>
+            </div>
+          </div>
+          <div className="text-sm text-gray-600 flex items-center gap-3 flex-wrap mb-2">
+            <span><span className="font-mono bg-green-100 px-1.5 py-0.5 rounded text-green-800">2h</span> hours</span>
+            <span><span className="font-mono bg-purple-100 px-1.5 py-0.5 rounded text-purple-800">Project</span> auto-matched</span>
+            <span><span className="font-mono bg-gray-100 px-1.5 py-0.5 rounded text-gray-700">today</span> / <span className="font-mono bg-gray-100 px-1.5 py-0.5 rounded text-gray-700">@dd/MM</span> date</span>
+            <span><span className="font-mono bg-orange-100 px-1.5 py-0.5 rounded text-orange-800">#tag</span> bucket</span>
+            <span><span className="font-mono bg-blue-100 px-1.5 py-0.5 rounded text-blue-800">https://...</span> link</span>
+          </div>
+        
+          {/* Single-line quick input with Enter hint */}
         <div className="relative">
-          {/* ...existing code for textarea and suggestions... */}
-          <textarea
-            ref={textareaRef}
-            className="w-full border border-purple-300 rounded-lg p-3 text-base focus:outline-none focus:ring-2 focus:ring-purple-400 transition"
-            rows={3}
-            value={input}
+          <input
+            ref={quickInputRef}
+            type="text"
+            className="w-full border-2 border-green-300 rounded-lg pl-4 pr-36 py-3 text-base focus:outline-none focus:ring-2 focus:ring-green-400 focus:border-green-400 transition bg-white"
+            value={quickInput}
             onChange={e => {
-              setInput(e.target.value);
-              // Detect if user is typing + and show suggestions
-              const cursor = e.target.selectionStart;
-              const before = e.target.value.slice(0, cursor);
-              const plusMatch = /\+(\S*)$/.exec(before);
-              if (plusMatch) {
-                const typed = plusMatch[1].toLowerCase().trim();
-                const allProjects = getAllProjectsForSuggestions(); // Use active + storage projects
-                const filtered = allProjects.filter(p => p.toLowerCase().includes(typed));
-                setSuggestions(filtered.slice(0, 8));
-                setShowSuggest(true);
-                setSelectedIndex(0);
-              } else {
-                setShowSuggest(false);
-              }
+              setQuickInput(e.target.value);
+              updateQuickSuggestions(e.target.value);
             }}
-            placeholder={'+project @15/07 #bugfix 2.5h Description...'}
             onKeyDown={e => {
-              if ((e.metaKey || e.ctrlKey) && e.key === "Enter") {
+              // Handle Enter key - always submit (Tab to select project)
+              if (e.key === "Enter" && !e.shiftKey) {
                 e.preventDefault();
-                handleManualAdd();
-              }
-              // Handle suggestion navigation
-              if (showSuggest && suggestions.length > 0) {
+                setShowQuickSuggest(false);
+                if (hasValidQuickInput && !quickSubmitting) {
+                  handleQuickSubmit();
+                }
+              } else if (showQuickSuggest && quickSuggestions.length > 0) {
+                // Handle autocomplete navigation
                 if (e.key === "ArrowDown") {
                   e.preventDefault();
-                  setSelectedIndex(i => (i + 1) % suggestions.length);
+                  setQuickSelectedIndex(i => (i + 1) % quickSuggestions.length);
                 } else if (e.key === "ArrowUp") {
                   e.preventDefault();
-                  setSelectedIndex(i => (i - 1 + suggestions.length) % suggestions.length);
-                } else if (e.key === "Tab" || e.key === "Enter") {
-                  // Complete with selected suggestion
+                  setQuickSelectedIndex(i => (i - 1 + quickSuggestions.length) % quickSuggestions.length);
+                } else if (e.key === "Tab") {
                   e.preventDefault();
-                  const cursor = textareaRef.current?.selectionStart ?? 0;
-                  const before = input.slice(0, cursor);
-                  const after = input.slice(cursor);
-                  const plusMatch = /\+(\S*)$/.exec(before);
-                  if (plusMatch) {
-                    const start = plusMatch.index;
-                    const newText =
-                      before.slice(0, start) +
-                      "+" + suggestions[selectedIndex] +
-                      " " +
-                      after;
-                    setInput(newText);
-                    setShowSuggest(false);
-                    // Move cursor after inserted project
-                    setTimeout(() => {
-                      if (textareaRef.current) {
-                        textareaRef.current.selectionStart = textareaRef.current.selectionEnd = start + suggestions[selectedIndex].length + 2;
-                        textareaRef.current.focus();
-                      }
-                    }, 0);
-                  }
+                  insertProjectIntoQuickInput(quickSuggestions[quickSelectedIndex]);
                 } else if (e.key === "Escape") {
-                  setShowSuggest(false);
+                  setShowQuickSuggest(false);
                 }
               }
             }}
-            onBlur={() => setTimeout(() => setShowSuggest(false), 100)}
+            onBlur={() => setTimeout(() => setShowQuickSuggest(false), 150)}
+            onFocus={() => updateQuickSuggestions(quickInput)}
+            placeholder="2h Client Portal fixed login bug today #feature https://github.com/..."
+            disabled={quickSubmitting}
           />
-          {showSuggest && suggestions.length > 0 && (
-            <ul className="absolute left-0 top-full mt-1 z-10 bg-white border border-purple-300 rounded-lg shadow w-full max-h-48 overflow-auto">
-              {suggestions.map((s, i) => (
+          <span className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-2 text-xs text-gray-400 pointer-events-none">
+            <span className="inline-flex items-center gap-1">
+              <kbd className="px-1.5 py-0.5 bg-gray-100 border border-gray-200 rounded text-[10px] font-medium">N</kbd>
+              <span>focus</span>
+            </span>
+            <span className="text-gray-300">·</span>
+            <span className="inline-flex items-center gap-1">
+              <kbd className="px-1.5 py-0.5 bg-gray-100 border border-gray-200 rounded text-[10px] font-medium">↵</kbd>
+              <span>log</span>
+            </span>
+          </span>
+        </div>
+
+        {/* Live parse preview */}
+        {quickInput.trim() && (
+          <div className="mt-3 flex items-center gap-3 text-sm">
+            <span className="text-gray-500">Preview:</span>
+            <div className="flex items-center gap-2 flex-wrap">
+              {parsedPreview.hours > 0 ? (
+                <span className="inline-flex items-center gap-1 bg-blue-100 text-blue-800 px-2 py-1 rounded-md font-medium">
+                  <Clock className="w-3 h-3" />
+                  {parsedPreview.hours}h
+                </span>
+              ) : (
+                <span className="inline-flex items-center gap-1 bg-red-100 text-red-600 px-2 py-1 rounded-md font-medium">
+                  <Clock className="w-3 h-3" />
+                  hours?
+                </span>
+              )}
+              <span className={`inline-flex items-center px-2 py-1 rounded-md font-medium ${
+                parsedPreview.project !== 'Unknown' 
+                  ? 'bg-purple-100 text-purple-800' 
+                  : 'bg-yellow-100 text-yellow-700'
+              }`}>
+                {parsedPreview.project !== 'Unknown' ? parsedPreview.project : 'Other'}
+              </span>
+              {parsedPreview.date && (
+                <span className="inline-flex items-center gap-1 bg-gray-100 text-gray-700 px-2 py-1 rounded-md font-medium">
+                  <Calendar className="w-3 h-3" />
+                  {parsedPreview.date === new Date().toISOString().slice(0, 10) 
+                    ? 'today' 
+                    : parsedPreview.date}
+                </span>
+              )}
+              {parsedPreview.tags.length > 0 && parsedPreview.tags.map(tag => (
+                <span key={tag} className="inline-flex items-center gap-1 bg-orange-100 text-orange-800 px-2 py-1 rounded-md font-medium">
+                  <Hash className="w-3 h-3" />
+                  {tag}
+                </span>
+              ))}
+              {parsedPreview.billable ? (
+                <span className="inline-flex items-center gap-1 bg-green-100 text-green-700 px-2 py-1 rounded-md font-medium">
+                  <DollarSign className="w-3 h-3" />
+                </span>
+              ) : (
+                <span className="inline-flex items-center gap-1 bg-gray-100 text-gray-500 px-2 py-1 rounded-md font-medium line-through">
+                  <DollarSign className="w-3 h-3" />
+                </span>
+              )}
+              {parsedPreview.link && (
+                <span className="inline-flex items-center gap-1 bg-sky-100 text-sky-800 px-2 py-1 rounded-md font-medium max-w-[200px] truncate">
+                  <LinkIcon className="w-3 h-3 flex-shrink-0" />
+                  <span className="truncate">{parsedPreview.link.replace(/^https?:\/\//, '')}</span>
+                </span>
+              )}
+              {parsedPreview.description && (
+                <span className="text-gray-700">
+                  {parsedPreview.description}
+                </span>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Project autocomplete dropdown - below preview */}
+        {showQuickSuggest && quickSuggestions.length > 0 && (
+          <div className="mt-2 bg-white border border-green-300 rounded-lg shadow-lg overflow-hidden">
+            <div className="px-3 py-2 bg-gray-50 border-b border-gray-200 text-xs text-gray-500 flex items-center justify-between">
+              <span>Projects matching your input</span>
+              <span className="flex items-center gap-3">
+                <span><kbd className="px-1.5 py-0.5 bg-white border rounded text-xs">↵</kbd> log it</span>
+                <span><kbd className="px-1.5 py-0.5 bg-white border rounded text-xs">Tab</kbd> pick project</span>
+                <span><kbd className="px-1.5 py-0.5 bg-white border rounded text-xs">↑↓</kbd> navigate</span>
+              </span>
+            </div>
+            <ul className="max-h-48 overflow-auto">
+              {quickSuggestions.map((project, i) => (
                 <li
-                  key={s}
-                  className={`px-4 py-2 cursor-pointer ${i === selectedIndex ? "bg-purple-100 text-purple-800 font-bold" : "hover:bg-purple-50"}`}
+                  key={project}
+                  className={`px-4 py-2.5 cursor-pointer flex items-center justify-between ${
+                    i === quickSelectedIndex 
+                      ? "bg-green-100 text-green-800" 
+                      : "hover:bg-green-50"
+                  }`}
                   onMouseDown={e => {
                     e.preventDefault();
-                    // Complete with clicked suggestion
-                    const cursor = textareaRef.current?.selectionStart ?? 0;
-                    const before = input.slice(0, cursor);
-                    const after = input.slice(cursor);
-                    const plusMatch = /\+(\S*)$/.exec(before);
-                    if (plusMatch) {
-                      const start = plusMatch.index;
-                      const newText =
-                        before.slice(0, start) +
-                        "+" + s +
-                        " " +
-                        after;
-                      setInput(newText);
-                      setShowSuggest(false);
-                      setTimeout(() => {
-                        if (textareaRef.current) {
-                          textareaRef.current.selectionStart = textareaRef.current.selectionEnd = start + s.length + 2;
-                          textareaRef.current.focus();
-                        }
-                      }, 0);
-                    }
+                    insertProjectIntoQuickInput(project);
                   }}
                 >
-                  {s}
+                  <span className={i === quickSelectedIndex ? "font-semibold" : ""}>{project}</span>
+                  {parsedPreview.project === project && (
+                    <span className="text-xs bg-green-200 text-green-800 px-2 py-0.5 rounded">matched</span>
+                  )}
                 </li>
               ))}
             </ul>
-          )}
+          </div>
+        )}
+
+        {/* Recent entries chips */}
+        {recentEntries.length > 0 && (
+          <div className="mt-4 pt-3 border-t border-green-200">
+            <div className="flex items-center gap-2 mb-2">
+              <span className="text-sm text-green-700 font-medium">Recent:</span>
+              <span className="text-xs text-gray-500">click to repeat for today</span>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {recentEntries.map((entry, idx) => (
+                <button
+                  key={`${entry.project}-${entry.description}-${idx}`}
+                  onClick={() => handleRecentEntryClick(entry)}
+                  disabled={quickSubmitting}
+                  className="inline-flex items-center gap-2 bg-white border border-green-300 hover:border-green-400 hover:bg-green-50 px-3 py-1.5 rounded-full text-sm transition disabled:opacity-50 disabled:cursor-not-allowed"
+                  title="Click to log again with today's date"
+                >
+                  <span className="text-blue-600 font-medium">{entry.hours}h</span>
+                  <span className="text-purple-600">{entry.project}</span>
+                  <span className="text-gray-600 max-w-[150px] truncate">{entry.description}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+          {error && <div className="text-red-600 text-sm font-medium mt-2">{error}</div>}
         </div>
-        <div className="flex flex-row justify-end items-center gap-2 mt-1">
-          <button
-            className="bg-purple-700 hover:bg-purple-800 text-white font-semibold text-sm px-4 py-2 rounded-md shadow-sm transition disabled:opacity-60"
-            onClick={handleParse}
-            disabled={parsing}
-            style={{ minWidth: 100 }}
-          >
-            {parsing ? "Parsing..." : "AI Parse"}
-          </button>
-          <button
-            className="bg-purple-500 hover:bg-purple-600 text-white font-semibold text-sm px-4 py-2 rounded-md shadow-sm transition disabled:opacity-60"
-            onClick={handleManualAdd}
-            disabled={parsing}
-            style={{ minWidth: 100 }}
-            title="Shortcut: Cmd/Ctrl + Enter"
-          >
-            Add Manually
-          </button>
-        </div>
-        {error && <div className="text-red-600 text-base font-semibold mt-2">{error}</div>}
-      </div>
-      {/* Right column: hide on mobile, show on md+ */}
-      <div className="basis-1/3 flex-col min-w-[220px] max-w-xs hidden md:flex">
-        <div className="p-4 rounded-xl bg-yellow-50 border border-yellow-200 text-yellow-900 text-xs shadow-sm">
-          <div className="font-semibold mb-1 mt-2 text-base">Log Time</div>
-          <div className="mb-2">Track time spent on each task or group of tasks. It doesn’t need to be precise — estimates are fine.</div>
-          <div className="font-semibold mb-1 mt-2 text-base">Use Activity Buckets</div>
-          <div className="mb-2">Categorize your time into meaningful activity types (“buckets”) that reflect how you work.</div>
-          <div className="mb-2">Suggested buckets:</div>
-          <ul className="list-disc list-inside ml-4 mb-2">
-            <li className="mb-1">
-              <span className="font-mono bg-purple-100 px-1 rounded mr-1">#feature</span>
-              <b>Features:</b> Work on new product features — from planning to coding, testing, and rollout.
-            </li>
-            <li className="mb-1">
-              <span className="font-mono bg-purple-100 px-1 rounded mr-1">#debt</span>
-              <b>Bugs/Debt:</b> Fixing bugs, refactoring, resolving performance/security issues — anything that improves or repairs existing systems.
-            </li>
-            <li className="mb-1">
-              <span className="font-mono bg-purple-100 px-1 rounded mr-1">#toil</span>
-              <b>Toil:</b> Routine, repetitive tasks — deployments, monitoring, or manual processes that don’t directly add new value.
-            </li>
-          </ul>
-          <div className="font-semibold mb-1 mt-2 text-base">Balance Your Work</div>
-          <div>
-            Aim for a healthy mix across buckets based on team goals.<br />
-            Review and adjust the ratio over time to align with desired outcomes.
+
+        {/* Right column: hide on mobile, show on md+ */}
+        <div className="basis-1/3 flex-col min-w-[180px] max-w-[260px] hidden md:flex">
+          <div className="p-3 rounded-xl bg-yellow-50 border border-yellow-200 text-yellow-900 text-xs shadow-sm">
+            <div className="font-semibold text-sm mb-1">Quick Log Syntax</div>
+            <div className="space-y-1.5 mb-2">
+              <div className="flex items-start gap-1.5">
+                <span className="font-mono bg-blue-100 text-blue-800 px-1 rounded text-[10px] shrink-0">2h</span>
+                <span>Hours (required)</span>
+              </div>
+              <div className="flex items-start gap-1.5">
+                <span className="font-mono bg-gray-200 text-gray-700 px-1 rounded text-[10px] shrink-0">!$</span>
+                <span>Mark non-billable (default: billable)</span>
+              </div>
+              <div className="flex items-start gap-1.5">
+                <span className="font-mono bg-gray-200 text-gray-700 px-1 rounded text-[10px] shrink-0">today</span>
+                <span>Date (ytd, tmr, @dd/MM)</span>
+              </div>
+            </div>
+            <div className="font-semibold text-sm mb-1 pt-2 border-t border-yellow-200">Activity Buckets</div>
+            <div className="space-y-1.5">
+              <div className="flex items-start gap-1.5">
+                <span className="font-mono bg-green-100 text-green-800 px-1 rounded text-[10px] shrink-0">#feature</span>
+                <span>New features</span>
+              </div>
+              <div className="flex items-start gap-1.5">
+                <span className="font-mono bg-orange-100 text-orange-800 px-1 rounded text-[10px] shrink-0">#debt</span>
+                <span>Bugs, refactoring</span>
+              </div>
+              <div className="flex items-start gap-1.5">
+                <span className="font-mono bg-gray-200 text-gray-700 px-1 rounded text-[10px] shrink-0">#toil</span>
+                <span>Routine ops</span>
+              </div>
+            </div>
           </div>
         </div>
+      </div>
+
+      {/* Advanced Options - Collapsible */}
+      <div className="rounded-2xl bg-gradient-to-br from-purple-100 to-purple-50 border border-purple-200 shadow">
+        <button
+          onClick={() => setShowAdvanced(!showAdvanced)}
+          className="w-full px-6 py-4 flex items-center justify-between text-left hover:bg-purple-100/50 transition rounded-2xl"
+        >
+          <div className="flex items-center gap-2">
+            {showAdvanced ? <ChevronDown className="w-5 h-5 text-purple-600" /> : <ChevronRight className="w-5 h-5 text-purple-600" />}
+            <span className="font-semibold text-purple-800">AI Parse</span>
+            <span className="text-purple-600 text-sm">Paste multi-line text for automatic extraction</span>
+          </div>
+        </button>
+
+        {showAdvanced && (
+          <div className="px-6 pb-6">
+            <div className="text-purple-700 text-sm mb-3">
+              Paste or type natural text describing your tasks — the AI will automatically extract project, hours, and description.
+            </div>
+            <textarea
+              ref={textareaRef}
+              className="w-full border border-purple-300 rounded-lg p-3 text-base focus:outline-none focus:ring-2 focus:ring-purple-400 transition"
+              rows={4}
+              value={input}
+              onChange={e => setInput(e.target.value)}
+              placeholder="Yesterday I spent 3 hours on the Alpha project fixing bugs, then 2 hours in meetings for Beta redesign..."
+            />
+            <div className="flex flex-row justify-end items-center gap-2 mt-3">
+              <button
+                className="bg-purple-700 hover:bg-purple-800 text-white font-semibold text-sm px-5 py-2.5 rounded-md shadow-sm transition disabled:opacity-60"
+                onClick={handleParse}
+                disabled={parsing}
+                style={{ minWidth: 120 }}
+              >
+                {parsing ? "Parsing..." : "AI Parse"}
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

@@ -3,6 +3,7 @@ import TaskSummaryList from "./TaskSummaryList";
 import TaskEditForm from "./TaskEditForm";
 import React, { useState, useRef } from "react";
 import { Task } from "../page";
+import { Calendar, ChevronLeft, ChevronRight } from "lucide-react";
 
 interface ParseTabProps {
   tasks: Task[];
@@ -53,6 +54,7 @@ const ParseTab: React.FC<ParseTabProps> = ({
       hours: task.hours,
       description: task.description,
       link: task.link,
+      billable: task.billable ?? false,
     }));
 
     try {
@@ -76,22 +78,59 @@ const ParseTab: React.FC<ParseTabProps> = ({
     }
   };
 
+  // Format display label for selected month
+  const getMonthLabel = () => {
+    const [year, month] = selectedMonth.split("-");
+    const date = new Date(parseInt(year), parseInt(month) - 1);
+    return date.toLocaleDateString("en-US", { month: "long", year: "numeric" });
+  };
+
+  // Navigate to previous/next month
+  const navigateMonth = (direction: -1 | 1) => {
+    const [year, month] = selectedMonth.split("-").map(Number);
+    const newDate = new Date(year, month - 1 + direction);
+    const newMonth = `${newDate.getFullYear()}-${String(newDate.getMonth() + 1).padStart(2, '0')}`;
+    setSelectedMonth(newMonth);
+  };
+
   return (
     <>
       <DailyPulseAIAssistant onParse={handleParse} />
-      <div className="flex items-center gap-3 bg-gray-50 border border-gray-200 rounded-lg px-4 py-2 mb-6 w-fit shadow-sm">
-        <label htmlFor="month-filter" className="font-medium text-gray-700">
-          Filter by month:
-        </label>
-        <input
-          id="month-filter"
-          type="month"
-          value={selectedMonth}
-          onChange={e => setSelectedMonth(e.target.value)}
-          className="border border-gray-300 rounded px-2 py-1 focus:ring-2 focus:ring-blue-400 focus:border-blue-400 transition"
-        />
+      <div className="flex items-center gap-2 mb-3">
+        <div className="inline-flex items-center bg-white border border-gray-200 rounded-md">
+          <button
+            onClick={() => navigateMonth(-1)}
+            className="p-1.5 hover:bg-gray-50 rounded-l-md transition-colors text-gray-400 hover:text-gray-600"
+            aria-label="Previous month"
+          >
+            <ChevronLeft className="w-3.5 h-3.5" />
+          </button>
+          <div className="relative flex items-center">
+            <Calendar className="w-3.5 h-3.5 text-gray-400 absolute left-1.5 pointer-events-none" />
+            <input
+              id="month-filter"
+              type="month"
+              value={selectedMonth}
+              onChange={e => setSelectedMonth(e.target.value)}
+              className="h-7 pl-6 pr-1 text-xs font-medium text-gray-600 bg-transparent border-0 focus:ring-0 outline-none cursor-pointer"
+            />
+          </div>
+          <button
+            onClick={() => navigateMonth(1)}
+            className="p-1.5 hover:bg-gray-50 rounded-r-md transition-colors text-gray-400 hover:text-gray-600"
+            aria-label="Next month"
+          >
+            <ChevronRight className="w-3.5 h-3.5" />
+          </button>
+        </div>
+        <span className="text-xs text-gray-400 hidden sm:inline">
+          {getMonthLabel()}
+        </span>
+        <span className="text-xs text-gray-400">
+          · {filteredTasks.length} task{filteredTasks.length !== 1 ? 's' : ''}
+        </span>
       </div>
-      <div className="mt-8 w-full">
+      <div className="w-full">
         <TaskSummaryList
           tasks={filteredTasks}
           setTasks={setTasks}
