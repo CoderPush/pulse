@@ -31,10 +31,13 @@ export async function POST(req: Request) {
     'hours: Number of hours spent (as a number, or null if not present).',
     'description: A brief description of the task.',
     'link: Any associated link (if mentioned, or null if not present).',
+    'billable: Whether the task is billable (boolean). Default to true when not explicitly indicated.',
     '',
     'Support natural language input, including multiple tasks described in one sentence.',
     '',
-    'Return a JSON array, one object per task, with keys: date, project, bucket, hours, description, link. If a field is missing, use null. The date field must be in ISO 8601 format if present.',
+    'Return a JSON array, one object per task, with keys: date, project, bucket, hours, description, link, billable.',
+    'If billable is missing, set it to true.',
+    'For other missing fields, use null. The date field must be in ISO 8601 format if present.',
     '',
     'User input:',
     text,
@@ -128,6 +131,7 @@ export async function POST(req: Request) {
     hours?: number | null;
     description?: string | null;
     link?: string | null;
+    billable?: boolean | null;
     [key: string]: unknown;
   }) => {
     // Fix date year if needed
@@ -140,6 +144,7 @@ export async function POST(req: Request) {
     
     // Map project to canonical name
     task.project = mapProjectToCanonical(task.project);
+    task.billable = task.billable ?? true;
     
     return task;
   });
