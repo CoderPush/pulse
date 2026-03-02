@@ -54,7 +54,7 @@ const ParseTab: React.FC<ParseTabProps> = ({
       hours: task.hours,
       description: task.description,
       link: task.link,
-      billable: task.billable ?? false,
+      billable: task.billable ?? true,
     }));
 
     try {
