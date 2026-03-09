@@ -1,0 +1,278 @@
+import 'server-only';
+
+import { createClient } from '@/utils/supabase/server';
+import type {
+  ProjectCheckinHistoryEntry,
+  ProjectCheckinMetricDefinition,
+  ProjectCheckinMetricKey,
+  ProjectCheckinMetricResponse,
+  ProjectCheckinSubmission,
+} from '@/types/project-checkin';
+
+function normalizeMetricDefinition(row: {
+  metric_key: ProjectCheckinMetricDefinition['metric_key'];
+  display_order: number;
+  layer: ProjectCheckinMetricDefinition['layer'];
+  name: string;
+  prompt: string;
+  description: string | null;
+  benchmark_version: string;
+  skippable: boolean;
+  always_comment: boolean;
+  tag_options: unknown;
+  project_type_overrides: unknown;
+  scale_guide: unknown;
+}): ProjectCheckinMetricDefinition {
+  return {
+    ...row,
+    tag_options: Array.isArray(row.tag_options) ? (row.tag_options as string[]) : [],
+    project_type_overrides:
+      row.project_type_overrides && typeof row.project_type_overrides === 'object'
+        ? (row.project_type_overrides as ProjectCheckinMetricDefinition['project_type_overrides'])
+        : {},
+    scale_guide: Array.isArray(row.scale_guide)
+      ? (row.scale_guide as ProjectCheckinMetricDefinition['scale_guide'])
+      : [],
+  };
+}
+
+function normalizeMetricResponse(row: {
+  id: string;
+  submission_id: string;
+  metric_key: ProjectCheckinMetricKey;
+  score: number | null;
+  previous_score: number | null;
+  delta: number | null;
+  is_skipped: boolean;
+  selected_tags: unknown;
+  note: string | null;
+  trigger_flags: unknown;
+  created_at: string;
+}): ProjectCheckinMetricResponse {
+  return {
+    ...row,
+    selected_tags: Array.isArray(row.selected_tags) ? (row.selected_tags as string[]) : [],
+    trigger_flags: Array.isArray(row.trigger_flags) ? (row.trigger_flags as string[]) : [],
+  };
+}
+
+export async function getProjectCheckinMetricDefinitions(): Promise<ProjectCheckinMetricDefinition[]> {
+  const supabase = await createClient();
+
+  const { data, error } = await supabase
+    .from('project_checkin_metric_definitions')
+    .select(
+      'metric_key, display_order, layer, name, prompt, description, benchmark_version, skippable, always_comment, tag_options, project_type_overrides, scale_guide',
+    )
+    .order('display_order', { ascending: true });
+
+  if (error) {
+    console.error('Failed to fetch project check-in metric definitions:', error);
+    return [];
+  }
+
+  return (data ?? []).map(normalizeMetricDefinition);
+}
+
+async function getSubmissionForProjectAndWeek(
+  userId: string,
+  projectId: string,
+  year: number,
+  weekNumber: number,
+) {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from('submissions')
+    .select('id, user_id, submission_period_id, project_id, type, year, week_number, open_note, payload_version, submitted_at')
+    .eq('user_id', userId)
+    .eq('project_id', projectId)
+    .eq('type', 'project_checkin')
+    .eq('year', year)
+    .eq('week_number', weekNumber)
+    .maybeSingle();
+
+  if (error) {
+    console.error('Failed to fetch project check-in submission:', error);
+    return null;
+  }
+  return data as ProjectCheckinSubmission | null;
+}
+
+async function getMetricResponsesForSubmissionIds(submissionIds: string[]): Promise<ProjectCheckinMetricResponse[]> {
+  if (!submissionIds.length) return [];
+
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from('project_checkin_metric_responses')
+    .select(
+      'id, submission_id, metric_key, score, previous_score, delta, is_skipped, selected_tags, note, trigger_flags, created_at',
+    )
+    .in('submission_id', submissionIds)
+    .order('created_at', { ascending: true });
+
+  if (error) {
+    console.error('Failed to fetch project check-in metric responses:', error);
+    return [];
+  }
+
+  return (data ?? []).map(normalizeMetricResponse);
+}
+
+/** Active projects available for check-in (any user can select). */
+export async function getActiveProjects(): Promise<{ id: string; name: string }[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from('projects')
+    .select('id, name')
+    .eq('is_active', true)
+    .order('name', { ascending: true });
+
+  if (error) {
+    console.error('Failed to fetch active projects:', error);
+    return [];
+  }
+  return (data ?? []) as { id: string; name: string }[];
+}
+
+async function getPreviousSubmissionByWeek(
+  userId: string,
+  projectId: string,
+  year: number,
+  weekNumber: number,
+) {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from('submissions')
+    .select('id, user_id, submission_period_id, project_id, type, year, week_number, open_note, payload_version, submitted_at')
+    .eq('user_id', userId)
+    .eq('project_id', projectId)
+    .eq('type', 'project_checkin')
+    .or(`year.lt.${year},and(year.eq.${year},week_number.lt.${weekNumber})`)
+    .order('year', { ascending: false })
+    .order('week_number', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (error) {
+    console.error('Failed to fetch previous project check-in submission:', error);
+    return null;
+  }
+  return data as ProjectCheckinSubmission | null;
+}
+
+export async function getProjectCheckinPageData(
+  userId: string,
+  projectId: string,
+  year: number,
+  weekNumber: number,
+): Promise<{
+  project: { id: string; name: string } | null;
+  definitions: ProjectCheckinMetricDefinition[];
+  currentSubmission: ProjectCheckinSubmission | null;
+  currentResponses: ProjectCheckinMetricResponse[];
+  previousResponsesByMetric: Partial<Record<ProjectCheckinMetricKey, ProjectCheckinMetricResponse>>;
+}> {
+  const supabase = await createClient();
+  const [projectResult, definitions, currentSubmission, previousSubmission] = await Promise.all([
+    supabase.from('projects').select('id, name').eq('id', projectId).eq('is_active', true).maybeSingle(),
+    getProjectCheckinMetricDefinitions(),
+    getSubmissionForProjectAndWeek(userId, projectId, year, weekNumber),
+    getPreviousSubmissionByWeek(userId, projectId, year, weekNumber),
+  ]);
+
+  const project =
+    projectResult.error || !projectResult.data
+      ? null
+      : (projectResult.data as { id: string; name: string });
+  if (!project) {
+    return {
+      project: null,
+      definitions,
+      currentSubmission: null,
+      currentResponses: [],
+      previousResponsesByMetric: {},
+    };
+  }
+
+  const responseIds = [currentSubmission?.id, previousSubmission?.id].filter(Boolean) as string[];
+  const responses = await getMetricResponsesForSubmissionIds(responseIds);
+
+  const currentResponses = currentSubmission
+    ? responses.filter((response) => response.submission_id === currentSubmission.id)
+    : [];
+
+  const previousResponses = previousSubmission
+    ? responses.filter((response) => response.submission_id === previousSubmission.id)
+    : [];
+
+  const previousResponsesByMetric = Object.fromEntries(
+    previousResponses.map((response) => [response.metric_key, response]),
+  ) as Partial<Record<ProjectCheckinMetricKey, ProjectCheckinMetricResponse>>;
+
+  return {
+    project,
+    definitions,
+    currentSubmission,
+    currentResponses,
+    previousResponsesByMetric,
+  };
+}
+
+export async function getProjectCheckinHistory(userId: string): Promise<ProjectCheckinHistoryEntry[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from('submissions')
+    .select(
+      'id, user_id, submission_period_id, project_id, type, year, week_number, open_note, payload_version, submitted_at, project:projects!inner(id, name, is_active)',
+    )
+    .eq('user_id', userId)
+    .eq('type', 'project_checkin')
+    .not('year', 'is', null)
+    .not('week_number', 'is', null)
+    .order('year', { ascending: false })
+    .order('week_number', { ascending: false })
+    .order('submitted_at', { ascending: false })
+    .limit(50);
+
+  if (error) {
+    console.error('Failed to fetch project check-in history:', error);
+    return [];
+  }
+
+  const submissions = (data ?? []).map((row) => ({
+    submission: {
+      id: row.id,
+      user_id: row.user_id,
+      submission_period_id: row.submission_period_id,
+      project_id: row.project_id,
+      type: row.type,
+      year: row.year,
+      week_number: row.week_number,
+      open_note: row.open_note,
+      payload_version: row.payload_version,
+      submitted_at: row.submitted_at,
+    },
+    project: Array.isArray(row.project) ? row.project[0] : row.project,
+    year: row.year ?? 0,
+    weekNumber: row.week_number ?? 0,
+  }));
+
+  const responses = await getMetricResponsesForSubmissionIds(
+    submissions.map((entry) => entry.submission.id),
+  );
+
+  const responsesBySubmissionId = new Map<string, ProjectCheckinMetricResponse[]>();
+  for (const response of responses) {
+    const current = responsesBySubmissionId.get(response.submission_id) ?? [];
+    current.push(response);
+    responsesBySubmissionId.set(response.submission_id, current);
+  }
+
+  return submissions.map((entry) => ({
+    submission: entry.submission,
+    project: entry.project,
+    year: entry.year,
+    weekNumber: entry.weekNumber,
+    responses: responsesBySubmissionId.get(entry.submission.id) ?? [],
+  }));
+}

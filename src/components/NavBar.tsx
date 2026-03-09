@@ -73,6 +73,15 @@ export default function NavBar({ user }: NavBarProps) {
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild>
                   <Link
+                    href="/check-ins"
+                    className="flex items-center gap-2 px-4 py-2 rounded-lg font-semibold text-blue-700 hover:bg-blue-50 transition-all duration-150 group"
+                  >
+                    <LineChart className="h-4 w-4 text-blue-500 group-hover:scale-110 transition-transform" />
+                    Project Check-ins
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link
                     href="/daily-tasks"
                     className="flex items-center gap-2 px-4 py-2 rounded-lg font-semibold text-green-700 hover:bg-green-50 transition-all duration-150 group"
                   >
@@ -123,6 +132,12 @@ export default function NavBar({ user }: NavBarProps) {
                   <Link href="/history" className="flex items-center gap-2">
                     <HeartPulse className="h-5 w-5 text-pink-500" />
                     My Weekly Pulse
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link href="/check-ins" className="flex items-center gap-2">
+                    <LineChart className="h-5 w-5 text-blue-500" />
+                    Project Check-ins
                   </Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild>
