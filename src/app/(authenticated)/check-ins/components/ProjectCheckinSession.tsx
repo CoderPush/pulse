@@ -1,26 +1,26 @@
 'use client';
 
 import Link from 'next/link';
-import { useMemo, useState } from 'react';
-import { ArrowLeft, ArrowRight, CircleAlert } from 'lucide-react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { ArrowLeft, CircleAlert } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Textarea } from '@/components/ui/textarea';
 import { getWeekDates } from '@/lib/utils/date';
 import { cn } from '@/lib/utils';
 import { WeekSelector } from './WeekSelector';
 import {
-  PROJECT_CHECKIN_LAYER_DESCRIPTIONS,
   PROJECT_CHECKIN_LAYER_LABELS,
+  PROJECT_CHECKIN_LAYER_STYLES,
   PROJECT_CHECKIN_PAYLOAD_VERSION,
+  SCORE_COLORS,
 } from '@/lib/project-checkins/constants';
-import { shouldPromptForDetail } from '@/lib/project-checkins/scoring';
 import type {
+  ProjectCheckinLayer,
   ProjectCheckinMetricDefinition,
   ProjectCheckinMetricFormValue,
   ProjectCheckinMetricKey,
   ProjectCheckinMetricResponse,
+  ProjectCheckinScaleGuide,
   ProjectCheckinSubmission,
 } from '@/types/project-checkin';
 
@@ -33,10 +33,6 @@ type ProjectCheckinSessionProps = {
   currentSubmission: ProjectCheckinSubmission | null;
   currentResponses: ProjectCheckinMetricResponse[];
 };
-
-type SessionStep = 'rate' | 'details' | 'note';
-
-const SCORE_OPTIONS = [1, 2, 3, 4, 5] as const;
 
 function buildInitialMetricValues(args: {
   definitions: ProjectCheckinMetricDefinition[];
@@ -62,104 +58,329 @@ function buildInitialMetricValues(args: {
   ) as Record<ProjectCheckinMetricKey, ProjectCheckinMetricFormValue>;
 }
 
-function MetricGuide({ definition }: { definition: ProjectCheckinMetricDefinition }) {
-  return (
-    <details className="rounded-lg border border-dashed border-slate-300 bg-slate-50/60 p-3 text-sm">
-      <summary className="cursor-pointer font-medium text-slate-700">Benchmarks</summary>
-      <div className="mt-3 space-y-2">
-        {definition.scale_guide.map((item) => (
-          <div key={item.score} className="rounded-md bg-white p-2">
-            <div className="font-medium text-slate-900">
-              {item.score}. {item.label}
-            </div>
-            <div className="text-slate-600">{item.shortLabel}</div>
-          </div>
-        ))}
-      </div>
-    </details>
-  );
+function getNotePlaceholder(definition: ProjectCheckinMetricDefinition, score: number): string {
+  if (definition.always_comment) return 'What did the team learn this week? (required)';
+  if (score <= 2) return "What's the main issue? (recommended)";
+  if (score >= 4) return "What's going well? Worth sharing? (recommended)";
+  return 'Add context (optional)';
 }
 
-function ScoreSelector({
+/* ─── Benchmark Tooltip ───────────────────────────────────────── */
+
+function BenchmarkTooltip({
   definition,
-  value,
-  previousScore,
-  onScoreSelect,
-  onSkipToggle,
-  disabled,
+  position,
+  onClose,
 }: {
   definition: ProjectCheckinMetricDefinition;
-  value: ProjectCheckinMetricFormValue;
-  previousScore: number | null;
-  onScoreSelect: (score: number) => void;
-  onSkipToggle: () => void;
-  disabled: boolean;
+  position: { top: number; left: number };
+  onClose: () => void;
 }) {
-  const selectedGuide = definition.scale_guide.find((item) => item.score === value.score);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (ref.current && !ref.current.contains(event.target as Node)) onClose();
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [onClose]);
 
   return (
-    <Card className="border-slate-200">
-      <CardHeader className="pb-3">
-        <div className="flex flex-wrap items-start justify-between gap-3">
-          <div>
-            <CardTitle className="text-base">{definition.name}</CardTitle>
-            <CardDescription className="mt-1 text-sm text-slate-600">
-              {definition.prompt}
-            </CardDescription>
+    <div
+      ref={ref}
+      className="fixed z-50 w-[360px] max-h-[400px] overflow-y-auto rounded-xl shadow-2xl"
+      style={{
+        top: Math.min(position.top, typeof window !== 'undefined' ? window.innerHeight - 420 : position.top),
+        left: Math.min(position.left, typeof window !== 'undefined' ? window.innerWidth - 380 : position.left),
+        background: '#1e1e2e',
+        color: '#cdd6f4',
+        fontSize: 13,
+        lineHeight: 1.5,
+        padding: '16px 18px',
+      }}
+    >
+      <div className="mb-3 flex items-center justify-between">
+        <span className="text-sm font-bold" style={{ color: '#cba6f7' }}>
+          {definition.name} — Guide
+        </span>
+        <button
+          type="button"
+          onClick={onClose}
+          className="cursor-pointer border-none bg-transparent p-0 text-lg"
+          style={{ color: '#6c7086' }}
+        >
+          ×
+        </button>
+      </div>
+      {definition.scale_guide.map((item) => {
+        const sc = SCORE_COLORS[item.score];
+        if (!sc) return null;
+        return (
+          <div
+            key={item.score}
+            className="mb-2.5 rounded-lg p-2"
+            style={{
+              background: 'rgba(255,255,255,0.04)',
+              borderLeft: `3px solid ${sc.fill}`,
+            }}
+          >
+            <div className="mb-0.5 flex items-center gap-2">
+              <span
+                className="w-[18px] text-center text-[15px] font-extrabold"
+                style={{ color: sc.fill }}
+              >
+                {item.score}
+              </span>
+              <span className="text-[13px] font-bold" style={{ color: '#e0e0e0' }}>
+                {item.label}
+              </span>
+            </div>
+            <div className="pl-[26px] text-xs" style={{ color: '#a6adc8' }}>
+              {item.description}
+            </div>
           </div>
-          <div className="text-sm text-slate-500">
-            Last week: <span className="font-semibold text-slate-900">{previousScore ?? '-'}</span>
-          </div>
-        </div>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        <div className="grid grid-cols-5 gap-2">
-          {SCORE_OPTIONS.map((score) => (
-            <button
-              key={score}
-              type="button"
-              onClick={() => onScoreSelect(score)}
-              disabled={disabled}
-              className={cn(
-                'rounded-lg border px-3 py-3 text-center text-sm font-semibold transition',
-                value.score === score && !value.isSkipped
-                  ? 'border-blue-600 bg-blue-600 text-white'
-                  : 'border-slate-200 bg-white text-slate-700 hover:border-slate-300 hover:bg-slate-50',
-                disabled && 'cursor-not-allowed opacity-60',
-              )}
-            >
-              <div>{score}</div>
-              <div className="mt-1 text-xs font-normal">
-                {definition.scale_guide.find((item) => item.score === score)?.label}
-              </div>
-            </button>
-          ))}
-        </div>
-
-        {definition.skippable ? (
-          <div className="flex items-center justify-between rounded-lg bg-slate-50 px-3 py-2 text-sm text-slate-600">
-            <span>Skip if you do not have enough visibility for this metric.</span>
-            <Button type="button" variant="outline" size="sm" onClick={onSkipToggle} disabled={disabled}>
-              {value.isSkipped ? 'Undo skip' : 'Skip'}
-            </Button>
-          </div>
-        ) : null}
-
-        {value.isSkipped ? (
-          <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
-            Skipped for this project check-in.
-          </div>
-        ) : selectedGuide ? (
-          <div className="rounded-lg border border-blue-100 bg-blue-50 px-3 py-2 text-sm text-blue-900">
-            <span className="font-semibold">{selectedGuide.label}:</span> {selectedGuide.shortLabel}
-          </div>
-        ) : null}
-
-        <MetricGuide definition={definition} />
-      </CardContent>
-    </Card>
+        );
+      })}
+    </div>
   );
 }
+
+/* ─── Score Button ────────────────────────────────────────────── */
+
+function ScoreButton({
+  score,
+  selected,
+  onClick,
+  guide,
+  disabled,
+}: {
+  score: number;
+  selected: number | null;
+  onClick: () => void;
+  guide: ProjectCheckinScaleGuide;
+  disabled: boolean;
+}) {
+  const sc = SCORE_COLORS[score];
+  if (!sc) return null;
+  const isSelected = selected === score;
+
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      title={`${guide.label}: ${guide.shortLabel}`}
+      className={cn(
+        'flex h-[52px] w-[52px] cursor-pointer flex-col items-center justify-center gap-0.5 rounded-[10px] transition-all duration-200',
+        disabled && 'cursor-not-allowed opacity-60',
+      )}
+      style={{
+        border: `2px solid ${isSelected ? sc.fill : 'rgba(200,200,210,0.25)'}`,
+        background: isSelected ? sc.bg : 'rgba(255,255,255,0.6)',
+        boxShadow: isSelected ? `0 2px 12px ${sc.fill}30` : 'none',
+        transform: isSelected ? 'scale(1.08)' : 'scale(1)',
+      }}
+    >
+      <span
+        className="text-[17px] font-extrabold leading-none"
+        style={{ color: isSelected ? sc.fill : '#94a3b8' }}
+      >
+        {score}
+      </span>
+      <span
+        className="text-[8px] font-semibold leading-none tracking-tight"
+        style={{ color: isSelected ? sc.text : '#b0b8c8' }}
+      >
+        {guide.label}
+      </span>
+    </button>
+  );
+}
+
+/* ─── Tag Selector ────────────────────────────────────────────── */
+
+function TagSelector({
+  tags,
+  selected,
+  onToggle,
+}: {
+  tags: string[];
+  selected: string[];
+  onToggle: (tag: string) => void;
+}) {
+  return (
+    <div className="mb-2 flex flex-wrap gap-1.5">
+      {tags.map((tag) => {
+        const isActive = selected.includes(tag);
+        return (
+          <button
+            key={tag}
+            type="button"
+            onClick={() => onToggle(tag)}
+            className="cursor-pointer rounded-md px-2.5 py-1 text-[11px] transition-all duration-150"
+            style={{
+              border: `1.5px solid ${isActive ? '#818cf8' : 'rgba(200,200,210,0.3)'}`,
+              background: isActive ? '#eef2ff' : 'rgba(255,255,255,0.5)',
+              color: isActive ? '#4f46e5' : '#64748b',
+              fontWeight: isActive ? 700 : 500,
+            }}
+          >
+            {tag}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+/* ─── Note Input ──────────────────────────────────────────────── */
+
+function NoteInput({
+  value,
+  onChange,
+  placeholder,
+}: {
+  value: string;
+  onChange: (value: string) => void;
+  placeholder: string;
+}) {
+  return (
+    <textarea
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      placeholder={placeholder}
+      rows={2}
+      className="box-border w-full resize-y rounded-lg px-3 py-2.5 text-[13px] text-slate-700 outline-none transition-colors duration-200"
+      style={{
+        border: '1.5px solid rgba(200,200,210,0.3)',
+        background: 'rgba(255,255,255,0.7)',
+      }}
+      onFocus={(e) => {
+        e.target.style.borderColor = '#818cf8';
+      }}
+      onBlur={(e) => {
+        e.target.style.borderColor = 'rgba(200,200,210,0.3)';
+      }}
+    />
+  );
+}
+
+/* ─── Submitted View ──────────────────────────────────────────── */
+
+function SubmittedView({
+  project,
+  weekLabel,
+  definitions,
+  metricValues,
+  previousResponsesByMetric,
+  onEdit,
+}: {
+  project: { id: string; name: string };
+  weekLabel: string;
+  definitions: ProjectCheckinMetricDefinition[];
+  metricValues: Record<ProjectCheckinMetricKey, ProjectCheckinMetricFormValue>;
+  previousResponsesByMetric: Partial<Record<ProjectCheckinMetricKey, ProjectCheckinMetricResponse>>;
+  onEdit: () => void;
+}) {
+  const changes = definitions.filter((def) => {
+    const score = metricValues[def.metric_key].score;
+    const prev = previousResponsesByMetric[def.metric_key]?.score ?? null;
+    return score !== null && prev !== null && score !== prev;
+  });
+
+  return (
+    <div className="mx-auto max-w-[600px]">
+      <div className="mb-6 rounded-xl border-[1.5px] border-green-300 bg-green-50 px-5 py-4 text-center">
+        <div className="mb-1 text-xl font-bold text-green-600">✓ Submitted</div>
+        <div className="text-sm text-green-700">
+          {project.name} — {weekLabel}
+        </div>
+      </div>
+
+      <div
+        className="mb-4 rounded-xl p-5"
+        style={{ background: '#fff', border: '1.5px solid rgba(200,200,210,0.25)' }}
+      >
+        <div className="mb-1 grid grid-cols-[1fr_60px_70px] gap-0 border-b border-slate-100 pb-2 text-xs font-bold text-slate-400">
+          <span>Metric</span>
+          <span className="text-center">You</span>
+          <span className="text-center">Δ Week</span>
+        </div>
+        {definitions.map((def) => {
+          const value = metricValues[def.metric_key];
+          const score = value.score;
+          const prev = previousResponsesByMetric[def.metric_key]?.score ?? null;
+          const delta = score !== null && prev !== null ? score - prev : null;
+
+          return (
+            <div
+              key={def.metric_key}
+              className="grid grid-cols-[1fr_60px_70px] items-center gap-0 border-b border-slate-50 py-2.5"
+            >
+              <span className="text-[13px] font-semibold text-slate-700">{def.name}</span>
+              <span
+                className="text-center text-base font-extrabold"
+                style={{
+                  color: value.isSkipped ? '#cbd5e1' : score ? SCORE_COLORS[score]?.fill : '#cbd5e1',
+                }}
+              >
+                {value.isSkipped ? '—' : (score ?? '—')}
+              </span>
+              <span
+                className="text-center text-[13px] font-bold"
+                style={{
+                  color:
+                    delta === null ? '#94a3b8' : delta > 0 ? '#16a34a' : delta < 0 ? '#dc2626' : '#94a3b8',
+                }}
+              >
+                {delta === null
+                  ? '—'
+                  : delta > 0
+                    ? `↑${delta}`
+                    : delta < 0
+                      ? `↓${Math.abs(delta)}`
+                      : '—'}
+              </span>
+            </div>
+          );
+        })}
+      </div>
+
+      {changes.length > 0 && (
+        <div className="mb-4 rounded-[10px] border-[1.5px] border-yellow-300 bg-yellow-50 px-4 py-3 text-[13px]">
+          <div className="mb-1.5 font-bold text-amber-700">📊 Notable changes</div>
+          {changes.map((def) => {
+            const score = metricValues[def.metric_key].score!;
+            const prev = previousResponsesByMetric[def.metric_key]!.score!;
+            const diff = score - prev;
+            return (
+              <div key={def.metric_key} className="mb-0.5 text-amber-800">
+                {def.name}: {prev} → {score} ({diff > 0 ? '+' : ''}
+                {diff})
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      <div className="mt-5 flex gap-2.5">
+        <button
+          type="button"
+          onClick={onEdit}
+          className="flex-1 cursor-pointer rounded-[10px] border-[1.5px] border-indigo-200 bg-white py-3 text-sm font-bold text-indigo-600"
+        >
+          ← Edit Response
+        </button>
+        <Button asChild className="h-auto flex-1 rounded-[10px] py-3 text-sm font-bold">
+          <Link href="/check-ins">Back to Check-ins →</Link>
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+/* ─── Main Component ──────────────────────────────────────────── */
 
 export default function ProjectCheckinSession({
   project,
@@ -170,39 +391,76 @@ export default function ProjectCheckinSession({
   currentSubmission,
   currentResponses,
 }: ProjectCheckinSessionProps) {
-  const [step, setStep] = useState<SessionStep>('rate');
-  const [metricValues, setMetricValues] = useState<Record<ProjectCheckinMetricKey, ProjectCheckinMetricFormValue>>(
-    buildInitialMetricValues({ definitions, currentResponses }),
-  );
+  const [metricValues, setMetricValues] = useState<
+    Record<ProjectCheckinMetricKey, ProjectCheckinMetricFormValue>
+  >(buildInitialMetricValues({ definitions, currentResponses }));
   const [openNote, setOpenNote] = useState(currentSubmission?.open_note ?? '');
   const [submitting, setSubmitting] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [tooltipDefinition, setTooltipDefinition] =
+    useState<ProjectCheckinMetricDefinition | null>(null);
+  const [tooltipPos, setTooltipPos] = useState({ top: 0, left: 0 });
 
-  const groupedDefinitions = useMemo(() => {
-    return definitions.reduce<Record<string, ProjectCheckinMetricDefinition[]>>((acc, definition) => {
-      if (!acc[definition.layer]) acc[definition.layer] = [];
-      acc[definition.layer].push(definition);
-      return acc;
-    }, {});
-  }, [definitions]);
+  const filledCount = useMemo(() => {
+    return definitions.filter((def) => {
+      const value = metricValues[def.metric_key];
+      return value.score !== null || value.isSkipped;
+    }).length;
+  }, [definitions, metricValues]);
 
-  const allMetricsAnswered = definitions.every((definition) => {
-    const value = metricValues[definition.metric_key];
+  const allMetricsAnswered = definitions.every((def) => {
+    const value = metricValues[def.metric_key];
     if (!value) return false;
-    if (definition.skippable && value.isSkipped) return true;
+    if (def.skippable && value.isSkipped) return true;
     return value.score !== null;
   });
 
-  const promptedDefinitions = useMemo(
-    () =>
-      definitions.filter((definition) =>
-        shouldPromptForDetail({
-          definition,
-          value: metricValues[definition.metric_key],
-          previousScore: previousResponsesByMetric[definition.metric_key]?.score ?? null,
-        }),
-      ),
-    [definitions, metricValues, previousResponsesByMetric],
+  const handleScore = useCallback((metricKey: ProjectCheckinMetricKey, score: number) => {
+    setMetricValues((current) => ({
+      ...current,
+      [metricKey]: { ...current[metricKey], score, isSkipped: false },
+    }));
+  }, []);
+
+  const handleSkip = useCallback((metricKey: ProjectCheckinMetricKey) => {
+    setMetricValues((current) => ({
+      ...current,
+      [metricKey]: { ...current[metricKey], isSkipped: true, score: null },
+    }));
+  }, []);
+
+  const handleUndoSkip = useCallback((metricKey: ProjectCheckinMetricKey) => {
+    setMetricValues((current) => ({
+      ...current,
+      [metricKey]: { ...current[metricKey], isSkipped: false },
+    }));
+  }, []);
+
+  const handleTagToggle = useCallback((metricKey: ProjectCheckinMetricKey, tag: string) => {
+    setMetricValues((current) => {
+      const currentTags = current[metricKey].selectedTags;
+      const selectedTags = currentTags.includes(tag)
+        ? currentTags.filter((t) => t !== tag)
+        : [...currentTags, tag];
+      return { ...current, [metricKey]: { ...current[metricKey], selectedTags } };
+    });
+  }, []);
+
+  const handleNoteChange = useCallback((metricKey: ProjectCheckinMetricKey, note: string) => {
+    setMetricValues((current) => ({
+      ...current,
+      [metricKey]: { ...current[metricKey], note },
+    }));
+  }, []);
+
+  const showTooltip = useCallback(
+    (definition: ProjectCheckinMetricDefinition, event: React.MouseEvent) => {
+      const rect = (event.currentTarget as HTMLElement).getBoundingClientRect();
+      setTooltipPos({ top: rect.bottom + 8, left: rect.left });
+      setTooltipDefinition(definition);
+    },
+    [],
   );
 
   async function submitCheckin() {
@@ -219,12 +477,12 @@ export default function ProjectCheckinSession({
           weekNumber,
           payloadVersion: PROJECT_CHECKIN_PAYLOAD_VERSION,
           openNote,
-          metrics: definitions.map((definition) => ({
-            metricKey: definition.metric_key,
-            score: metricValues[definition.metric_key].score,
-            isSkipped: metricValues[definition.metric_key].isSkipped,
-            selectedTags: metricValues[definition.metric_key].selectedTags,
-            note: metricValues[definition.metric_key].note,
+          metrics: definitions.map((def) => ({
+            metricKey: def.metric_key,
+            score: metricValues[def.metric_key].score,
+            isSkipped: metricValues[def.metric_key].isSkipped,
+            selectedTags: metricValues[def.metric_key].selectedTags,
+            note: metricValues[def.metric_key].note,
           })),
         }),
       });
@@ -236,8 +494,7 @@ export default function ProjectCheckinSession({
         return;
       }
 
-      window.location.href = '/check-ins';
-      return;
+      setSubmitted(true);
     } catch {
       setSubmitError('Something went wrong while submitting the project check-in.');
     } finally {
@@ -247,244 +504,268 @@ export default function ProjectCheckinSession({
 
   const weekDates = getWeekDates(weekNumber, year);
 
+  if (submitted) {
+    return (
+      <SubmittedView
+        project={project}
+        weekLabel={weekDates.label}
+        definitions={definitions}
+        metricValues={metricValues}
+        previousResponsesByMetric={previousResponsesByMetric}
+        onEdit={() => setSubmitted(false)}
+      />
+    );
+  }
+
+  let currentLayer: ProjectCheckinLayer | null = null;
+
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col gap-4 sm:flex-row sm:flex-wrap sm:items-start sm:justify-between">
-        <div className="min-w-0">
-          <div className="text-sm font-medium text-slate-500">Project metric check-in</div>
-          <h1 className="mt-0.5 text-2xl font-semibold text-slate-950">{project.name}</h1>
-          <p className="mt-1.5 text-sm text-slate-600" title={weekDates.labelLong}>
-            {weekDates.labelLong}
-          </p>
-          <p className="mt-0.5 text-xs text-slate-500">
-            {year}-W{weekNumber.toString().padStart(2, '0')}
-          </p>
+    <div className="relative mx-auto max-w-[600px]">
+      {tooltipDefinition && (
+        <BenchmarkTooltip
+          definition={tooltipDefinition}
+          position={tooltipPos}
+          onClose={() => setTooltipDefinition(null)}
+        />
+      )}
+
+      {/* Header */}
+      <div className="mb-5 flex items-start justify-between">
+        <div>
+          <div className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
+            Weekly Check-in
+          </div>
+          <h1 className="mt-0.5 text-[22px] font-extrabold text-slate-800">{project.name}</h1>
+          <div className="mt-0.5 text-[13px] text-slate-500">{weekDates.labelLong}</div>
         </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <WeekSelector projectId={project.id} year={year} weekNumber={weekNumber} />
-          <Button asChild variant="outline">
-            <Link href="/check-ins">
-              <ArrowLeft className="mr-2 h-4 w-4" />
-              Back to check-ins
-            </Link>
-          </Button>
+        <div className="rounded-lg bg-slate-50 px-3 py-2 text-center">
+          <div
+            className="text-xl font-extrabold"
+            style={{ color: filledCount === definitions.length ? '#16a34a' : '#6366f1' }}
+          >
+            {filledCount}/{definitions.length}
+          </div>
+          <div className="text-[10px] font-semibold text-slate-400">rated</div>
         </div>
       </div>
 
-      <Card className="border-slate-200">
-        <CardHeader>
-          <CardTitle className="text-lg">
-            {step === 'rate' ? 'Step 1 of 3: Rate metrics' : step === 'details' ? 'Step 2 of 3: Add context' : 'Step 3 of 3: Open note'}
-          </CardTitle>
-          <CardDescription>
-            {step === 'rate'
-              ? 'Rate all nine metrics for this project. Use skip only where the rubric explicitly allows it.'
-              : step === 'details'
-                ? 'Only the metrics that need extra context are shown here.'
-                : 'Capture anything important that the metric rubric did not cover.'}
-          </CardDescription>
-        </CardHeader>
-      </Card>
+      {/* Navigation */}
+      <div className="mb-5 flex items-center gap-2">
+        <WeekSelector projectId={project.id} year={year} weekNumber={weekNumber} />
+        <Button asChild variant="outline" size="sm">
+          <Link href="/check-ins">
+            <ArrowLeft className="mr-1.5 h-3.5 w-3.5" />
+            Back
+          </Link>
+        </Button>
+      </div>
 
-      {step === 'rate' ? (
-        <>
-          {(['foundation', 'execution', 'outcome'] as const).map((layer) => {
-            const layerDefinitions = groupedDefinitions[layer] ?? [];
-            if (!layerDefinitions.length) return null;
+      {/* Hint */}
+      <div className="mb-6 flex items-center gap-2 rounded-lg bg-slate-50 px-3 py-2 text-xs text-slate-500">
+        <span className="text-base">💡</span>
+        <span>
+          Tap a score to rate, then add context. Tap <strong>?</strong> for the benchmark guide.
+        </span>
+      </div>
 
-            return (
-              <section key={layer} className="space-y-3">
-                <div>
-                  <h2 className="text-lg font-semibold text-slate-900">{PROJECT_CHECKIN_LAYER_LABELS[layer]}</h2>
-                  <p className="text-sm text-slate-600">{PROJECT_CHECKIN_LAYER_DESCRIPTIONS[layer]}</p>
-                </div>
-                <div className="space-y-4">
-                  {layerDefinitions.map((definition) => (
-                    <ScoreSelector
-                      key={definition.metric_key}
-                      definition={definition}
-                      value={metricValues[definition.metric_key]}
-                      previousScore={previousResponsesByMetric[definition.metric_key]?.score ?? null}
-                      disabled={submitting}
-                      onScoreSelect={(score) =>
-                        setMetricValues((current) => ({
-                          ...current,
-                          [definition.metric_key]: {
-                            ...current[definition.metric_key],
-                            score,
-                            isSkipped: false,
-                          },
-                        }))
-                      }
-                      onSkipToggle={() =>
-                        setMetricValues((current) => ({
-                          ...current,
-                          [definition.metric_key]: {
-                            ...current[definition.metric_key],
-                            isSkipped: !current[definition.metric_key].isSkipped,
-                            score: current[definition.metric_key].isSkipped ? current[definition.metric_key].score : null,
-                          },
-                        }))
-                      }
-                    />
-                  ))}
-                </div>
-              </section>
-            );
-          })}
+      {/* Metrics grouped by layer */}
+      {definitions.map((definition, idx) => {
+        const showLayerHeader = definition.layer !== currentLayer;
+        if (showLayerHeader) currentLayer = definition.layer;
+        const ls = PROJECT_CHECKIN_LAYER_STYLES[definition.layer];
+        const value = metricValues[definition.metric_key];
+        const score = value.score;
+        const prevScore = previousResponsesByMetric[definition.metric_key]?.score ?? null;
+        const selectedGuide =
+          score !== null ? definition.scale_guide.find((g) => g.score === score) : null;
 
-          <div className="flex items-center justify-between gap-3">
-            <div className="text-sm text-slate-500">
-              {allMetricsAnswered
-                ? 'All required metrics have been rated.'
-                : 'Rate every metric before continuing.'}
-            </div>
-            <Button
-              onClick={() => setStep(promptedDefinitions.length > 0 ? 'details' : 'note')}
-              disabled={!allMetricsAnswered || submitting}
-            >
-              Continue
-              <ArrowRight className="ml-2 h-4 w-4" />
-            </Button>
-          </div>
-        </>
-      ) : null}
-
-      {step === 'details' ? (
-        <>
-          {promptedDefinitions.length === 0 ? (
-            <Card className="border-slate-200">
-              <CardContent className="py-6 text-sm text-slate-600">
-                No additional prompts were triggered for this project.
-              </CardContent>
-            </Card>
-          ) : (
-            promptedDefinitions.map((definition) => {
-              const value = metricValues[definition.metric_key];
-              const previousScore = previousResponsesByMetric[definition.metric_key]?.score ?? null;
-              const currentScore = value.isSkipped ? null : value.score;
-
-              return (
-                <Card key={definition.metric_key} className="border-slate-200">
-                  <CardHeader className="pb-3">
-                    <CardTitle className="text-base">{definition.name}</CardTitle>
-                    <CardDescription>
-                      Current: {currentScore ?? 'Skipped'} | Previous: {previousScore ?? '-'}
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div className="flex flex-wrap gap-2">
-                      {definition.tag_options.map((tag) => {
-                        const selected = value.selectedTags.includes(tag);
-                        return (
-                          <button
-                            key={tag}
-                            type="button"
-                            className={cn(
-                              'rounded-full border px-3 py-1 text-sm transition',
-                              selected
-                                ? 'border-blue-600 bg-blue-600 text-white'
-                                : 'border-slate-200 bg-white text-slate-700 hover:border-slate-300 hover:bg-slate-50',
-                            )}
-                            onClick={() =>
-                              setMetricValues((current) => {
-                                const currentTags = current[definition.metric_key].selectedTags;
-                                const selectedTags = currentTags.includes(tag)
-                                  ? currentTags.filter((item) => item !== tag)
-                                  : [...currentTags, tag];
-
-                                return {
-                                  ...current,
-                                  [definition.metric_key]: {
-                                    ...current[definition.metric_key],
-                                    selectedTags,
-                                  },
-                                };
-                              })
-                            }
-                          >
-                            {tag}
-                          </button>
-                        );
-                      })}
-                    </div>
-
-                    <Textarea
-                      value={value.note}
-                      onChange={(event) =>
-                        setMetricValues((current) => ({
-                          ...current,
-                          [definition.metric_key]: {
-                            ...current[definition.metric_key],
-                            note: event.target.value,
-                          },
-                        }))
-                      }
-                      placeholder={
-                        definition.always_comment
-                          ? 'What did the team learn or improve this week?'
-                          : 'Add a short note with the key context behind this score.'
-                      }
-                      rows={4}
-                    />
-                  </CardContent>
-                </Card>
-              );
-            })
-          )}
-
-          <div className="flex items-center justify-between gap-3">
-            <Button variant="outline" onClick={() => setStep('rate')} disabled={submitting}>
-              Back
-            </Button>
-            <Button onClick={() => setStep('note')} disabled={submitting}>
-              Continue
-              <ArrowRight className="ml-2 h-4 w-4" />
-            </Button>
-          </div>
-        </>
-      ) : null}
-
-      {step === 'note' ? (
-        <>
-          <Card className="border-slate-200">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-base">Anything else to flag?</CardTitle>
-              <CardDescription>
-                Wins, blockers, or context that is useful for the next review conversation.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <Textarea
-                value={openNote}
-                onChange={(event) => setOpenNote(event.target.value)}
-                placeholder="Optional note"
-                rows={5}
-              />
-              <div className="rounded-lg border border-dashed border-slate-300 bg-slate-50 p-3 text-sm text-slate-600">
-                The current module is intentionally separate from the weekly pulse form so both flows can run in
-                parallel during rollout.
+        return (
+          <div key={definition.metric_key}>
+            {/* Layer header */}
+            {showLayerHeader && (
+              <div
+                className="mb-3.5 flex items-center gap-2"
+                style={{ marginTop: idx === 0 ? 0 : 28 }}
+              >
+                <span className="text-sm" style={{ color: ls.color }}>
+                  {ls.icon}
+                </span>
+                <span
+                  className="text-[11px] font-extrabold uppercase tracking-wider"
+                  style={{ color: ls.color }}
+                >
+                  {PROJECT_CHECKIN_LAYER_LABELS[definition.layer]}
+                </span>
+                <div className="h-px flex-1" style={{ background: ls.border }} />
               </div>
-            </CardContent>
-          </Card>
+            )}
 
-          {submitError ? (
-            <div className="flex items-start gap-2 rounded-lg border border-red-200 bg-red-50 px-3 py-3 text-sm text-red-700">
-              <CircleAlert className="mt-0.5 h-4 w-4" />
-              <span>{submitError}</span>
+            {/* Metric card */}
+            <div
+              className="mb-3 rounded-xl bg-white px-[18px] py-4 transition-all duration-200"
+              style={{
+                border: `1.5px solid ${
+                  score !== null
+                    ? SCORE_COLORS[score].border + '60'
+                    : value.isSkipped
+                      ? '#e2e8f0'
+                      : 'rgba(200,200,210,0.25)'
+                }`,
+              }}
+            >
+              {/* Card header */}
+              <div className="mb-1 flex items-start justify-between">
+                <div className="flex-1">
+                  <div className="flex items-center gap-2">
+                    <span className="text-[15px] font-bold text-slate-800">{definition.name}</span>
+                    <button
+                      type="button"
+                      onClick={(e) => showTooltip(definition, e)}
+                      className="flex h-5 w-5 cursor-pointer items-center justify-center rounded-full border-[1.5px] border-slate-300 bg-transparent p-0 text-[11px] font-bold text-slate-400"
+                    >
+                      ?
+                    </button>
+                    {definition.skippable && !value.isSkipped && (
+                      <button
+                        type="button"
+                        onClick={() => handleSkip(definition.metric_key)}
+                        className="cursor-pointer border-none bg-transparent text-[11px] text-slate-400"
+                      >
+                        Skip (non-technical)
+                      </button>
+                    )}
+                  </div>
+                  <div className="mt-0.5 text-xs text-slate-500">{definition.prompt}</div>
+                </div>
+                {prevScore !== null && SCORE_COLORS[prevScore] && (
+                  <div className="min-w-[50px] text-right">
+                    <div className="text-[10px] font-semibold text-slate-400">Last wk</div>
+                    <div
+                      className="text-base font-extrabold"
+                      style={{ color: SCORE_COLORS[prevScore].fill }}
+                    >
+                      {prevScore}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Skipped state */}
+              {value.isSkipped ? (
+                <div className="mt-2.5 flex items-center justify-between rounded-lg bg-slate-50 px-3 py-2">
+                  <span className="text-xs text-slate-400">Skipped — not applicable</span>
+                  <button
+                    type="button"
+                    onClick={() => handleUndoSkip(definition.metric_key)}
+                    className="cursor-pointer border-none bg-transparent text-[11px] font-semibold text-indigo-500"
+                  >
+                    Undo
+                  </button>
+                </div>
+              ) : (
+                <>
+                  {/* Score buttons */}
+                  <div className="mt-2.5 flex justify-between gap-2">
+                    {[1, 2, 3, 4, 5].map((s) => {
+                      const guide = definition.scale_guide.find((g) => g.score === s);
+                      if (!guide) return null;
+                      return (
+                        <ScoreButton
+                          key={s}
+                          score={s}
+                          selected={score}
+                          onClick={() => handleScore(definition.metric_key, s)}
+                          guide={guide}
+                          disabled={submitting}
+                        />
+                      );
+                    })}
+                  </div>
+
+                  {/* Selected benchmark description */}
+                  {selectedGuide && score !== null && (
+                    <div
+                      className="mt-2.5 rounded-lg px-3 py-2 text-xs font-medium"
+                      style={{
+                        background: SCORE_COLORS[score].bg,
+                        border: `1px solid ${SCORE_COLORS[score].border}40`,
+                        color: SCORE_COLORS[score].text,
+                      }}
+                    >
+                      <strong>{selectedGuide.label}</strong> — {selectedGuide.shortLabel}
+                    </div>
+                  )}
+
+                  {/* Tags + Note (inline when scored) */}
+                  {score !== null && (
+                    <div className="mt-2.5">
+                      {definition.tag_options.length > 0 && (
+                        <TagSelector
+                          tags={definition.tag_options}
+                          selected={value.selectedTags}
+                          onToggle={(tag) => handleTagToggle(definition.metric_key, tag)}
+                        />
+                      )}
+                      <NoteInput
+                        value={value.note}
+                        onChange={(v) => handleNoteChange(definition.metric_key, v)}
+                        placeholder={getNotePlaceholder(definition, score)}
+                      />
+                    </div>
+                  )}
+                </>
+              )}
             </div>
-          ) : null}
-
-          <div className="flex items-center justify-between gap-3">
-            <Button variant="outline" onClick={() => setStep(promptedDefinitions.length > 0 ? 'details' : 'rate')} disabled={submitting}>
-              Back
-            </Button>
-            <Button onClick={submitCheckin} disabled={submitting}>
-              {submitting ? 'Submitting...' : 'Submit project check-in'}
-            </Button>
           </div>
-        </>
-      ) : null}
+        );
+      })}
+
+      {/* Anything else */}
+      <div
+        className="mb-5 mt-7 rounded-xl bg-white px-[18px] py-4"
+        style={{ border: '1.5px solid rgba(200,200,210,0.25)' }}
+      >
+        <div className="mb-1 text-[15px] font-bold text-slate-800">Anything else?</div>
+        <div className="mb-2.5 text-xs text-slate-500">
+          Wins, risks, blockers, or things worth flagging.
+        </div>
+        <NoteInput
+          value={openNote}
+          onChange={setOpenNote}
+          placeholder="Free text — anything the metrics don't capture..."
+        />
+      </div>
+
+      {/* Error */}
+      {submitError && (
+        <div className="mb-3 flex items-start gap-2 rounded-xl border border-red-200 bg-red-50 px-3 py-3 text-sm text-red-700">
+          <CircleAlert className="mt-0.5 h-4 w-4 shrink-0" />
+          <span>{submitError}</span>
+        </div>
+      )}
+
+      {/* Submit button */}
+      <button
+        type="button"
+        onClick={submitCheckin}
+        disabled={!allMetricsAnswered || submitting}
+        className="mb-3 w-full rounded-xl border-none py-3.5 text-[15px] font-bold transition-all duration-200"
+        style={{
+          background: !allMetricsAnswered ? '#e2e8f0' : '#4f46e5',
+          color: !allMetricsAnswered ? '#94a3b8' : '#fff',
+          cursor: !allMetricsAnswered || submitting ? 'default' : 'pointer',
+        }}
+      >
+        {submitting
+          ? 'Submitting...'
+          : !allMetricsAnswered
+            ? `Rate all metrics to submit (${filledCount}/${definitions.length})`
+            : 'Submit Check-in ✓'}
+      </button>
+
+      <div className="mb-6 text-center text-[11px] text-slate-400">
+        Your responses are visible to the team
+      </div>
     </div>
   );
 }
