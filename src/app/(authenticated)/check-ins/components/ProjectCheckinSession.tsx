@@ -370,7 +370,7 @@ function SubmittedView({
           onClick={onEdit}
           className="flex-1 cursor-pointer rounded-[10px] border-[1.5px] border-indigo-200 bg-white py-3 text-sm font-bold text-indigo-600"
         >
-          ← Edit Response
+          ← View Response
         </button>
         <Button asChild className="h-auto flex-1 rounded-[10px] py-3 text-sm font-bold">
           <Link href="/check-ins">Back to Check-ins →</Link>
