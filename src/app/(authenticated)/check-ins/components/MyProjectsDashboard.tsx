@@ -104,20 +104,31 @@ function MyProjectCard({
   isExpanded,
   onToggle,
   activeWeekIndex,
+  timeScale,
+  activeWeekIndices,
+  currentLabel,
 }: {
   project: ProjectCheckinDashboardProject;
   definitions: ProjectCheckinMetricDefinition[];
   isExpanded: boolean;
   onToggle: () => void;
   activeWeekIndex: number;
+  timeScale: 'weeks' | 'months';
+  activeWeekIndices: number[];
+  currentLabel: string;
 }) {
   const safeWeekIndex =
     project.weeks.length > 0
       ? Math.max(0, Math.min(activeWeekIndex, project.weeks.length - 1))
       : 0;
-  const teamScoresLast = PROJECT_CHECKIN_METRIC_KEYS.map((k) =>
-    project.teamScoresByWeek[k]?.[safeWeekIndex] ?? null,
-  ).filter((v): v is number => v !== null);
+  const indicesToUse =
+    timeScale === 'weeks' ? [safeWeekIndex] : activeWeekIndices;
+
+  const teamScoresLast = PROJECT_CHECKIN_METRIC_KEYS.flatMap((k) =>
+    indicesToUse
+      .map((idx) => project.teamScoresByWeek[k]?.[idx] ?? null)
+      .filter((v): v is number => v !== null),
+  );
   const overallTeam =
     teamScoresLast.length > 0
       ? Math.round(
@@ -126,9 +137,11 @@ function MyProjectCard({
         ) / 10
       : null;
   const myScoresLast = project.myScoresByWeek
-    ? (PROJECT_CHECKIN_METRIC_KEYS.map(
-        (k) => project.myScoresByWeek![k]?.[safeWeekIndex] ?? null,
-      ).filter((v): v is number => v !== null) as number[])
+    ? (PROJECT_CHECKIN_METRIC_KEYS.flatMap((k) =>
+        indicesToUse
+          .map((idx) => project.myScoresByWeek![k]?.[idx] ?? null)
+          .filter((v): v is number => v !== null),
+      ) as number[])
     : [];
   const overallMy =
     myScoresLast.length > 0
@@ -142,10 +155,11 @@ function MyProjectCard({
     [definitions],
   );
 
-  const metricsWithData = PROJECT_CHECKIN_METRIC_KEYS.filter(
-    (k) =>
-      project.teamScoresByWeek[k]?.[safeWeekIndex] !== null &&
-      project.teamScoresByWeek[k]?.[safeWeekIndex] !== undefined,
+  const metricsWithData = PROJECT_CHECKIN_METRIC_KEYS.filter((k) =>
+    indicesToUse.some((idx) => {
+      const v = project.teamScoresByWeek[k]?.[idx] ?? null;
+      return v !== null && v !== undefined;
+    }),
   );
 
   return (
@@ -176,7 +190,7 @@ function MyProjectCard({
               {project.name}
             </div>
             <div className="text-[11px] text-slate-400">
-              {project.weeks[safeWeekIndex]?.label ?? ''} · Team health
+              {currentLabel} · Team health
             </div>
           </div>
         </div>
@@ -206,7 +220,11 @@ function MyProjectCard({
       {/* Mini metric bars — always visible */}
       <div className="grid grid-cols-3 gap-x-3 gap-y-1.5 px-5 pb-3.5">
         {metricsWithData.map((k) => {
-          const teamVal = project.teamScoresByWeek[k]?.[safeWeekIndex] ?? null;
+          const teamVal = avg(
+            indicesToUse.map(
+              (idx) => project.teamScoresByWeek[k]?.[idx] ?? null,
+            ),
+          );
           return (
             <div
               key={k}
@@ -236,10 +254,20 @@ function MyProjectCard({
           </div>
           <div className="mb-5 grid gap-1.5">
             {metricsWithData.map((k) => {
-              const team = project.teamScoresByWeek[k]?.[safeWeekIndex] ?? null;
-              const my = project.myScoresByWeek?.[k]?.[safeWeekIndex] ?? null;
+              const team = avg(
+                indicesToUse.map(
+                  (idx) => project.teamScoresByWeek[k]?.[idx] ?? null,
+                ),
+              );
+              const my = project.myScoresByWeek
+                ? avg(
+                    indicesToUse.map(
+                      (idx) => project.myScoresByWeek![k]?.[idx] ?? null,
+                    ),
+                  )
+                : null;
               const prevMy =
-                safeWeekIndex > 0
+                timeScale === 'weeks' && safeWeekIndex > 0
                   ? project.myScoresByWeek?.[k]?.[safeWeekIndex - 1] ?? null
                   : null;
               const myDelta =
@@ -460,22 +488,36 @@ export default function MyProjectsDashboard({
   }, [projects, projectFilter]);
 
   const monthChips = useMemo(() => {
-    if (!projects[0]?.weeks.length) return [] as { key: string; label: string; weekIndex: number }[];
+    if (!projects[0]?.weeks.length)
+      return [] as { key: string; label: string; weekIndices: number[] }[];
     const weeks = projects[0].weeks;
-    const buckets = new Map<string, { label: string; weekIndex: number }>();
+    const buckets = new Map<string, { label: string; weekIndices: number[] }>();
     weeks.forEach((w, idx) => {
       const monthAbbrev = (w.label ?? '').split(' ')[0] ?? '';
       const key = `${monthAbbrev}-${w.year}`;
       const label = `${monthAbbrev} ${w.year}`;
-      // always override so we keep the latest week in that month
-      buckets.set(key, { label, weekIndex: idx });
+      const existing = buckets.get(key);
+      if (existing) {
+        existing.weekIndices.push(idx);
+      } else {
+        buckets.set(key, { label, weekIndices: [idx] });
+      }
     });
     return Array.from(buckets.entries()).map(([key, value]) => ({
       key,
       label: value.label,
-      weekIndex: value.weekIndex,
+      weekIndices: value.weekIndices,
     }));
   }, [projects]);
+
+  const activeWeekIndices = useMemo(() => {
+    if (totalWeeks === 0) return [] as number[];
+    if (timeScale === 'weeks') return [safeWeekIndex];
+    const activeMonth = monthChips.find((m) =>
+      m.weekIndices.includes(safeWeekIndex),
+    );
+    return activeMonth?.weekIndices ?? [safeWeekIndex];
+  }, [monthChips, safeWeekIndex, timeScale, totalWeeks]);
 
   const perceptionGaps = useMemo(() => {
     const gaps: Array<{
@@ -487,12 +529,18 @@ export default function MyProjectsDashboard({
     }> = [];
     const lastIdx = projects[0]?.weeks.length ?? 0;
     if (lastIdx === 0) return gaps;
-    const idx = safeWeekIndex;
+    const indicesToUse =
+      timeScale === 'weeks' ? [safeWeekIndex] : activeWeekIndices;
     for (const p of visibleProjects) {
       if (!p.myScoresByWeek) continue;
       for (const k of PROJECT_CHECKIN_METRIC_KEYS) {
-        const my = p.myScoresByWeek[k]?.[idx] ?? null;
-        const team = p.teamScoresByWeek[k]?.[idx] ?? null;
+        const my =
+          p.myScoresByWeek[k]
+            ? avg(indicesToUse.map((i) => p.myScoresByWeek![k]?.[i] ?? null))
+            : null;
+        const team = avg(
+          indicesToUse.map((i) => p.teamScoresByWeek[k]?.[i] ?? null),
+        );
         if (
           my !== null &&
           team !== null &&
@@ -510,7 +558,7 @@ export default function MyProjectsDashboard({
       }
     }
     return gaps;
-  }, [definitions, safeWeekIndex, visibleProjects]);
+  }, [activeWeekIndices, definitions, safeWeekIndex, timeScale, visibleProjects]);
 
   if (projects.length === 0) {
     return (
@@ -590,10 +638,14 @@ export default function MyProjectsDashboard({
                 <button
                   key={m.key}
                   type="button"
-                  onClick={() => setActiveWeekIndex(m.weekIndex)}
+                  onClick={() =>
+                    setActiveWeekIndex(
+                      m.weekIndices[m.weekIndices.length - 1] ?? 0,
+                    )
+                  }
                   className={cn(
                     'rounded-full px-2 py-0.5 text-[10px]',
-                    m.weekIndex === safeWeekIndex
+                    m.weekIndices.includes(safeWeekIndex)
                       ? 'bg-slate-900 text-white'
                       : 'bg-slate-100 text-slate-500 hover:bg-slate-200',
                   )}
@@ -620,10 +672,13 @@ export default function MyProjectsDashboard({
       {/* Summary cards — team vs your score per project */}
       <div className="mb-5 flex flex-wrap gap-3">
         {visibleProjects.map((p) => {
-          const lastIdx = safeWeekIndex;
-          const teamVals = PROJECT_CHECKIN_METRIC_KEYS.map(
-            (k) => p.teamScoresByWeek[k]?.[lastIdx] ?? null,
-          ).filter((v): v is number => v !== null);
+          const indicesToUse =
+            timeScale === 'weeks' ? [safeWeekIndex] : activeWeekIndices;
+          const teamVals = PROJECT_CHECKIN_METRIC_KEYS.flatMap((k) =>
+            indicesToUse
+              .map((idx) => p.teamScoresByWeek[k]?.[idx] ?? null)
+              .filter((v): v is number => v !== null),
+          );
           const overallTeam =
             teamVals.length > 0
               ? Math.round(
@@ -631,9 +686,11 @@ export default function MyProjectsDashboard({
                 ) / 10
               : null;
           const myVals = p.myScoresByWeek
-            ? (PROJECT_CHECKIN_METRIC_KEYS.map(
-                (k) => p.myScoresByWeek![k]?.[lastIdx] ?? null,
-              ).filter((v): v is number => v !== null) as number[])
+            ? (PROJECT_CHECKIN_METRIC_KEYS.flatMap((k) =>
+                indicesToUse
+                  .map((idx) => p.myScoresByWeek![k]?.[idx] ?? null)
+                  .filter((v): v is number => v !== null),
+              ) as number[])
             : [];
           const overallMy =
             myVals.length > 0
@@ -641,6 +698,12 @@ export default function MyProjectsDashboard({
                   (myVals.reduce((a, b) => a + b, 0) / myVals.length) * 10,
                 ) / 10
               : null;
+          const currentLabel =
+            timeScale === 'weeks'
+              ? p.weeks[safeWeekIndex]?.label ?? ''
+              : monthChips.find((m) =>
+                  m.weekIndices.includes(safeWeekIndex),
+                )?.label ?? '';
           return (
             <div
               key={p.id}
@@ -653,7 +716,7 @@ export default function MyProjectsDashboard({
               <div>
                 <div className="text-xs font-bold text-slate-800">{p.name}</div>
                 <div className="text-[10px] text-slate-400">
-                  {p.weeks[lastIdx]?.label ?? ''}
+                  {currentLabel}
                 </div>
               </div>
               <div className="flex items-center gap-3">
@@ -736,6 +799,15 @@ export default function MyProjectsDashboard({
           definitions={definitions}
           isExpanded={expandedProject === p.id}
           activeWeekIndex={safeWeekIndex}
+          timeScale={timeScale}
+          activeWeekIndices={activeWeekIndices}
+          currentLabel={
+            timeScale === 'weeks'
+              ? p.weeks[safeWeekIndex]?.label ?? ''
+              : monthChips.find((m) =>
+                  m.weekIndices.includes(safeWeekIndex),
+                )?.label ?? ''
+          }
           onToggle={() =>
             setExpandedProject(expandedProject === p.id ? null : p.id)
           }

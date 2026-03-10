@@ -86,32 +86,52 @@ export default function AllProjectsDashboard({
   }, [projects, projectFilter]);
 
   const monthChips = useMemo(() => {
-    if (!projects[0]?.weeks.length) return [] as { key: string; label: string; weekIndex: number }[];
+    if (!projects[0]?.weeks.length)
+      return [] as { key: string; label: string; weekIndices: number[] }[];
     const weeks = projects[0].weeks;
-    const buckets = new Map<string, { label: string; weekIndex: number }>();
+    const buckets = new Map<string, { label: string; weekIndices: number[] }>();
     weeks.forEach((w, idx) => {
       const monthAbbrev = (w.label ?? '').split(' ')[0] ?? '';
       const key = `${monthAbbrev}-${w.year}`;
       const label = `${monthAbbrev} ${w.year}`;
-      buckets.set(key, { label, weekIndex: idx });
+      const existing = buckets.get(key);
+      if (existing) {
+        existing.weekIndices.push(idx);
+      } else {
+        buckets.set(key, { label, weekIndices: [idx] });
+      }
     });
     return Array.from(buckets.entries()).map(([key, value]) => ({
       key,
       label: value.label,
-      weekIndex: value.weekIndex,
+      weekIndices: value.weekIndices,
     }));
   }, [projects]);
 
+  const activeWeekIndices = useMemo(() => {
+    if (totalWeeks === 0) return [] as number[];
+    if (timeScale === 'weeks') return [safeWeekIndex];
+    const activeMonth = monthChips.find((m) => m.weekIndices.includes(safeWeekIndex));
+    return activeMonth?.weekIndices ?? [safeWeekIndex];
+  }, [monthChips, safeWeekIndex, timeScale, totalWeeks]);
+
   const firmAvg: Partial<Record<ProjectCheckinMetricKey, number | null>> = {};
   for (const k of PROJECT_CHECKIN_METRIC_KEYS) {
-    const vals = visibleProjects
-      .map((p) => p.teamScoresByWeek[k]?.[safeWeekIndex] ?? null)
-      .filter((v): v is number => v != null);
-    if (!vals.length) {
+    const perProjectAverages: number[] = [];
+    for (const p of visibleProjects) {
+      const weekVals = activeWeekIndices
+        .map((idx) => p.teamScoresByWeek[k]?.[idx] ?? null)
+        .filter((v): v is number => v != null);
+      if (!weekVals.length) continue;
+      const projectAvg =
+        weekVals.reduce((a, b) => a + b, 0) / weekVals.length;
+      perProjectAverages.push(projectAvg);
+    }
+    if (!perProjectAverages.length) {
       firmAvg[k] = null;
     } else {
       const avg =
-        vals.reduce((a, b) => a + b, 0) / vals.length;
+        perProjectAverages.reduce((a, b) => a + b, 0) / perProjectAverages.length;
       firmAvg[k] = Math.round(avg * 10) / 10;
     }
   }
@@ -177,10 +197,14 @@ export default function AllProjectsDashboard({
                 <button
                   key={m.key}
                   type="button"
-                  onClick={() => setActiveWeekIndex(m.weekIndex)}
+                  onClick={() =>
+                    setActiveWeekIndex(
+                      m.weekIndices[m.weekIndices.length - 1] ?? 0,
+                    )
+                  }
                   className={cn(
                     'rounded-full px-2 py-0.5 text-[10px]',
-                    m.weekIndex === safeWeekIndex
+                    m.weekIndices.includes(safeWeekIndex)
                       ? 'bg-slate-900 text-white'
                       : 'bg-slate-100 text-slate-500 hover:bg-slate-200',
                   )}
@@ -245,29 +269,57 @@ export default function AllProjectsDashboard({
       <div className="grid gap-3 md:grid-cols-2">
         {visibleProjects.map((p) => {
           const idx = safeWeekIndex;
-          const teamVals = PROJECT_CHECKIN_METRIC_KEYS.map(
-            (k) => p.teamScoresByWeek[k]?.[idx] ?? null,
-          ).filter((v): v is number => v != null);
+          const currentWeekIndices =
+            timeScale === 'weeks' ? [idx] : activeWeekIndices;
+
+          const teamVals = PROJECT_CHECKIN_METRIC_KEYS.flatMap((k) =>
+            currentWeekIndices
+              .map((weekIdx) => p.teamScoresByWeek[k]?.[weekIdx] ?? null)
+              .filter((v): v is number => v != null),
+          );
           const overall =
             teamVals.length > 0
               ? Math.round(
                   (teamVals.reduce((a, b) => a + b, 0) / teamVals.length) * 10,
                 ) / 10
               : null;
-          const prevTeamVals =
-            idx > 0
-              ? PROJECT_CHECKIN_METRIC_KEYS.map(
-                  (k) => p.teamScoresByWeek[k]?.[idx - 1] ?? null,
-                ).filter((v): v is number => v != null)
-              : [];
-          const prevOverall =
-            prevTeamVals.length > 0
-              ? Math.round(
+
+          let prevOverall: number | null = null;
+          if (timeScale === 'weeks') {
+            const prevTeamVals =
+              idx > 0
+                ? PROJECT_CHECKIN_METRIC_KEYS.map(
+                    (k) => p.teamScoresByWeek[k]?.[idx - 1] ?? null,
+                  ).filter((v): v is number => v != null)
+                : [];
+            prevOverall =
+              prevTeamVals.length > 0
+                ? Math.round(
+                    (prevTeamVals.reduce((a, b) => a + b, 0) /
+                      prevTeamVals.length) *
+                      10,
+                  ) / 10
+                : null;
+          } else {
+            const activeMonthIndex = monthChips.findIndex((m) =>
+              m.weekIndices.includes(safeWeekIndex),
+            );
+            if (activeMonthIndex > 0) {
+              const prevMonthWeeks = monthChips[activeMonthIndex - 1].weekIndices;
+              const prevTeamVals = PROJECT_CHECKIN_METRIC_KEYS.flatMap((k) =>
+                prevMonthWeeks
+                  .map((weekIdx) => p.teamScoresByWeek[k]?.[weekIdx] ?? null)
+                  .filter((v): v is number => v != null),
+              );
+              if (prevTeamVals.length > 0) {
+                prevOverall = Math.round(
                   (prevTeamVals.reduce((a, b) => a + b, 0) /
                     prevTeamVals.length) *
                     10,
-                ) / 10
-              : null;
+                ) / 10;
+              }
+            }
+          }
           const delta =
             overall != null && prevOverall != null
               ? Math.round((overall - prevOverall) * 10) / 10
@@ -310,7 +362,11 @@ export default function AllProjectsDashboard({
                     {p.name}
                   </div>
                   <div className="text-[10px] text-slate-400">
-                    {p.weeks[idx]?.label ?? ''}
+                    {timeScale === 'weeks'
+                      ? p.weeks[idx]?.label ?? ''
+                      : monthChips.find((m) =>
+                          m.weekIndices.includes(safeWeekIndex),
+                        )?.label ?? ''}
                   </div>
                 </div>
                 {delta != null && delta !== 0 && (

@@ -214,30 +214,10 @@ export async function POST(request: NextRequest) {
     }
 
     const now = new Date().toISOString();
-    const { data: insertedSubmission, error: insertSubmissionError } = await supabase
-      .from('submissions')
-      .insert({
-        user_id: user.id,
-        project_id: body.projectId,
-        type: 'project_checkin',
-        year: body.year,
-        week_number: body.weekNumber,
-        payload_version: body.payloadVersion,
-        open_note: body.openNote.trim() || null,
-        submitted_at: now,
-      })
-      .select('id')
-      .single();
-
-    if (insertSubmissionError || !insertedSubmission) {
-      console.error('Failed to create project check-in submission:', insertSubmissionError);
-      return NextResponse.json({ error: 'Failed to create project check-in submission' }, { status: 500 });
-    }
-
     const responsePayloads = definitions.map((definition) =>
       buildMetricResponse({
         definition,
-        submissionId: insertedSubmission.id,
+        submissionId: 'pending', // actual submission id is assigned inside the RPC
         value: {
           score: requestMetricsByKey.get(definition.metric_key)?.score ?? null,
           isSkipped: requestMetricsByKey.get(definition.metric_key)?.isSkipped ?? false,
@@ -248,18 +228,25 @@ export async function POST(request: NextRequest) {
       }),
     );
 
-    const { error: responseInsertError } = await supabase
-      .from('project_checkin_metric_responses')
-      .insert(responsePayloads);
+    const { data: rpcResult, error: rpcError } = await supabase.rpc('submit_project_checkin', {
+      p_user_id: user.id,
+      p_project_id: body.projectId,
+      p_year: body.year,
+      p_week_number: body.weekNumber,
+      p_payload_version: body.payloadVersion,
+      p_open_note: body.openNote.trim() || null,
+      p_submitted_at: now,
+      p_metric_responses: responsePayloads,
+    });
 
-    if (responseInsertError) {
-      console.error('Failed to save project check-in metric responses:', responseInsertError);
-      return NextResponse.json({ error: 'Failed to save project check-in responses' }, { status: 500 });
+    if (rpcError || !rpcResult) {
+      console.error('Failed to submit project check-in transactionally:', rpcError);
+      return NextResponse.json({ error: 'Failed to submit project check-in' }, { status: 500 });
     }
 
     return NextResponse.json({
       success: true,
-      submissionId: insertedSubmission.id,
+      submissionId: rpcResult as string,
     });
   } catch (error) {
     console.error('Unexpected error in project check-in submission route:', error);
