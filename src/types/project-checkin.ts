@@ -145,3 +145,35 @@ export type ProjectCheckinSubmitResponse = {
   success: boolean;
   submissionId: string;
 };
+
+/** One week slot in the dashboard (last 5 weeks). */
+export type ProjectCheckinDashboardWeek = {
+  year: number;
+  weekNumber: number;
+  /** Short label e.g. "Mar 7" */
+  label: string;
+  submissionPeriodId: number | null;
+};
+
+/** Team (aggregate) scores per metric for one week. */
+export type ProjectCheckinTeamScoresByWeek = Partial<Record<ProjectCheckinMetricKey, number | null>>;
+
+/** User's scores per metric for one week. */
+export type ProjectCheckinMyScoresByWeek = Partial<Record<ProjectCheckinMetricKey, number | null>>;
+
+/** One project in the My Projects dashboard. */
+export type ProjectCheckinDashboardProject = {
+  id: string;
+  name: string;
+  /** Last 5 weeks, oldest first (index 0 = 5 weeks ago). */
+  weeks: ProjectCheckinDashboardWeek[];
+  /** Team average per metric per week index. metrics[metric_key][weekIndex]. */
+  teamScoresByWeek: Record<ProjectCheckinMetricKey, (number | null)[]>;
+  /** User's score per metric per week index, or null if no submission. */
+  myScoresByWeek: Record<ProjectCheckinMetricKey, (number | null)[]> | null;
+};
+
+export type ProjectCheckinMyProjectsDashboard = {
+  projects: ProjectCheckinDashboardProject[];
+  definitions: ProjectCheckinMetricDefinition[];
+};

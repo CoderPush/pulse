@@ -77,7 +77,7 @@ export function WeekSelector({ projectId, year, weekNumber, className }: WeekSel
         >
           <Calendar className="h-4 w-4 shrink-0 text-slate-500" />
           <span className="truncate text-left">
-            {current.labelShort}
+            {current.label}
           </span>
           <ChevronDown className="h-4 w-4 shrink-0 opacity-50" />
         </Button>
