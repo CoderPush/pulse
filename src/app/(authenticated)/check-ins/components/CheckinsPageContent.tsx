@@ -12,25 +12,31 @@ import type {
   ProjectCheckinMetricDefinition,
 } from '@/types/project-checkin';
 import MyProjectsDashboard from './MyProjectsDashboard';
+import AllProjectsDashboard from './AllProjectsDashboard';
 import ProjectCheckinHistoryList from './ProjectCheckinHistoryList';
 
 type CheckinsPageContentProps = {
-  dashboardProjects: ProjectCheckinDashboardProject[];
+  myProjects: ProjectCheckinDashboardProject[];
+  allProjects: ProjectCheckinDashboardProject[];
+  myProjectIds: string[];
   definitions: ProjectCheckinMetricDefinition[];
   historyEntries: ProjectCheckinHistoryEntry[];
 };
 
 const tabs = [
   { key: 'my', label: 'My Projects', countKey: 'my' as const },
+  { key: 'all', label: 'All Projects', countKey: 'all' as const },
   { key: 'history', label: 'History', countKey: 'history' as const },
 ];
 
 export default function CheckinsPageContent({
-  dashboardProjects,
+  myProjects,
+  allProjects,
+  myProjectIds,
   definitions,
   historyEntries,
 }: CheckinsPageContentProps) {
-  const [activeTab, setActiveTab] = useState<'my' | 'history'>('my');
+  const [activeTab, setActiveTab] = useState<'my' | 'all' | 'history'>('my');
 
   return (
     <div className="min-h-screen bg-[#fafaf7]">
@@ -66,14 +72,16 @@ export default function CheckinsPageContent({
         {tabs.map((tab) => {
           const count =
             tab.countKey === 'my'
-              ? dashboardProjects.length
+              ? myProjects.length
+              : tab.countKey === 'all'
+              ? allProjects.length
               : historyEntries.length;
           const isActive = activeTab === tab.key;
           return (
             <button
               key={tab.key}
               type="button"
-              onClick={() => setActiveTab(tab.key as 'my' | 'history')}
+              onClick={() => setActiveTab(tab.key as 'my' | 'all' | 'history')}
               className={cn(
                 'flex items-center gap-1.5 border-b-2 px-4 py-3 text-[13px] font-medium transition-colors',
                 isActive
@@ -99,9 +107,25 @@ export default function CheckinsPageContent({
       <main className="mx-auto max-w-[900px] px-5 py-6">
         {activeTab === 'my' && (
           <MyProjectsDashboard
-            projects={dashboardProjects}
+            projects={myProjects}
             definitions={definitions}
           />
+        )}
+        {activeTab === 'all' && (
+          <div>
+            <div className="mb-1 text-base font-extrabold text-slate-800">
+              All Projects
+            </div>
+            <p className="mb-4 text-[13px] text-slate-500">
+              See how all projects are doing, spot patterns, and find teams you
+              can help.
+            </p>
+            <AllProjectsDashboard
+              projects={allProjects}
+              definitions={definitions}
+              myProjectIds={myProjectIds}
+            />
+          </div>
         )}
         {activeTab === 'history' && (
           <div>

@@ -1,5 +1,6 @@
 import { createClient } from '@/utils/supabase/server';
 import {
+  getAllProjectsDashboardData,
   getMyProjectsDashboardData,
   getProjectCheckinHistory,
 } from '@/lib/project-checkins/queries';
@@ -15,15 +16,18 @@ export default async function ProjectCheckinsPage() {
     return null;
   }
 
-  const [dashboard, entries] = await Promise.all([
+  const [myDashboard, allDashboard, entries] = await Promise.all([
     getMyProjectsDashboardData(user.id),
+    getAllProjectsDashboardData(user.id),
     getProjectCheckinHistory(user.id),
   ]);
 
   return (
     <CheckinsPageContent
-      dashboardProjects={dashboard.projects}
-      definitions={dashboard.definitions}
+      myProjects={myDashboard.projects}
+      allProjects={allDashboard.projects}
+      myProjectIds={allDashboard.myProjectIds}
+      definitions={allDashboard.definitions}
       historyEntries={entries}
     />
   );

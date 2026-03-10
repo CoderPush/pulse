@@ -146,6 +146,15 @@ export type ProjectCheckinSubmitResponse = {
   submissionId: string;
 };
 
+export type ProjectCheckinTeamLearning = {
+  /** Index into the 5-week window (0 oldest … 4 latest). */
+  weekIndex: number;
+  weekLabel: string;
+  score: number | null;
+  note: string;
+  tags: string[];
+};
+
 /** One week slot in the dashboard (last 5 weeks). */
 export type ProjectCheckinDashboardWeek = {
   year: number;
@@ -171,6 +180,8 @@ export type ProjectCheckinDashboardProject = {
   teamScoresByWeek: Record<ProjectCheckinMetricKey, (number | null)[]>;
   /** User's score per metric per week index, or null if no submission. */
   myScoresByWeek: Record<ProjectCheckinMetricKey, (number | null)[]> | null;
+  /** Team learnings derived from the learning metric's notes and tags. */
+  teamLearnings: ProjectCheckinTeamLearning[];
 };
 
 export type ProjectCheckinMyProjectsDashboard = {

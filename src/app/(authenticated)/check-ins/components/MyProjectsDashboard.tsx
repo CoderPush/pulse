@@ -103,15 +103,20 @@ function MyProjectCard({
   definitions,
   isExpanded,
   onToggle,
+  activeWeekIndex,
 }: {
   project: ProjectCheckinDashboardProject;
   definitions: ProjectCheckinMetricDefinition[];
   isExpanded: boolean;
   onToggle: () => void;
+  activeWeekIndex: number;
 }) {
-  const lastWeekIndex = project.weeks.length - 1;
+  const safeWeekIndex =
+    project.weeks.length > 0
+      ? Math.max(0, Math.min(activeWeekIndex, project.weeks.length - 1))
+      : 0;
   const teamScoresLast = PROJECT_CHECKIN_METRIC_KEYS.map((k) =>
-    project.teamScoresByWeek[k]?.[lastWeekIndex] ?? null,
+    project.teamScoresByWeek[k]?.[safeWeekIndex] ?? null,
   ).filter((v): v is number => v !== null);
   const overallTeam =
     teamScoresLast.length > 0
@@ -122,7 +127,7 @@ function MyProjectCard({
       : null;
   const myScoresLast = project.myScoresByWeek
     ? (PROJECT_CHECKIN_METRIC_KEYS.map(
-        (k) => project.myScoresByWeek![k]?.[lastWeekIndex] ?? null,
+        (k) => project.myScoresByWeek![k]?.[safeWeekIndex] ?? null,
       ).filter((v): v is number => v !== null) as number[])
     : [];
   const overallMy =
@@ -139,8 +144,8 @@ function MyProjectCard({
 
   const metricsWithData = PROJECT_CHECKIN_METRIC_KEYS.filter(
     (k) =>
-      project.teamScoresByWeek[k]?.[lastWeekIndex] !== null &&
-      project.teamScoresByWeek[k]?.[lastWeekIndex] !== undefined,
+      project.teamScoresByWeek[k]?.[safeWeekIndex] !== null &&
+      project.teamScoresByWeek[k]?.[safeWeekIndex] !== undefined,
   );
 
   return (
@@ -171,7 +176,7 @@ function MyProjectCard({
               {project.name}
             </div>
             <div className="text-[11px] text-slate-400">
-              {project.weeks[lastWeekIndex]?.label ?? ''} · Team health
+              {project.weeks[safeWeekIndex]?.label ?? ''} · Team health
             </div>
           </div>
         </div>
@@ -201,7 +206,7 @@ function MyProjectCard({
       {/* Mini metric bars — always visible */}
       <div className="grid grid-cols-3 gap-x-3 gap-y-1.5 px-5 pb-3.5">
         {metricsWithData.map((k) => {
-          const teamVal = project.teamScoresByWeek[k]?.[lastWeekIndex] ?? null;
+          const teamVal = project.teamScoresByWeek[k]?.[safeWeekIndex] ?? null;
           return (
             <div
               key={k}
@@ -231,11 +236,11 @@ function MyProjectCard({
           </div>
           <div className="mb-5 grid gap-1.5">
             {metricsWithData.map((k) => {
-              const team = project.teamScoresByWeek[k]?.[lastWeekIndex] ?? null;
-              const my = project.myScoresByWeek?.[k]?.[lastWeekIndex] ?? null;
+              const team = project.teamScoresByWeek[k]?.[safeWeekIndex] ?? null;
+              const my = project.myScoresByWeek?.[k]?.[safeWeekIndex] ?? null;
               const prevMy =
-                lastWeekIndex > 0
-                  ? project.myScoresByWeek?.[k]?.[lastWeekIndex - 1] ?? null
+                safeWeekIndex > 0
+                  ? project.myScoresByWeek?.[k]?.[safeWeekIndex - 1] ?? null
                   : null;
               const myDelta =
                 my !== null && prevMy !== null ? my - prevMy : null;
@@ -381,9 +386,46 @@ function MyProjectCard({
             <div className="mb-2 text-[13px] font-bold text-emerald-700">
               📚 Team Learnings
             </div>
-            <div className="rounded-[10px] border border-emerald-200/50 bg-emerald-50/80 px-3.5 py-2.5 text-xs text-emerald-800">
-              No team learnings shared yet for this project.
-            </div>
+            {project.teamLearnings.length === 0 ? (
+              <div className="rounded-[10px] border border-emerald-200/50 bg-emerald-50/80 px-3.5 py-2.5 text-xs text-emerald-800">
+                No team learnings shared yet for this project.
+              </div>
+            ) : (
+              <div className="space-y-1.5">
+                {project.teamLearnings.slice(0, 4).map((l, idx) => (
+                  <div
+                    key={`${l.weekIndex}-${idx}-${l.weekLabel}`}
+                    className="rounded-[9px] border border-emerald-200/60 bg-emerald-50/80 px-3 py-2 text-[11px] text-emerald-900"
+                  >
+                    <div className="mb-0.5 flex items-center justify-between gap-2">
+                      <span className="font-semibold">Week {l.weekLabel}</span>
+                      {l.score != null && (
+                        <span className="text-[10px] font-bold text-emerald-700">
+                          Score {l.score}
+                        </span>
+                      )}
+                    </div>
+                    {l.tags.length > 0 && (
+                      <div className="mb-0.5 flex flex-wrap gap-1">
+                        {l.tags.map((tag) => (
+                          <span
+                            key={tag}
+                            className="rounded-full bg-emerald-100 px-1.5 py-0.5 text-[10px] font-medium text-emerald-800"
+                          >
+                            {tag}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                    {l.note && (
+                      <div className="text-[11px] leading-snug text-emerald-900">
+                        {l.note}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -401,6 +443,39 @@ export default function MyProjectsDashboard({
   definitions,
 }: MyProjectsDashboardProps) {
   const [expandedProject, setExpandedProject] = useState<string | null>(null);
+  const totalWeeks = projects[0]?.weeks.length ?? 0;
+  const [activeWeekIndex, setActiveWeekIndex] = useState(() =>
+    totalWeeks > 0 ? totalWeeks - 1 : 0,
+  );
+  const [timeScale, setTimeScale] = useState<'weeks' | 'months'>('weeks');
+  const [projectFilter, setProjectFilter] = useState('');
+
+  const safeWeekIndex =
+    totalWeeks > 0 ? Math.max(0, Math.min(activeWeekIndex, totalWeeks - 1)) : 0;
+
+  const visibleProjects = useMemo(() => {
+    if (!projectFilter.trim()) return projects;
+    const q = projectFilter.toLowerCase();
+    return projects.filter((p) => p.name.toLowerCase().includes(q));
+  }, [projects, projectFilter]);
+
+  const monthChips = useMemo(() => {
+    if (!projects[0]?.weeks.length) return [] as { key: string; label: string; weekIndex: number }[];
+    const weeks = projects[0].weeks;
+    const buckets = new Map<string, { label: string; weekIndex: number }>();
+    weeks.forEach((w, idx) => {
+      const monthAbbrev = (w.label ?? '').split(' ')[0] ?? '';
+      const key = `${monthAbbrev}-${w.year}`;
+      const label = `${monthAbbrev} ${w.year}`;
+      // always override so we keep the latest week in that month
+      buckets.set(key, { label, weekIndex: idx });
+    });
+    return Array.from(buckets.entries()).map(([key, value]) => ({
+      key,
+      label: value.label,
+      weekIndex: value.weekIndex,
+    }));
+  }, [projects]);
 
   const perceptionGaps = useMemo(() => {
     const gaps: Array<{
@@ -412,8 +487,8 @@ export default function MyProjectsDashboard({
     }> = [];
     const lastIdx = projects[0]?.weeks.length ?? 0;
     if (lastIdx === 0) return gaps;
-    const idx = lastIdx - 1;
-    for (const p of projects) {
+    const idx = safeWeekIndex;
+    for (const p of visibleProjects) {
       if (!p.myScoresByWeek) continue;
       for (const k of PROJECT_CHECKIN_METRIC_KEYS) {
         const my = p.myScoresByWeek[k]?.[idx] ?? null;
@@ -456,10 +531,96 @@ export default function MyProjectsDashboard({
 
   return (
     <div>
+      {/* Controls: time + project filter */}
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+        <div className="flex items-center gap-2">
+          <span className="text-[11px] font-medium text-slate-500">
+            Time
+          </span>
+          <div className="inline-flex rounded-full bg-slate-100 p-0.5 text-[11px]">
+            <button
+              type="button"
+              onClick={() => setTimeScale('weeks')}
+              className={cn(
+                'rounded-full px-2.5 py-0.5',
+                timeScale === 'weeks'
+                  ? 'bg-white text-slate-900 shadow-sm'
+                  : 'text-slate-500',
+              )}
+            >
+              Weeks
+            </button>
+            <button
+              type="button"
+              onClick={() => setTimeScale('months')}
+              className={cn(
+                'rounded-full px-2.5 py-0.5',
+                timeScale === 'months'
+                  ? 'bg-white text-slate-900 shadow-sm'
+                  : 'text-slate-500',
+              )}
+            >
+              Months
+            </button>
+          </div>
+
+          {timeScale === 'weeks' && totalWeeks > 0 && (
+            <div className="ml-2 flex flex-wrap gap-1">
+              {projects[0].weeks.map((w, idx) => (
+                <button
+                  key={`${w.year}-${w.weekNumber}`}
+                  type="button"
+                  onClick={() => setActiveWeekIndex(idx)}
+                  className={cn(
+                    'rounded-full px-2 py-0.5 text-[10px]',
+                    idx === safeWeekIndex
+                      ? 'bg-slate-900 text-white'
+                      : 'bg-slate-100 text-slate-500 hover:bg-slate-200',
+                  )}
+                >
+                  {idx === totalWeeks - 1 ? 'Latest' : w.label}
+                </button>
+              ))}
+            </div>
+          )}
+
+          {timeScale === 'months' && monthChips.length > 0 && (
+            <div className="ml-2 flex flex-wrap gap-1">
+              {monthChips.map((m) => (
+                <button
+                  key={m.key}
+                  type="button"
+                  onClick={() => setActiveWeekIndex(m.weekIndex)}
+                  className={cn(
+                    'rounded-full px-2 py-0.5 text-[10px]',
+                    m.weekIndex === safeWeekIndex
+                      ? 'bg-slate-900 text-white'
+                      : 'bg-slate-100 text-slate-500 hover:bg-slate-200',
+                  )}
+                >
+                  {m.label}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <div className="flex items-center gap-2">
+          <span className="text-[11px] text-slate-500">Filter</span>
+          <input
+            type="text"
+            value={projectFilter}
+            onChange={(e) => setProjectFilter(e.target.value)}
+            placeholder="Search projects"
+            className="h-8 rounded-lg border border-slate-200 bg-white px-2 text-[12px] text-slate-700 outline-none ring-0 placeholder:text-slate-400 focus:border-indigo-400"
+          />
+        </div>
+      </div>
+
       {/* Summary cards — team vs your score per project */}
       <div className="mb-5 flex flex-wrap gap-3">
-        {projects.map((p) => {
-          const lastIdx = p.weeks.length - 1;
+        {visibleProjects.map((p) => {
+          const lastIdx = safeWeekIndex;
           const teamVals = PROJECT_CHECKIN_METRIC_KEYS.map(
             (k) => p.teamScoresByWeek[k]?.[lastIdx] ?? null,
           ).filter((v): v is number => v !== null);
@@ -568,12 +729,13 @@ export default function MyProjectsDashboard({
       <div className="mb-3 text-base font-extrabold text-slate-800">
         My Projects
       </div>
-      {projects.map((p) => (
+      {visibleProjects.map((p) => (
         <MyProjectCard
           key={p.id}
           project={p}
           definitions={definitions}
           isExpanded={expandedProject === p.id}
+          activeWeekIndex={safeWeekIndex}
           onToggle={() =>
             setExpandedProject(expandedProject === p.id ? null : p.id)
           }

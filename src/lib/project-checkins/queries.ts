@@ -9,6 +9,7 @@ import type {
   ProjectCheckinMetricKey,
   ProjectCheckinMetricResponse,
   ProjectCheckinSubmission,
+  ProjectCheckinTeamLearning,
 } from '@/types/project-checkin';
 import { PROJECT_CHECKIN_METRIC_KEYS } from '@/types/project-checkin';
 import { format, getISOWeek, getISOWeekYear, setISOWeek, startOfISOWeek, subWeeks } from 'date-fns';
@@ -417,6 +418,30 @@ export async function getMyProjectsDashboardData(userId: string): Promise<{
     teamScoresByProjectAndWeek.set(projectId, out);
   }
 
+  // Team learnings from learning metric notes & tags
+  const learningsByProject = new Map<string, ProjectCheckinTeamLearning[]>();
+  for (const r of allResponses) {
+    if (r.metric_key !== 'learning_velocity') continue;
+    const pw = submissionToProjectWeek.get(r.submission_id);
+    if (!pw) continue;
+    const hasNote = (r.note ?? '').trim().length > 0;
+    const hasTags = r.selected_tags.length > 0;
+    if (!hasNote && !hasTags) continue;
+
+    const weekLabel = weekLabels[pw.weekIndex] ?? '';
+    const entry: ProjectCheckinTeamLearning = {
+      weekIndex: pw.weekIndex,
+      weekLabel,
+      score: r.score,
+      note: r.note ?? '',
+      tags: r.selected_tags,
+    };
+
+    const list = learningsByProject.get(pw.projectId) ?? [];
+    list.push(entry);
+    learningsByProject.set(pw.projectId, list);
+  }
+
   const { data: subRows } = await supabase
     .from('submissions')
     .select('id, project_id, year, week_number')
@@ -482,14 +507,249 @@ export async function getMyProjectsDashboardData(userId: string): Promise<{
       });
     }
 
+    const teamLearnings =
+      (learningsByProject.get(projectId) ?? []).slice().sort((a, b) => b.weekIndex - a.weekIndex);
+
     return {
       id: project.id,
       name: project.name,
       weeks,
       teamScoresByWeek,
       myScoresByWeek: hasAnyMyScore ? myScoresByWeek : null,
+      teamLearnings,
     };
   });
 
   return { projects, definitions };
+}
+
+export async function getAllProjectsDashboardData(userId: string): Promise<{
+  projects: ProjectCheckinDashboardProject[];
+  definitions: ProjectCheckinMetricDefinition[];
+  myProjectIds: string[];
+}> {
+  const supabase = await createClient();
+  const definitions = await getProjectCheckinMetricDefinitions();
+
+  const fiveWeeks = getLastFiveWeeks();
+  const weekLabels = fiveWeeks.map(({ year, weekNumber }) => {
+    const dayInWeek = setISOWeek(new Date(year, 0, 4), weekNumber);
+    const monday = startOfISOWeek(dayInWeek);
+    return format(monday, 'MMM d');
+  });
+
+  const fiveWeeksSet = new Set(
+    fiveWeeks.map((w) => `${w.year}:${w.weekNumber}`),
+  );
+
+  // All projects that have any project_checkin submissions in the last 5 weeks
+  const { data: allSubRows } = await supabase
+    .from('submissions')
+    .select('id, project_id, year, week_number')
+    .eq('type', 'project_checkin')
+    .not('project_id', 'is', null)
+    .not('year', 'is', null)
+    .not('week_number', 'is', null);
+
+  const projectIdsSet = new Set<string>();
+  const allSubmissionIds: string[] = [];
+  const projectWeekToWeekIndex = new Map<string, number>();
+  for (const s of allSubRows ?? []) {
+    const key = `${s.project_id}:${s.year}:${s.week_number}`;
+    if (!fiveWeeksSet.has(`${s.year}:${s.week_number}`)) continue;
+    const weekIndex = fiveWeeks.findIndex(
+      (w) => w.year === s.year && w.weekNumber === s.week_number,
+    );
+    if (weekIndex === -1) continue;
+    allSubmissionIds.push(s.id);
+    projectWeekToWeekIndex.set(key, weekIndex);
+    projectIdsSet.add(s.project_id as string);
+  }
+
+  const allProjectIds = [...projectIdsSet];
+  if (allProjectIds.length === 0) {
+    return {
+      projects: [],
+      definitions,
+      myProjectIds: [],
+    };
+  }
+
+  const { data: projectRows } = await supabase
+    .from('projects')
+    .select('id, name')
+    .in('id', allProjectIds);
+
+  const projectMap = new Map<string, { id: string; name: string }>();
+  for (const p of projectRows ?? []) {
+    projectMap.set(p.id, { id: p.id, name: p.name });
+  }
+
+  const allResponses = await getMetricResponsesForSubmissionIds(allSubmissionIds);
+
+  const submissionToProjectWeek = new Map<string, { projectId: string; weekIndex: number }>();
+  for (const s of allSubRows ?? []) {
+    const key = `${s.project_id}:${s.year}:${s.week_number}`;
+    const weekIndex = projectWeekToWeekIndex.get(key);
+    if (weekIndex == null) continue;
+    submissionToProjectWeek.set(s.id, { projectId: s.project_id as string, weekIndex });
+  }
+
+  const teamAvgMap = new Map<
+    string,
+    Map<number, Partial<Record<ProjectCheckinMetricKey, number | null>>>
+  >();
+  for (const r of allResponses) {
+    if (r.score == null) continue;
+    const pw = submissionToProjectWeek.get(r.submission_id);
+    if (!pw) continue;
+    let byWeek = teamAvgMap.get(pw.projectId);
+    if (!byWeek) {
+      byWeek = new Map();
+      teamAvgMap.set(pw.projectId, byWeek);
+    }
+    let metrics = byWeek.get(pw.weekIndex);
+    if (!metrics) {
+      metrics = {};
+      byWeek.set(pw.weekIndex, metrics);
+    }
+    const arr = (metrics as Record<string, number[]>)[r.metric_key];
+    if (!arr) (metrics as Record<string, number[]>)[r.metric_key] = [r.score];
+    else arr.push(r.score);
+  }
+
+  const teamScoresByProjectAndWeek = new Map<
+    string,
+    Map<number, Partial<Record<ProjectCheckinMetricKey, number | null>>>
+  >();
+  for (const [projectId, byWeek] of teamAvgMap) {
+    const out = new Map<number, Partial<Record<ProjectCheckinMetricKey, number | null>>>();
+    for (const [weekIndex, metrics] of byWeek) {
+      const averaged: Partial<Record<ProjectCheckinMetricKey, number | null>> = {};
+      for (const k of PROJECT_CHECKIN_METRIC_KEYS) {
+        const arr = (metrics as Record<string, number[]>)[k];
+        if (!arr?.length) {
+          averaged[k] = null;
+        } else {
+          const sum = arr.reduce((a, b) => a + b, 0);
+          averaged[k] = Math.round((sum / arr.length) * 10) / 10;
+        }
+      }
+      out.set(weekIndex, averaged);
+    }
+    teamScoresByProjectAndWeek.set(projectId, out);
+  }
+
+  const learningsByProject = new Map<string, ProjectCheckinTeamLearning[]>();
+  for (const r of allResponses) {
+    if (r.metric_key !== 'learning_velocity') continue;
+    const pw = submissionToProjectWeek.get(r.submission_id);
+    if (!pw) continue;
+    const hasNote = (r.note ?? '').trim().length > 0;
+    const hasTags = r.selected_tags.length > 0;
+    if (!hasNote && !hasTags) continue;
+
+    const weekLabel = weekLabels[pw.weekIndex] ?? '';
+    const entry: ProjectCheckinTeamLearning = {
+      weekIndex: pw.weekIndex,
+      weekLabel,
+      score: r.score,
+      note: r.note ?? '',
+      tags: r.selected_tags,
+    };
+
+    const list = learningsByProject.get(pw.projectId) ?? [];
+    list.push(entry);
+    learningsByProject.set(pw.projectId, list);
+  }
+
+  // My project ids (for MY PROJECT badge in the All Projects tab)
+  const { data: mySubRows } = await supabase
+    .from('submissions')
+    .select('project_id')
+    .eq('user_id', userId)
+    .eq('type', 'project_checkin')
+    .not('project_id', 'is', null);
+  const myProjectIds = [...new Set((mySubRows ?? []).map((r) => r.project_id as string))];
+
+  // My scores per project/week for current user
+  const { data: subRows } = await supabase
+    .from('submissions')
+    .select('id, project_id, year, week_number')
+    .eq('user_id', userId)
+    .eq('type', 'project_checkin')
+    .in('project_id', allProjectIds);
+
+  const submissionIds: string[] = [];
+  const projectWeekToSubmissionId = new Map<string, string>();
+  for (const s of subRows ?? []) {
+    const key = `${s.project_id}:${s.year}:${s.week_number}`;
+    const inRange = fiveWeeks.some(
+      (w) => w.year === s.year && w.weekNumber === s.week_number,
+    );
+    if (inRange) {
+      submissionIds.push(s.id);
+      projectWeekToSubmissionId.set(key, s.id);
+    }
+  }
+
+  const responses = await getMetricResponsesForSubmissionIds(submissionIds);
+  const responsesBySubmissionId = new Map<string, ProjectCheckinMetricResponse[]>();
+  for (const r of responses) {
+    const list = responsesBySubmissionId.get(r.submission_id) ?? [];
+    list.push(r);
+    responsesBySubmissionId.set(r.submission_id, list);
+  }
+
+  const projects: ProjectCheckinDashboardProject[] = allProjectIds.map((projectId) => {
+    const project = projectMap.get(projectId) ?? { id: projectId, name: projectId };
+    const weeks: ProjectCheckinDashboardWeek[] = fiveWeeks.map((w, i) => ({
+      ...w,
+      label: weekLabels[i] ?? '',
+      submissionPeriodId: null,
+    }));
+
+    const teamScoresByWeek: Record<ProjectCheckinMetricKey, (number | null)[]> = {} as Record<
+      ProjectCheckinMetricKey,
+      (number | null)[]
+    >;
+    for (const k of PROJECT_CHECKIN_METRIC_KEYS) {
+      teamScoresByWeek[k] = fiveWeeks.map((_, weekIndex) => {
+        const byWeek = teamScoresByProjectAndWeek.get(projectId)?.get(weekIndex);
+        const v = byWeek?.[k];
+        return v ?? null;
+      });
+    }
+
+    const myScoresByWeek: Record<ProjectCheckinMetricKey, (number | null)[]> = {} as Record<
+      ProjectCheckinMetricKey,
+      (number | null)[]
+    >;
+    let hasAnyMyScore = false;
+    for (const k of PROJECT_CHECKIN_METRIC_KEYS) {
+      myScoresByWeek[k] = fiveWeeks.map((w) => {
+        const key = `${projectId}:${w.year}:${w.weekNumber}`;
+        const subId = projectWeekToSubmissionId.get(key);
+        if (!subId) return null;
+        const resps = responsesBySubmissionId.get(subId) ?? [];
+        const r = resps.find((x) => x.metric_key === k);
+        if (r?.score != null) hasAnyMyScore = true;
+        return r?.score ?? null;
+      });
+    }
+
+    const teamLearnings =
+      (learningsByProject.get(projectId) ?? []).slice().sort((a, b) => b.weekIndex - a.weekIndex);
+
+    return {
+      id: project.id,
+      name: project.name,
+      weeks,
+      teamScoresByWeek,
+      myScoresByWeek: hasAnyMyScore ? myScoresByWeek : null,
+      teamLearnings,
+    };
+  });
+
+  return { projects, definitions, myProjectIds };
 }
