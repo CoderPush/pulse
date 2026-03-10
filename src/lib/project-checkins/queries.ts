@@ -314,6 +314,10 @@ export async function getMyProjectsDashboardData(userId: string): Promise<{
     fiveWeeks.map((w) => `${w.year}:${w.weekNumber}`),
   );
 
+  const fiveWeeksOrFilter = fiveWeeks
+    .map((w) => `and(year.eq.${w.year},week_number.eq.${w.weekNumber})`)
+    .join(',');
+
   const { data: mySubRows } = await supabase
     .from('submissions')
     .select('project_id')
@@ -346,7 +350,8 @@ export async function getMyProjectsDashboardData(userId: string): Promise<{
     .eq('type', 'project_checkin')
     .in('project_id', myProjectIds)
     .not('year', 'is', null)
-    .not('week_number', 'is', null);
+    .not('week_number', 'is', null)
+    .or(fiveWeeksOrFilter);
 
   const allSubmissionIds: string[] = [];
   const projectWeekToWeekIndex = new Map<string, number>();
@@ -447,7 +452,8 @@ export async function getMyProjectsDashboardData(userId: string): Promise<{
     .select('id, project_id, year, week_number')
     .eq('user_id', userId)
     .eq('type', 'project_checkin')
-    .in('project_id', myProjectIds);
+    .in('project_id', myProjectIds)
+    .or(fiveWeeksOrFilter);
 
   const submissionIds: string[] = [];
   const projectWeekToSubmissionId = new Map<string, string>();
@@ -542,6 +548,10 @@ export async function getAllProjectsDashboardData(userId: string): Promise<{
     fiveWeeks.map((w) => `${w.year}:${w.weekNumber}`),
   );
 
+  const fiveWeeksOrFilter = fiveWeeks
+    .map((w) => `and(year.eq.${w.year},week_number.eq.${w.weekNumber})`)
+    .join(',');
+
   // All projects that have any project_checkin submissions in the last 5 weeks
   const { data: allSubRows } = await supabase
     .from('submissions')
@@ -549,7 +559,8 @@ export async function getAllProjectsDashboardData(userId: string): Promise<{
     .eq('type', 'project_checkin')
     .not('project_id', 'is', null)
     .not('year', 'is', null)
-    .not('week_number', 'is', null);
+    .not('week_number', 'is', null)
+    .or(fiveWeeksOrFilter);
 
   const projectIdsSet = new Set<string>();
   const allSubmissionIds: string[] = [];
@@ -678,7 +689,8 @@ export async function getAllProjectsDashboardData(userId: string): Promise<{
     .select('id, project_id, year, week_number')
     .eq('user_id', userId)
     .eq('type', 'project_checkin')
-    .in('project_id', allProjectIds);
+    .in('project_id', allProjectIds)
+    .or(fiveWeeksOrFilter);
 
   const submissionIds: string[] = [];
   const projectWeekToSubmissionId = new Map<string, string>();
