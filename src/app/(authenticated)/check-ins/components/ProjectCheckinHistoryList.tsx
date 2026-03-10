@@ -89,7 +89,11 @@ export default function ProjectCheckinHistoryList({
                     : undefined;
                   const score = response.is_skipped ? null : response.score;
                   const scoreColors =
-                    score && SCORE_COLORS[score as keyof typeof SCORE_COLORS];
+                    score != null
+                      ? (SCORE_COLORS[score as 1 | 2 | 3 | 4 | 5] as
+                          | (typeof SCORE_COLORS)[1]
+                          | undefined)
+                      : undefined;
 
                   return (
                     <div

@@ -65,15 +65,7 @@ export default function AllProjectsDashboard({
   definitions,
   myProjectIds,
 }: AllProjectsDashboardProps) {
-  if (!projects.length) {
-    return (
-      <div className="rounded-xl border border-slate-200 bg-white px-5 py-6 text-sm text-slate-500">
-        No projects have check-ins in the last few weeks yet.
-      </div>
-    );
-  }
-
-  const totalWeeks = projects[0].weeks.length;
+  const totalWeeks = projects[0]?.weeks.length ?? 0;
   const [activeWeekIndex, setActiveWeekIndex] = useState(() =>
     totalWeeks > 0 ? totalWeeks - 1 : 0,
   );
@@ -214,33 +206,39 @@ export default function AllProjectsDashboard({
       {/* Firm health bars */}
       <div className="rounded-xl border border-slate-200 bg-white px-5 py-4">
         <div className="mb-3 text-[13px] font-bold text-slate-800">
-          Organization-wide Metrics (latest week)
+          Organization-wide Metrics
         </div>
-        <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-          {PROJECT_CHECKIN_METRIC_KEYS.map((k) => {
-            const v = firmAvg[k];
-            if (v == null) return null;
-            const def = defMap.get(k);
-            const layerStyle = def ? PROJECT_CHECKIN_LAYER_STYLES[def.layer] : null;
-            return (
-              <div key={k} className="flex items-center gap-2">
-                <span
-                  className="w-[70px] flex-shrink-0 text-right text-[10px] font-semibold"
-                  style={{ color: layerStyle?.color ?? '#64748b' }}
-                >
-                  {def?.name.split(' ')[0] ?? k}
-                </span>
-                <ScoreBar value={v} height={8} />
-                <span
-                  className="w-7 text-right text-[12px] font-extrabold"
-                  style={{ color: getScoreColor(v) }}
-                >
-                  {v.toFixed(1)}
-                </span>
-              </div>
-            );
-          })}
-        </div>
+        {totalWeeks === 0 || !visibleProjects.length ? (
+          <div className="text-[12px] text-slate-500">
+            No project check-ins available for the selected window.
+          </div>
+        ) : (
+          <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+            {PROJECT_CHECKIN_METRIC_KEYS.map((k) => {
+              const v = firmAvg[k];
+              if (v == null) return null;
+              const def = defMap.get(k);
+              const layerStyle = def ? PROJECT_CHECKIN_LAYER_STYLES[def.layer] : null;
+              return (
+                <div key={k} className="flex items-center gap-2">
+                  <span
+                    className="w-[70px] flex-shrink-0 text-right text-[10px] font-semibold"
+                    style={{ color: layerStyle?.color ?? '#64748b' }}
+                  >
+                    {def?.name.split(' ')[0] ?? k}
+                  </span>
+                  <ScoreBar value={v} height={8} />
+                  <span
+                    className="w-7 text-right text-[12px] font-extrabold"
+                    style={{ color: getScoreColor(v) }}
+                  >
+                    {v.toFixed(1)}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        )}
       </div>
 
       {/* Projects grid */}

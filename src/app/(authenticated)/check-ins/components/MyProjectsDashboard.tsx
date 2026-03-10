@@ -510,7 +510,7 @@ export default function MyProjectsDashboard({
       }
     }
     return gaps;
-  }, [projects, definitions]);
+  }, [definitions, safeWeekIndex, visibleProjects]);
 
   if (projects.length === 0) {
     return (
