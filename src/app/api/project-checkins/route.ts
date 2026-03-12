@@ -165,6 +165,15 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: `${definition.name} requires a score` }, { status: 400 });
       }
 
+      const scoreNeedsEvidence =
+        !metric.isSkipped && metric.score !== null && (metric.score <= 2 || metric.score === 5);
+      if (scoreNeedsEvidence && metric.note.trim().length === 0) {
+        return NextResponse.json(
+          { error: `${definition.name} requires a comment as evidence for score ${metric.score}` },
+          { status: 400 },
+        );
+      }
+
       const invalidTags = metric.selectedTags.filter((tag) => !definition.tag_options.includes(tag));
       if (invalidTags.length > 0) {
         return NextResponse.json(

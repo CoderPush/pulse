@@ -60,8 +60,9 @@ function buildInitialMetricValues(args: {
 
 function getNotePlaceholder(definition: ProjectCheckinMetricDefinition, score: number): string {
   if (definition.always_comment) return 'What did the team learn this week? (required)';
-  if (score <= 2) return "What's the main issue? (recommended)";
-  if (score >= 4) return "What's going well? Worth sharing? (recommended)";
+  if (score <= 2) return 'Required evidence: what issue happened, impact, and next step?';
+  if (score === 5) return 'Required evidence: what proves this is a 5 this week?';
+  if (score >= 4) return "What's going well? Worth sharing? (optional)";
   return 'Add context (optional)';
 }
 
@@ -416,6 +417,17 @@ export default function ProjectCheckinSession({
     return value.score !== null;
   });
 
+  const metricsMissingRequiredComment = useMemo(() => {
+    return definitions.filter((def) => {
+      const value = metricValues[def.metric_key];
+      if (!value || value.isSkipped || value.score === null) return false;
+      const scoreNeedsEvidence = value.score <= 2 || value.score === 5;
+      return scoreNeedsEvidence && value.note.trim().length === 0;
+    });
+  }, [definitions, metricValues]);
+
+  const allRequiredCommentsProvided = metricsMissingRequiredComment.length === 0;
+
   const handleScore = useCallback((metricKey: ProjectCheckinMetricKey, score: number) => {
     setMetricValues((current) => ({
       ...current,
@@ -464,6 +476,15 @@ export default function ProjectCheckinSession({
   );
 
   async function submitCheckin() {
+    if (!allRequiredCommentsProvided) {
+      setSubmitError(
+        `Please add evidence comments for: ${metricsMissingRequiredComment
+          .map((def) => def.name)
+          .join(', ')}.`,
+      );
+      return;
+    }
+
     setSubmitting(true);
     setSubmitError(null);
 
@@ -711,6 +732,11 @@ export default function ProjectCheckinSession({
                         onChange={(v) => handleNoteChange(definition.metric_key, v)}
                         placeholder={getNotePlaceholder(definition, score)}
                       />
+                      {(score <= 2 || score === 5) && value.note.trim().length === 0 && (
+                        <div className="mt-1 text-[11px] font-medium text-red-600">
+                          Add comment evidence before submitting for score {score}.
+                        </div>
+                      )}
                     </div>
                   )}
                 </>
@@ -748,18 +774,20 @@ export default function ProjectCheckinSession({
       <button
         type="button"
         onClick={submitCheckin}
-        disabled={!allMetricsAnswered || submitting}
+        disabled={!allMetricsAnswered || !allRequiredCommentsProvided || submitting}
         className="mb-3 w-full rounded-xl border-none py-3.5 text-[15px] font-bold transition-all duration-200"
         style={{
-          background: !allMetricsAnswered ? '#e2e8f0' : '#4f46e5',
-          color: !allMetricsAnswered ? '#94a3b8' : '#fff',
-          cursor: !allMetricsAnswered || submitting ? 'default' : 'pointer',
+          background: !allMetricsAnswered || !allRequiredCommentsProvided ? '#e2e8f0' : '#4f46e5',
+          color: !allMetricsAnswered || !allRequiredCommentsProvided ? '#94a3b8' : '#fff',
+          cursor: !allMetricsAnswered || !allRequiredCommentsProvided || submitting ? 'default' : 'pointer',
         }}
       >
         {submitting
           ? 'Submitting...'
           : !allMetricsAnswered
             ? `Rate all metrics to submit (${filledCount}/${definitions.length})`
+            : !allRequiredCommentsProvided
+              ? 'Add required evidence comments to submit'
             : 'Submit Check-in ✓'}
       </button>
 
