@@ -153,7 +153,6 @@ function ProjectDetail({
 
   const latestWeekLabel = selectedPeriodLabel || project.weeks[latestWeekIndex]?.label || 'Latest';
   const latestOverall = projectOverall(project, latestWeekIndex);
-  const latestResponseRate = project.responseRatesByWeek?.[latestWeekIndex] ?? null;
   const latestLearnWeek = project.teamLearnings.find((learning) => learning.weekIndex === latestWeekIndex);
   const latestTags = latestLearnWeek ? [...new Set(latestLearnWeek.tags)] : [];
   const recentNotes = project.teamLearnings
