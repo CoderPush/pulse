@@ -5,6 +5,14 @@ import { useState } from 'react';
 import { Plus } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog';
 import { cn } from '@/lib/utils';
 import type {
   ProjectCheckinDashboardProject,
@@ -28,6 +36,43 @@ const tabs = [
   { key: 'all', label: 'All Projects', countKey: 'all' as const },
   { key: 'history', label: 'History', countKey: 'history' as const },
 ];
+
+function ScoreGuideBadge({
+  score,
+  label,
+  shortLabel,
+  description,
+}: {
+  score: number;
+  label: string;
+  shortLabel: string;
+  description?: string;
+}) {
+  const toneByScore: Record<number, string> = {
+    1: 'border-red-200 bg-red-50 text-red-700',
+    2: 'border-orange-200 bg-orange-50 text-orange-700',
+    3: 'border-amber-200 bg-amber-50 text-amber-700',
+    4: 'border-green-200 bg-green-50 text-green-700',
+    5: 'border-emerald-200 bg-emerald-50 text-emerald-700',
+  };
+
+  return (
+    <div
+      className={cn(
+        'rounded-md border px-2.5 py-1.5 text-[11px] leading-tight',
+        toneByScore[score] ?? 'border-slate-200 bg-slate-50 text-slate-700',
+      )}
+    >
+      <div className="font-bold">
+        {score} · {label}
+      </div>
+      <div className="mt-0.5">{shortLabel}</div>
+      {description?.trim() && (
+        <div className="mt-1 text-[10px] leading-relaxed opacity-90">{description}</div>
+      )}
+    </div>
+  );
+}
 
 export default function CheckinsPageContent({
   myProjects,
@@ -55,16 +100,68 @@ export default function CheckinsPageContent({
             </div>
           </div>
         </div>
-        <Button
-          asChild
-          size="sm"
-          className="rounded-lg bg-indigo-600 font-semibold text-white hover:bg-indigo-500"
-        >
-          <Link href="/check-ins/new">
-            <Plus className="mr-2 h-4 w-4" />
-            New check-in
-          </Link>
-        </Button>
+        <div className="flex items-center gap-2">
+          <Dialog>
+            <DialogTrigger asChild>
+              <button
+                type="button"
+                className="inline-flex h-9 items-center rounded-lg border border-slate-600 bg-slate-800 px-3 text-[12px] font-semibold text-slate-200 transition-colors hover:border-slate-500 hover:bg-slate-700"
+              >
+                Benchmark guide
+              </button>
+            </DialogTrigger>
+            <DialogContent className="max-h-[85vh] max-w-[860px] overflow-hidden p-0 sm:max-w-[860px]">
+              <div className="max-h-[85vh] overflow-y-auto p-5">
+                <DialogHeader className="mb-4">
+                  <DialogTitle>Project Health Metric Benchmarks</DialogTitle>
+                  <DialogDescription>
+                    Shared scoring guide for all project check-in metrics (1-5 scale).
+                  </DialogDescription>
+                </DialogHeader>
+
+                <div className="space-y-3">
+                  {definitions.map((definition) => (
+                    <section
+                      key={definition.metric_key}
+                      className="rounded-xl border border-slate-200 bg-white p-3.5"
+                    >
+                      <div className="mb-1.5">
+                        <div className="text-[14px] font-bold text-slate-800">{definition.name}</div>
+                        <div className="text-[12px] text-slate-500">{definition.prompt}</div>
+                      </div>
+
+                      <div className="grid gap-1.5 sm:grid-cols-2 lg:grid-cols-3">
+                        {definition.scale_guide
+                          .slice()
+                          .sort((a, b) => a.score - b.score)
+                          .map((guide) => (
+                            <ScoreGuideBadge
+                              key={`${definition.metric_key}-${guide.score}`}
+                              score={guide.score}
+                              label={guide.label}
+                              shortLabel={guide.shortLabel}
+                              description={guide.description}
+                            />
+                          ))}
+                      </div>
+                    </section>
+                  ))}
+                </div>
+              </div>
+            </DialogContent>
+          </Dialog>
+
+          <Button
+            asChild
+            size="sm"
+            className="rounded-lg bg-indigo-600 font-semibold text-white hover:bg-indigo-500"
+          >
+            <Link href="/check-ins/new">
+              <Plus className="mr-2 h-4 w-4" />
+              New check-in
+            </Link>
+          </Button>
+        </div>
       </header>
 
       {/* Tab bar */}

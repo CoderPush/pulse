@@ -445,10 +445,8 @@ export default function AllProjectsDashboard({
                     </div>
                   )}
                   {p.teamLearnings[0].note && (
-                    <div className="text-[11px] leading-snug text-emerald-900">
-                      {p.teamLearnings[0].note.length > 90
-                        ? `${p.teamLearnings[0].note.slice(0, 90)}…`
-                        : p.teamLearnings[0].note}
+                    <div className="whitespace-pre-wrap text-[11px] leading-snug text-emerald-900">
+                      {p.teamLearnings[0].note}
                     </div>
                   )}
                 </div>
