@@ -1,14 +1,19 @@
 'use client';
 
+import dynamic from 'next/dynamic';
 import { useState } from 'react';
 import { User } from '@supabase/supabase-js';
 import WeeklyPulseForm from '@/components/WeeklyPulseForm';
-import { CopilotChat } from '@copilotkit/react-ui';
 import { createWeeklyPulseFormAssistanceGuidePrompt } from '@/lib/prompt';
 import { getGreeting } from '@/utils/getGreetings';
 import { getDisplayName } from '@/lib/auth/user';
 import { X, MessageSquare } from 'lucide-react';
 import { WeeklyPulseSubmission } from '@/types/weekly-pulse';
+
+const CopilotChat = dynamic(
+  () => import('@copilotkit/react-ui').then((mod) => mod.CopilotChat),
+  { ssr: false },
+);
 
 interface PulseLayoutProps {
   user: User;
