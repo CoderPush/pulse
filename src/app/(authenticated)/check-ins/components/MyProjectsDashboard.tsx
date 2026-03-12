@@ -161,6 +161,13 @@ function MyProjectCard({
       return v !== null && v !== undefined;
     }),
   );
+  const submittedUsersForPeriod = Array.from(
+    new Map(
+      indicesToUse
+        .flatMap((idx) => project.submittedUsersByWeek[idx] ?? [])
+        .map((user) => [user.id, user]),
+    ).values(),
+  ).sort((a, b) => a.name.localeCompare(b.name));
 
   return (
     <div
@@ -407,6 +414,28 @@ function MyProjectCard({
               No leadership response for this project yet. Responses will
               appear here when added.
             </div>
+          </div>
+
+          <div className="mb-4">
+            <div className="mb-2 text-[13px] font-bold text-sky-700">
+              👥 Submitted by ({submittedUsersForPeriod.length})
+            </div>
+            {submittedUsersForPeriod.length === 0 ? (
+              <div className="rounded-[10px] border border-sky-200/50 bg-sky-50/80 px-3.5 py-2.5 text-xs text-sky-800">
+                No submissions in this period.
+              </div>
+            ) : (
+              <div className="flex flex-wrap gap-1.5">
+                {submittedUsersForPeriod.map((user) => (
+                  <span
+                    key={user.id}
+                    className="rounded-full border border-sky-200 bg-sky-50 px-2 py-0.5 text-[10px] font-medium text-sky-800"
+                  >
+                    {user.name}
+                  </span>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* Team learnings */}

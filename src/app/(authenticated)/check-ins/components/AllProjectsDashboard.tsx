@@ -271,6 +271,11 @@ export default function AllProjectsDashboard({
           const idx = safeWeekIndex;
           const currentWeekIndices =
             timeScale === 'weeks' ? [idx] : activeWeekIndices;
+          const submittedCount = new Set(
+            currentWeekIndices.flatMap((weekIdx) =>
+              (p.submittedUsersByWeek[weekIdx] ?? []).map((user) => user.id),
+            ),
+          ).size;
 
           const teamVals = PROJECT_CHECKIN_METRIC_KEYS.flatMap((k) =>
             currentWeekIndices
@@ -341,11 +346,16 @@ export default function AllProjectsDashboard({
               key={p.id}
               className="relative rounded-xl border border-slate-200 bg-white px-4 py-3.5"
             >
-              {isMine && (
-                <div className="absolute right-3 top-2 rounded-full bg-indigo-50 px-2 py-0.5 text-[9px] font-bold text-indigo-600">
-                  MY PROJECT
+              <div className="absolute right-3 top-2 flex items-center gap-1">
+                {isMine && (
+                  <div className="rounded-full bg-indigo-50 px-2 py-0.5 text-[9px] font-bold text-indigo-600">
+                    MY PROJECT
+                  </div>
+                )}
+                <div className="rounded-full bg-slate-100 px-2 py-0.5 text-[9px] font-semibold text-slate-600">
+                  Submitted: {submittedCount}
                 </div>
-              )}
+              </div>
               <div className="mb-2 flex items-center gap-2">
                 <div
                   className="flex h-9 w-9 items-center justify-center rounded-lg text-sm font-extrabold"
@@ -370,7 +380,7 @@ export default function AllProjectsDashboard({
                   </div>
                 </div>
                 {delta != null && delta !== 0 && (
-                  <div className="ml-auto text-[11px] font-bold">
+                  <div className="text-[11px] font-bold">
                     <span
                       className={
                         delta > 0 ? 'text-emerald-600' : 'text-red-600'

@@ -21,21 +21,19 @@ import type {
 } from '@/types/project-checkin';
 import MyProjectsDashboard from './MyProjectsDashboard';
 import AllProjectsDashboard from './AllProjectsDashboard';
+import LeadershipDashboard from './LeadershipDashboard';
 import ProjectCheckinHistoryList from './ProjectCheckinHistoryList';
 
 type CheckinsPageContentProps = {
   myProjects: ProjectCheckinDashboardProject[];
   allProjects: ProjectCheckinDashboardProject[];
   myProjectIds: string[];
+  isAdmin: boolean;
   definitions: ProjectCheckinMetricDefinition[];
   historyEntries: ProjectCheckinHistoryEntry[];
 };
 
-const tabs = [
-  { key: 'my', label: 'My Projects', countKey: 'my' as const },
-  { key: 'all', label: 'All Projects', countKey: 'all' as const },
-  { key: 'history', label: 'History', countKey: 'history' as const },
-];
+type TabKey = 'my' | 'all' | 'leadership' | 'history';
 
 function ScoreGuideBadge({
   score,
@@ -78,10 +76,17 @@ export default function CheckinsPageContent({
   myProjects,
   allProjects,
   myProjectIds,
+  isAdmin,
   definitions,
   historyEntries,
 }: CheckinsPageContentProps) {
-  const [activeTab, setActiveTab] = useState<'my' | 'all' | 'history'>('my');
+  const [activeTab, setActiveTab] = useState<TabKey>('my');
+  const tabs: { key: TabKey; label: string; count: number }[] = [
+    { key: 'my', label: 'My Projects', count: myProjects.length },
+    { key: 'all', label: 'All Projects', count: allProjects.length },
+    ...(isAdmin ? [{ key: 'leadership' as const, label: 'Leadership View', count: allProjects.length }] : []),
+    { key: 'history', label: 'History', count: historyEntries.length },
+  ];
 
   return (
     <div className="min-h-screen bg-[#fafaf7]">
@@ -167,18 +172,12 @@ export default function CheckinsPageContent({
       {/* Tab bar */}
       <div className="flex border-b border-slate-200 bg-white px-6">
         {tabs.map((tab) => {
-          const count =
-            tab.countKey === 'my'
-              ? myProjects.length
-              : tab.countKey === 'all'
-              ? allProjects.length
-              : historyEntries.length;
           const isActive = activeTab === tab.key;
           return (
             <button
               key={tab.key}
               type="button"
-              onClick={() => setActiveTab(tab.key as 'my' | 'all' | 'history')}
+              onClick={() => setActiveTab(tab.key)}
               className={cn(
                 'flex items-center gap-1.5 border-b-2 px-4 py-3 text-[13px] font-medium transition-colors',
                 isActive
@@ -193,7 +192,7 @@ export default function CheckinsPageContent({
                   isActive ? 'bg-indigo-100 text-indigo-600' : 'bg-slate-100 text-slate-400',
                 )}
               >
-                {count}
+                {tab.count}
               </span>
             </button>
           );
@@ -201,7 +200,12 @@ export default function CheckinsPageContent({
       </div>
 
       {/* Content */}
-      <main className="mx-auto max-w-[900px] px-5 py-6">
+      <main
+        className={cn(
+          'mx-auto px-5 py-6',
+          activeTab === 'leadership' ? 'max-w-[1200px]' : 'max-w-[900px]',
+        )}
+      >
         {activeTab === 'my' && (
           <MyProjectsDashboard
             projects={myProjects}
@@ -221,6 +225,15 @@ export default function CheckinsPageContent({
               projects={allProjects}
               definitions={definitions}
               myProjectIds={myProjectIds}
+            />
+          </div>
+        )}
+        {activeTab === 'leadership' && isAdmin && (
+          <div>
+            
+            <LeadershipDashboard
+              projects={allProjects}
+              definitions={definitions}
             />
           </div>
         )}

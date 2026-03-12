@@ -170,6 +170,11 @@ export type ProjectCheckinTeamScoresByWeek = Partial<Record<ProjectCheckinMetric
 /** User's scores per metric for one week. */
 export type ProjectCheckinMyScoresByWeek = Partial<Record<ProjectCheckinMetricKey, number | null>>;
 
+export type ProjectCheckinParticipant = {
+  id: string;
+  name: string;
+};
+
 /** One project in the My Projects dashboard. */
 export type ProjectCheckinDashboardProject = {
   id: string;
@@ -178,6 +183,14 @@ export type ProjectCheckinDashboardProject = {
   weeks: ProjectCheckinDashboardWeek[];
   /** Team average per metric per week index. metrics[metric_key][weekIndex]. */
   teamScoresByWeek: Record<ProjectCheckinMetricKey, (number | null)[]>;
+  /** Team response rate per week index (0..1), null when unavailable. */
+  responseRatesByWeek?: (number | null)[];
+  /** Distinct submitter count per week index. */
+  submitterCountsByWeek: number[];
+  /** Distinct submitted users per week index. */
+  submittedUsersByWeek: ProjectCheckinParticipant[][];
+  /** Distinct users seen on this project in the 5-week window. */
+  participantPool: ProjectCheckinParticipant[];
   /** User's score per metric per week index, or null if no submission. */
   myScoresByWeek: Record<ProjectCheckinMetricKey, (number | null)[]> | null;
   /** Team learnings derived from the learning metric's notes and tags. */
