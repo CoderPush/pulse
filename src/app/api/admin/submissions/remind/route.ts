@@ -98,7 +98,9 @@ export async function POST(request: Request) {
           type = 'late-3';
       }
 
-      const submissionLink = `${baseUrl}/?week=${week}&year=${year}`;
+      // Weekly pulse reminder should send users to the check-ins dashboard.
+      // (No week/year query params.)
+      const submissionLink = `${baseUrl}/check-ins`;
       const emailContent = template({ 
         name: recipient.name, 
         week, 
