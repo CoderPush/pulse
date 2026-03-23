@@ -307,7 +307,7 @@ describe('/api/admin/submissions/remind POST Handler', () => {
         name: user.name, 
         week, 
         year, 
-        link: expect.stringContaining(`/?week=${week}&year=${year}`) 
+        link: expect.stringContaining(`/check-ins`) 
       });
     });
 
@@ -339,7 +339,7 @@ describe('/api/admin/submissions/remind POST Handler', () => {
         name: user.name, 
         week, 
         year, 
-        link: expect.stringContaining(`/?week=${week}&year=${year}`) 
+        link: expect.stringContaining(`/check-ins`) 
       });
     });
 
@@ -371,7 +371,7 @@ describe('/api/admin/submissions/remind POST Handler', () => {
         name: user.name, 
         week, 
         year, 
-        link: expect.stringContaining(`/?week=${week}&year=${year}`) 
+        link: expect.stringContaining(`/check-ins`) 
       });
     });
 
@@ -403,7 +403,7 @@ describe('/api/admin/submissions/remind POST Handler', () => {
         name: user.name, 
         week, 
         year, 
-        link: expect.stringContaining(`/?week=${week}&year=${year}`) 
+        link: expect.stringContaining(`/check-ins`) 
       });
     });
   });

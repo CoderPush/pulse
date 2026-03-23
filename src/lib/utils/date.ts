@@ -27,8 +27,12 @@ export function getWeekDates(weekNumber: number, year: number = new Date().getFu
     endDate,
     formattedRange: {
       start: format(startDate, 'MMM d'),
-      end: format(endDate, 'MMM d')
-    }
+      end: format(endDate, 'MMM d'),
+    },
+    /** e.g. "Mar 2 – Mar 8, 2026" */
+    label: `${format(startDate, 'MMM d')} – ${format(endDate, 'MMM d')}, ${format(endDate, 'yyyy')}`,
+    /** e.g. "Mon, Mar 2 – Sun, Mar 8, 2026" */
+    labelLong: `${format(startDate, 'EEE, MMM d')} – ${format(endDate, 'EEE, MMM d')}, ${format(endDate, 'yyyy')}`,
   };
 }
 
