@@ -11,15 +11,6 @@ interface Submission {
   user_id: string;
 }
 
-interface ReminderLog {
-  user_id: string;
-  sent_at: string;
-  sent_by: string;
-  sender?: {
-    name: string | null;
-  };
-}
-
 interface WeekInfo {
   year: number;
   week_number: number;
@@ -95,55 +86,11 @@ export async function GET(request: Request) {
       );
     }
 
-    // Get latest reminders for this week
-    const { data: reminders, error: remindersError } = await supabase
-      .from('reminder_logs')
-      .select(`
-        user_id,
-        sent_at,
-        sent_by,
-        sender:users!reminder_logs_sent_by_fkey (
-          name
-        )
-      `)
-      .eq('year', targetYear)
-      .eq('week_number', targetWeek)
-      .order('sent_at', { ascending: false })
-      .returns<ReminderLog[]>();
-
-    if (remindersError) {
-      console.error('Error fetching reminders:', remindersError);
-      return NextResponse.json(
-        { error: 'Failed to fetch reminders' },
-        { status: 500 }
-      );
-    }
-
     // Create sets for efficient lookup
     const submittedUserIds = new Set(submissions?.map(s => s.user_id) || []);
-    const remindersByUser = new Map<string, {
-      sent_at: string;
-      sent_by: string;
-      sent_by_name: string | null;
-    }>();
-
-    reminders?.forEach(reminder => {
-      // Only keep the latest reminder for each user
-      if (!remindersByUser.has(reminder.user_id)) {
-        remindersByUser.set(reminder.user_id, {
-          sent_at: reminder.sent_at,
-          sent_by: reminder.sent_by,
-          sent_by_name: reminder.sender?.name ?? null
-        });
-      }
-    });
 
     // Filter users who haven't submitted
-    const missingUsers = users?.filter(user => !submittedUserIds.has(user.id))
-      .map(user => ({
-        ...user,
-        last_reminder: remindersByUser.get(user.id) || null
-      }));
+    const missingUsers = users?.filter(user => !submittedUserIds.has(user.id));
 
     console.log('Missing users count:', missingUsers?.length);
 
