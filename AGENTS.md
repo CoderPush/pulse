@@ -1,44 +1,50 @@
 # AGENTS Instructions
 
-This repository contains a Next.js 15 web application called **Pulse**. It uses Supabase for authentication and database storage, Tailwind CSS for styling, and shadcn/ui components.
-
-Codex should also read `CLAUDE.md` in the repository root for extended architecture and workflow details.
+Pulse is a Next.js 15 App Router app (React 19, TypeScript, Tailwind 4) with Supabase and AI features via CopilotKit + AWS Bedrock.
 
 ## Scope
-These instructions apply to the entire repository.
+Applies to the entire repository.
 
-## Development Guidelines
-- Use TypeScript for all source code.
-- Prefer functional React components and hooks.
-- Use the utility `cn` from `src/lib/utils.ts` to compose CSS class names.
-- UI components should follow the shadcn/ui style (see `components.json`).
-- Keep new code and tests within the `src/` directory structure.
-- Start the development server with `pnpm dev` and build with `pnpm build`.
-- Manage Supabase locally with:
-  - `supabase start` – start local instance
-  - `supabase stop` – stop local instance
-  - `supabase status` – check status
-  - `supabase db reset` – reset database **(destroys local data, confirm before running)**
+## Commands
+- `pnpm dev` (Turbopack)
+- `pnpm build`
+- `pnpm lint`
+- `pnpm test:run` (Vitest)
+- `pnpm test:e2e` (Playwright)
+- `pnpm test:e2e:install` (Playwright browsers)
 
-## Linting and Formatting
-- Run `pnpm lint` before committing to ensure ESLint rules pass.
+## Supabase (local)
+- `supabase start`, `supabase stop`, `supabase status`
+- `supabase db reset` is destructive, confirm first.
+- Local services: API `http://localhost:54321`, Studio `http://localhost:54323`, Inbucket `http://localhost:54324` (SMTP `54325`).
+- Fill `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY` from `supabase status`.
 
-## Testing
-- Unit tests use **Vitest**. Run them with `pnpm test:run`.
-- End-to-end tests use **Playwright** and require a local Supabase instance and the MCP server. Run them with `pnpm test:e2e`.
-- Additional helpers: `pnpm test:e2e:debug` and `pnpm test:coverage`.
-- If tests fail due to environment limitations (e.g. missing dependencies), note this in the PR.
+## Env
+- Copy `.env.example` and `supabase/.env.example`.
+- Required for auth: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_AUTH_GOOGLE_CLIENT_ID`, `SUPABASE_AUTH_GOOGLE_SECRET`.
+- Company domain: `NEXT_PUBLIC_COMPANY_EMAIL_DOMAIN`.
+- AI (optional): `BEDROCK_AWS_ACCESS_KEY_ID`, `BEDROCK_AWS_SECRET_ACCESS_KEY`, `BEDROCK_MODEL_ID`, optional `BEDROCK_AWS_REGION`.
+- Auth/admin: `JWT_SECRET`, `TEST_USER_PASSWORD`.
+- Cron/admin: `CRON_SECRET`, `NEXT_PUBLIC_APP_URL`.
+- Email: `RESEND_API_KEY`, `EMAIL_FROM`, optional `NEXT_PUBLIC_ENABLE_EMAILS` (local uses Inbucket).
+- Optional: `HR_EMAIL`, `LANGSMITH_*`, `ALLOWED_CORS_DOMAIN_SUFFIX`, `CODERPUSH_PULSE_SECRET_KEY`, `NEXT_PUBLIC_GA_ID`.
 
-## Commit Messages
-Use short descriptive commit messages, for example:
-```
-feat: add weekly submission API
-docs: update README with setup steps
-```
+## Code Conventions
+- TypeScript only. Prefer functional React components and hooks.
+- Use `cn` from `src/lib/utils.ts` for class names.
+- shadcn/ui style rules in `components.json`.
+- Keep new code and tests in `src/`.
 
-## Additional Notes
-- E2E tests must drive the browser via the MCP server as described in `docs/prompt-work-with-playwright-mcp.md`.
-- For Supabase-related tests, see `docs/supabase-in-test.md` for the hybrid approach using mocks and a local instance.
-- Consult `docs/test-plan.md` and `docs/implementation.md` for deeper explanations.
-- `CLAUDE.md` contains extended documentation for human contributors.
-- Keep documentation updates in the `docs/` directory when adding new features.
+## Key Locations
+- `src/app/(authenticated)` user routes: daily-pulse, daily-tasks, submissions, history, leaderboard, profile.
+- `src/app/admin` admin UI.
+- `src/app/api` API routes: daily tasks, submissions, questions, comments, leaderboard, monthly reports, cron.
+- Supabase clients: `src/utils/supabase/{server,client,api,middleware}.ts`.
+- Email: `src/lib/email.ts` (Inbucket in dev, Resend in prod).
+
+## Testing Notes
+- E2E tests require local Supabase and the Playwright MCP workflow. See `docs/prompt-work-with-playwright-mcp.md`.
+- For Supabase testing strategy, see `docs/supabase-in-test.md` and verify against current code.
+
+## Docs
+- `CLAUDE.md` has extra context; treat `docs/` as design notes and verify against code.
